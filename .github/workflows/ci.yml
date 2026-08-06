@@ -1,0 +1,42 @@
+# Basic CI workflow for this repo.
+# Learning reference: this file defines a GitHub Actions workflow, which
+# runs automated jobs in response to repo events (like pushes or PRs).
+
+name: CI
+
+# "on" defines the events that trigger this workflow.
+on:
+  # Run on every push, to any branch.
+  push:
+  # Also run on every pull request that targets the main branch.
+  pull_request:
+    branches:
+      - main
+
+# "jobs" defines the units of work the workflow performs.
+# Each job runs in its own fresh virtual machine.
+jobs:
+  build:
+    # The type of virtual machine to run the job on.
+    runs-on: ubuntu-latest
+
+    # "steps" are the sequence of tasks executed within the job.
+    steps:
+      # Checks out this repository's code so later steps can access it.
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      # Installs and configures Python 3.13 on the runner.
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # Installs the project's Python dependencies listed in requirements.txt.
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Compiles every .py file in the repo to catch basic syntax errors,
+      # without actually running the code.
+      - name: Run basic Python syntax check
+        run: python -m py_compile $(find . -name "*.py")
