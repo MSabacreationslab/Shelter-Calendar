@@ -40,3 +40,22 @@ jobs:
       # without actually running the code.
       - name: Run basic Python syntax check
         run: python -m py_compile $(find . -name "*.py")
+
+      # Runs the test suite with pytest, writing results to a JUnit XML
+      # report instead of just printing pass/fail to the console. JUnit XML
+      # is a standard format that other tools (dashboards, PR annotations,
+      # the artifact we upload below) can parse.
+      - name: Run tests with structured output
+        run: pytest --junitxml=test-results.xml
+
+      # Uploads the JUnit XML report as a workflow artifact so it can be
+      # downloaded/inspected after the run, even from a failed build.
+      # "if: always()" makes this step run regardless of whether earlier
+      # steps (like the test run) failed. Without it, a test failure would
+      # skip this step and we'd lose the very report that explains why.
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results.xml
