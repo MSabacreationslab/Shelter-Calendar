@@ -1,0 +1,9 @@
+{
+  "month": "2026-08",
+  "estimated_spend_usd": 0.0,
+  "thresholds_notified": [],
+  "current_failure": {
+    "signature": "",
+    "attempts": 0
+  }
+}
