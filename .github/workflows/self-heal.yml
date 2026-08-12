@@ -1,0 +1,59 @@
+# Self-heal workflow: reacts to CI failures on the "CI" workflow and
+# (in a later step) will attempt an automated fix, subject to the
+# monthly spend cap tracked in .github/self-heal-usage.json.
+#
+# This first version only wires up the trigger and the budget check —
+# no auto-fix logic yet, per CLAUDE.md's auto-fix retry policy.
+
+name: Self-Heal
+
+# Runs after the CI workflow finishes, but only proceeds (via the job-level
+# "if" below) when that run concluded in failure.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+jobs:
+  budget-check:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks out the repo so later steps can read the usage tracking file.
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      # Reads the current month's estimated spend and whether it has
+      # crossed the $18 cap. jq ships preinstalled on ubuntu-latest runners,
+      # so no extra setup is needed just to read one JSON file.
+      - name: Read self-heal usage budget
+        id: budget
+        run: |
+          SPEND=$(jq -r '.estimated_spend_usd' .github/self-heal-usage.json)
+          OVER_BUDGET=$(jq -r '.estimated_spend_usd >= 18' .github/self-heal-usage.json)
+          echo "spend=$SPEND" >> "$GITHUB_OUTPUT"
+          echo "over_budget=$OVER_BUDGET" >> "$GITHUB_OUTPUT"
+
+      # Budget cap reached: notify via a new issue and stop. No auto-fix
+      # steps should run after this, since we're over the monthly cap.
+      - name: Notify budget cap reached
+        if: steps.budget.outputs.over_budget == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: "Self-heal paused: monthly budget cap reached",
+              body: "Self-heal paused — monthly budget cap reached ($18), needs manual attention."
+            });
+
+      # Under budget: confirm and stop here. Later steps (the actual
+      # auto-fix invocation) will be added after this point and should
+      # also gate on over_budget == 'false'.
+      - name: Budget check passed
+        if: steps.budget.outputs.over_budget == 'false'
+        run: echo "Budget check passed — under monthly cap ($SPEND), safe to proceed."
+        env:
+          SPEND: ${{ steps.budget.outputs.spend }}
