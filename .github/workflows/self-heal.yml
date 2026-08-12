@@ -1,9 +1,12 @@
-# Self-heal workflow: reacts to CI failures on the "CI" workflow and
-# (in a later step) will attempt an automated fix, subject to the
-# monthly spend cap tracked in .github/self-heal-usage.json.
+# Self-heal workflow: reacts to CI failures on the "CI" workflow, checks
+# a monthly spend cap and a per-failure retry cap, and if both are clear,
+# hands the failure to Claude Code to classify and (if safe) fix.
 #
-# This first version only wires up the trigger and the budget check —
-# no auto-fix logic yet, per CLAUDE.md's auto-fix retry policy.
+# .github/self-heal-usage.json documents the initial/default state, but
+# the live spend total, notified thresholds, and failure-retry counter
+# all live in GitHub Actions cache entries at runtime rather than being
+# committed back to main on every run -- see the comments further down
+# for why.
 
 name: Self-Heal
 
@@ -37,15 +40,52 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v4
 
-      # Reads the current month's estimated spend and whether it has
-      # crossed the $18 cap. jq ships preinstalled on ubuntu-latest runners,
-      # so no extra setup is needed just to read one JSON file.
+      # Restores the spend/threshold state cached by the previous run, if
+      # any. This lives in a cache entry for the same reason the
+      # failure-state counter does (see the retry-tracking notes further
+      # down) -- CLAUDE.md forbids committing it to main -- but spend has
+      # an extra reason: this value gates whether the job proceeds at all,
+      # on every single run, so it has to be live rather than only
+      # updated when a human gets around to merging a PR.
+      - name: Restore cached spend state
+        uses: actions/cache/restore@v4
+        with:
+          path: self-heal-state/spend.json
+          key: self-heal-spend-state
+
+      # Reads this month's estimated spend and already-notified
+      # thresholds, and checks whether spend has crossed the $18 cap.
+      # Falls back to the committed file's values on the very first run
+      # (no cache entry yet), and resets both on a new calendar month so
+      # "first time this month" threshold checks stay correct. jq ships
+      # preinstalled on ubuntu-latest runners.
       - name: Read self-heal usage budget
         id: budget
         run: |
-          SPEND=$(jq -r '.estimated_spend_usd' .github/self-heal-usage.json)
-          OVER_BUDGET=$(jq -r '.estimated_spend_usd >= 18' .github/self-heal-usage.json)
+          mkdir -p self-heal-state
+          CURRENT_MONTH=$(date -u +%Y-%m)
+
+          if [ -f self-heal-state/spend.json ]; then
+            MONTH=$(jq -r '.month' self-heal-state/spend.json)
+            SPEND=$(jq -r '.estimated_spend_usd' self-heal-state/spend.json)
+            THRESHOLDS=$(jq -c '.thresholds_notified' self-heal-state/spend.json)
+          else
+            MONTH=$(jq -r '.month' .github/self-heal-usage.json)
+            SPEND=$(jq -r '.estimated_spend_usd' .github/self-heal-usage.json)
+            THRESHOLDS=$(jq -c '.thresholds_notified' .github/self-heal-usage.json)
+          fi
+
+          if [ "$MONTH" != "$CURRENT_MONTH" ]; then
+            MONTH="$CURRENT_MONTH"
+            SPEND=0
+            THRESHOLDS='[]'
+          fi
+
+          OVER_BUDGET=$(jq -n --argjson spend "$SPEND" '$spend >= 18')
+
+          echo "month=$MONTH" >> "$GITHUB_OUTPUT"
           echo "spend=$SPEND" >> "$GITHUB_OUTPUT"
+          echo "thresholds_notified=$THRESHOLDS" >> "$GITHUB_OUTPUT"
           echo "over_budget=$OVER_BUDGET" >> "$GITHUB_OUTPUT"
 
       # Budget cap reached: notify via a new issue and stop. No auto-fix
@@ -248,6 +288,7 @@ jobs:
       # pushes) -- verify that's actually configured on this repo before
       # relying on this workflow.
       - name: Invoke Claude Code auto-fix
+        id: autofix
         if: steps.budget.outputs.over_budget == 'false' && fromJSON(steps.attempts.outputs.attempts) <= 3
         uses: anthropics/claude-code-action@v1
         env:
@@ -297,3 +338,131 @@ jobs:
                - In the PR description, state that this is attempt
                  ${{ steps.attempts.outputs.attempts }} of 3 for this
                  failure signature, and briefly explain the fix.
+
+      # --- Spend estimation ---
+      #
+      # Runs whenever the auto-fix step could have spent tokens, i.e.
+      # whenever it was invoked at all -- regardless of whether it
+      # succeeded, failed, or Claude classified the failure NOVEL and made
+      # no fix. always() makes this run even if the invoke step errored
+      # partway through; the budget/attempts conditions (same as the
+      # invoke step's) keep it from running when that step was skipped
+      # entirely, since no tokens were spent in that case.
+      #
+      # claude-code-action doesn't expose cost or token counts as direct
+      # outputs (checked action.yml rather than assuming). It does expose
+      # execution_file, the path to the underlying Claude Code CLI's JSON
+      # result, which includes total_cost_usd and a usage token breakdown
+      # -- that's the authoritative source. jq -s (slurp) is used so this
+      # works whether the file holds one JSON object or newline-delimited
+      # stream events (the last event carries the final totals either
+      # way). Falls back to computing from token counts at Sonnet's
+      # published per-token pricing ($2/MTok input, $10/MTok output) if
+      # total_cost_usd isn't present, and to a logged $0 rather than a
+      # fabricated number if neither is available. Worth verifying against
+      # a real run's execution_file, since its exact shape isn't part of
+      # the action's documented output contract.
+      - name: Estimate auto-fix token cost
+        id: cost
+        if: always() && steps.budget.outputs.over_budget == 'false' && fromJSON(steps.attempts.outputs.attempts) <= 3
+        env:
+          EXECUTION_FILE: ${{ steps.autofix.outputs.execution_file }}
+        run: |
+          COST=""
+          if [ -n "$EXECUTION_FILE" ] && [ -f "$EXECUTION_FILE" ]; then
+            COST=$(jq -rs '(.[-1].total_cost_usd // empty)' "$EXECUTION_FILE" 2>/dev/null || echo "")
+
+            if [ -z "$COST" ]; then
+              INPUT_TOKENS=$(jq -rs '(.[-1].usage.input_tokens // 0)' "$EXECUTION_FILE" 2>/dev/null || echo 0)
+              OUTPUT_TOKENS=$(jq -rs '(.[-1].usage.output_tokens // 0)' "$EXECUTION_FILE" 2>/dev/null || echo 0)
+              COST=$(jq -rn --argjson input "$INPUT_TOKENS" --argjson output "$OUTPUT_TOKENS" \
+                '(($input * 2) + ($output * 10)) / 1000000' 2>/dev/null || echo "")
+              if [ -n "$COST" ]; then
+                echo "total_cost_usd not in execution_file; estimated from usage tokens ($INPUT_TOKENS in / $OUTPUT_TOKENS out) at Sonnet's \$2/\$10 per-MTok pricing."
+              fi
+            fi
+          fi
+
+          if [ -z "$COST" ]; then
+            COST=0
+            echo "WARNING: could not determine cost from execution_file (path: '$EXECUTION_FILE'). Recording \$0 for this run -- tracked monthly spend may be undercounted; check this run's execution_file manually."
+          fi
+
+          echo "cost=$COST" >> "$GITHUB_OUTPUT"
+
+      # Adds this run's estimate to the running monthly total, and works
+      # out which of the $15/$18 thresholds were just crossed for the
+      # first time this month (i.e. not already in thresholds_notified).
+      - name: Update spend total and check thresholds
+        id: spend_update
+        if: always() && steps.budget.outputs.over_budget == 'false' && fromJSON(steps.attempts.outputs.attempts) <= 3
+        env:
+          PRIOR_SPEND: ${{ steps.budget.outputs.spend }}
+          THRESHOLDS_NOTIFIED: ${{ steps.budget.outputs.thresholds_notified }}
+          COST: ${{ steps.cost.outputs.cost }}
+        run: |
+          RESULT=$(jq -n \
+            --argjson prior "$PRIOR_SPEND" \
+            --argjson cost "$COST" \
+            --argjson notified "$THRESHOLDS_NOTIFIED" \
+            '($prior + $cost) as $new_spend
+             | ([15, 18] - $notified) as $unnotified
+             | ($unnotified | map(select(. <= $new_spend))) as $newly_crossed
+             | {
+                 new_spend: $new_spend,
+                 thresholds_notified: ($notified + $newly_crossed | unique | sort),
+                 newly_crossed: $newly_crossed
+               }')
+
+          echo "new_spend=$(echo "$RESULT" | jq -r '.new_spend')" >> "$GITHUB_OUTPUT"
+          echo "thresholds_notified=$(echo "$RESULT" | jq -c '.thresholds_notified')" >> "$GITHUB_OUTPUT"
+          echo "newly_crossed=$(echo "$RESULT" | jq -c '.newly_crossed')" >> "$GITHUB_OUTPUT"
+          echo "Estimated spend this month: \$$(echo "$RESULT" | jq -r '.new_spend') (added \$$COST this run)."
+
+      # A threshold was crossed for the first time this month: notify via
+      # a new issue, same pattern as the other self-heal notifications.
+      - name: Notify spend threshold crossed
+        if: >-
+          always() && steps.budget.outputs.over_budget == 'false' &&
+          fromJSON(steps.attempts.outputs.attempts) <= 3 &&
+          steps.spend_update.outputs.newly_crossed != '[]'
+        uses: actions/github-script@v7
+        env:
+          NEW_SPEND: ${{ steps.spend_update.outputs.new_spend }}
+          NEWLY_CROSSED: ${{ steps.spend_update.outputs.newly_crossed }}
+        with:
+          script: |
+            const crossed = JSON.parse(process.env.NEWLY_CROSSED).join(", ");
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: "Self-heal: monthly spend threshold reached",
+              body: `Self-heal estimated spend crossed $${crossed} this month (currently ~$${process.env.NEW_SPEND}).`
+            });
+
+      - name: Save updated spend state
+        if: always() && steps.budget.outputs.over_budget == 'false' && fromJSON(steps.attempts.outputs.attempts) <= 3
+        env:
+          MONTH: ${{ steps.budget.outputs.month }}
+          NEW_SPEND: ${{ steps.spend_update.outputs.new_spend }}
+          THRESHOLDS_NOTIFIED: ${{ steps.spend_update.outputs.thresholds_notified }}
+        run: |
+          mkdir -p self-heal-state
+          jq -n --arg month "$MONTH" --argjson spend "$NEW_SPEND" --argjson notified "$THRESHOLDS_NOTIFIED" \
+                '{month: $month, estimated_spend_usd: $spend, thresholds_notified: $notified}' \
+                > self-heal-state/spend.json
+
+      # Same immutable-cache-key pattern as the failure state: drop the
+      # previous entry before saving the updated one.
+      - name: Drop previous spend cache entry
+        if: always() && steps.budget.outputs.over_budget == 'false' && fromJSON(steps.attempts.outputs.attempts) <= 3
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh cache delete self-heal-spend-state || true
+
+      - name: Cache updated spend state
+        if: always() && steps.budget.outputs.over_budget == 'false' && fromJSON(steps.attempts.outputs.attempts) <= 3
+        uses: actions/cache/save@v4
+        with:
+          path: self-heal-state/spend.json
+          key: self-heal-spend-state
