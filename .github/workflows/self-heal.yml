@@ -19,6 +19,14 @@ jobs:
     if: github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
 
+    # contents: read - checkout. issues: write - notification issues.
+    # actions: write - reading the failed run's logs and managing the
+    # failure-state cache entry (see the retry-tracking steps below).
+    permissions:
+      contents: read
+      issues: write
+      actions: write
+
     steps:
       # Checks out the repo so later steps can read the usage tracking file.
       - name: Check out repository code
@@ -57,3 +65,141 @@ jobs:
         run: echo "Budget check passed — under monthly cap ($SPEND), safe to proceed."
         env:
           SPEND: ${{ steps.budget.outputs.spend }}
+
+      # --- Failure-signature and retry-count tracking ---
+      #
+      # These steps only run when we're under the spend cap. They work out
+      # whether this CI failure is the same one we've already been retrying
+      # or a new/different one, and track how many attempts have been made.
+      #
+      # The counter can't live in .github/self-heal-usage.json the way
+      # estimated_spend_usd does, because updating it on every CI failure
+      # would mean this workflow committing straight to main — which
+      # CLAUDE.md's hard rules forbid ("NEVER commit directly to main. All
+      # work happens on feature branches merged via PR."). Instead the live
+      # counter lives in a GitHub Actions cache entry, keyed by a fixed
+      # name so each run can overwrite the last one. The current_failure
+      # block committed in the JSON file is just the documented initial
+      # state — a human can still reset tracking by hand-editing it via a
+      # normal PR.
+
+      # Restores the failure-state file cached by the previous run, if any.
+      - name: Restore cached failure state
+        if: steps.budget.outputs.over_budget == 'false'
+        uses: actions/cache/restore@v4
+        with:
+          path: self-heal-state/current-failure.json
+          key: self-heal-failure-state
+
+      # No cache entry yet (e.g. first run ever) falls back to the
+      # committed file's current_failure block.
+      - name: Load prior failure state
+        id: prior_state
+        if: steps.budget.outputs.over_budget == 'false'
+        run: |
+          mkdir -p self-heal-state
+          if [ -f self-heal-state/current-failure.json ]; then
+            PRIOR_SIG=$(jq -r '.signature' self-heal-state/current-failure.json)
+            PRIOR_ATTEMPTS=$(jq -r '.attempts' self-heal-state/current-failure.json)
+          else
+            PRIOR_SIG=$(jq -r '.current_failure.signature' .github/self-heal-usage.json)
+            PRIOR_ATTEMPTS=$(jq -r '.current_failure.attempts' .github/self-heal-usage.json)
+          fi
+          echo "signature=$PRIOR_SIG" >> "$GITHUB_OUTPUT"
+          echo "attempts=$PRIOR_ATTEMPTS" >> "$GITHUB_OUTPUT"
+
+      # Pulls the logs for just the failed step(s) of the CI run that
+      # triggered this workflow. gh ships preinstalled on the runner.
+      - name: Fetch failed CI logs
+        if: steps.budget.outputs.over_budget == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run view "${{ github.event.workflow_run.id }}" --log-failed > failed-run-log.txt
+
+      # Extracts a short, stable signature for the failure: the pytest
+      # "FAILED <test> - <ErrorType>" summary line when there is one, since
+      # that identifies the same underlying problem across runs even when
+      # assertion values/messages differ. Falls back to the first line
+      # mentioning "Error" for failures pytest never got to report (e.g. a
+      # syntax error that stopped the suite before it ran).
+      - name: Extract failure signature
+        id: signature
+        if: steps.budget.outputs.over_budget == 'false'
+        run: |
+          PYTEST_LINE=$(grep -m1 -E '^FAILED ' failed-run-log.txt || true)
+          if [ -n "$PYTEST_LINE" ]; then
+            TEST_ID=$(echo "$PYTEST_LINE" | sed -E 's/^FAILED ([^ ]+).*/\1/')
+            ERROR_TYPE=$(echo "$PYTEST_LINE" | sed -E 's/^FAILED [^ ]+ - ([A-Za-z_.]+)?:?.*/\1/')
+            SIGNATURE="${TEST_ID} - ${ERROR_TYPE:-UnknownError}"
+          else
+            ERROR_LINE=$(grep -m1 -E 'Error' failed-run-log.txt || echo "unknown failure")
+            SIGNATURE=$(echo "$ERROR_LINE" | tr -s ' ' | cut -c1-120)
+          fi
+          echo "signature=$SIGNATURE" >> "$GITHUB_OUTPUT"
+
+      # Same signature as last time -> increment the attempt count.
+      # New/different signature (or no prior signature yet) -> reset to 1.
+      - name: Compare signature and update attempt count
+        id: attempts
+        if: steps.budget.outputs.over_budget == 'false'
+        env:
+          PRIOR_SIG: ${{ steps.prior_state.outputs.signature }}
+          PRIOR_ATTEMPTS: ${{ steps.prior_state.outputs.attempts }}
+          NEW_SIG: ${{ steps.signature.outputs.signature }}
+        run: |
+          if [ -n "$PRIOR_SIG" ] && [ "$NEW_SIG" == "$PRIOR_SIG" ]; then
+            NEW_ATTEMPTS=$((PRIOR_ATTEMPTS + 1))
+          else
+            NEW_ATTEMPTS=1
+          fi
+
+          echo "attempts=$NEW_ATTEMPTS" >> "$GITHUB_OUTPUT"
+          echo "signature=$NEW_SIG" >> "$GITHUB_OUTPUT"
+
+      # 3 attempts already failed on this exact signature: notify and stop.
+      # No auto-fix steps should run after this.
+      - name: Notify repeated failure
+        if: steps.budget.outputs.over_budget == 'false' && fromJSON(steps.attempts.outputs.attempts) > 3
+        uses: actions/github-script@v7
+        env:
+          SIGNATURE: ${{ steps.attempts.outputs.signature }}
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: "Self-heal stopped: repeated failure needs review",
+              body: `Self-heal stopped — 3 attempts failed on ${process.env.SIGNATURE}, needs human review.`
+            });
+
+      # Still within the retry budget: write the new state file and log
+      # which attempt this is. Later steps (the actual auto-fix invocation)
+      # will be added after this point and should also gate on
+      # attempts <= 3.
+      - name: Write updated failure state
+        if: steps.budget.outputs.over_budget == 'false' && fromJSON(steps.attempts.outputs.attempts) <= 3
+        env:
+          SIGNATURE: ${{ steps.attempts.outputs.signature }}
+          ATTEMPTS: ${{ steps.attempts.outputs.attempts }}
+        run: |
+          mkdir -p self-heal-state
+          jq -n --arg sig "$SIGNATURE" --argjson attempts "$ATTEMPTS" \
+                '{signature: $sig, attempts: $attempts}' \
+                > self-heal-state/current-failure.json
+
+          echo "Self-heal attempt $ATTEMPTS of 3 for signature: $SIGNATURE"
+
+      # Cache keys are immutable, so the previous entry (if any) has to be
+      # dropped before saving the updated state under the same key.
+      - name: Drop previous cache entry
+        if: steps.budget.outputs.over_budget == 'false' && fromJSON(steps.attempts.outputs.attempts) <= 3
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh cache delete self-heal-failure-state || true
+
+      - name: Cache updated failure state
+        if: steps.budget.outputs.over_budget == 'false' && fromJSON(steps.attempts.outputs.attempts) <= 3
+        uses: actions/cache/save@v4
+        with:
+          path: self-heal-state/current-failure.json
+          key: self-heal-failure-state
