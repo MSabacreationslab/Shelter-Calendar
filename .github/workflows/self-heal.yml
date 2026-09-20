@@ -355,15 +355,22 @@ jobs:
 
                  ---
                  Auto-fix-by: self-heal.yml
+                 Attempt: ${{ steps.attempts.outputs.attempts }}/3
 
       # --- Marker verification (non-blocking) ---
       #
-      # The title prefix and Auto-fix-by trailer are only instructions to
-      # the agent, so verify them on the PR it actually opened (looked up by
-      # the pre-computed branch name). If either is missing, label the PR
-      # marker-missing. This never fails the step or touches the PR beyond
-      # the label: continue-on-error plus `|| true` keep it advisory.
-      # No PR found (NOVEL failure, or the fix never got that far) is fine.
+      # The title prefix, Auto-fix-by trailer, and Attempt trailer are only
+      # instructions to the agent, so verify them on the PR it actually
+      # opened (looked up by the pre-computed branch name). If any is
+      # missing, label the PR marker-missing. This never fails the step or
+      # touches the PR beyond the label: continue-on-error plus `|| true`
+      # keep it advisory. No PR found (NOVEL failure, or the fix never got
+      # that far) is fine.
+      #
+      # The Attempt trailer is the durable per-PR record of the retry count.
+      # The failure-state cache only holds the CURRENT failure's count, so
+      # Step 3 must read "Attempt: N/3" from the PR body, not the cache. It
+      # is checked against this run's exact count, not just its format.
       #
       # The marker-missing label is meant to become an entry on Step 3's
       # exclusion list once merge automation exists, so a marker-missing PR
@@ -378,6 +385,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ steps.branch.outputs.name }}
+          ATTEMPTS: ${{ steps.attempts.outputs.attempts }}
         run: |
           # The branch step is skipped when auto-fix didn't run (over budget
           # or retries exhausted), leaving BRANCH empty. An empty --head
@@ -405,14 +413,17 @@ jobs:
           if ! printf '%s\n' "$PR_BODY" | grep -qxF 'Auto-fix-by: self-heal.yml'; then
             MISSING="${MISSING:+$MISSING, }Auto-fix-by trailer"
           fi
+          if ! printf '%s\n' "$PR_BODY" | grep -qxF "Attempt: ${ATTEMPTS}/3"; then
+            MISSING="${MISSING:+$MISSING, }Attempt trailer"
+          fi
 
           if [ -z "$MISSING" ]; then
-            echo "PR #$PR_NUMBER has both markers."
+            echo "PR #$PR_NUMBER has all markers."
             exit 0
           fi
 
           echo "PR #$PR_NUMBER is missing: $MISSING. Applying marker-missing label."
-          gh label create marker-missing --description "Auto-fix PR missing its title prefix or Auto-fix-by trailer" --color D93F0B 2>/dev/null || true
+          gh label create marker-missing --description "Auto-fix PR missing its title prefix or Auto-fix-by/Attempt trailer" --color D93F0B 2>/dev/null || true
           gh pr edit "$PR_NUMBER" --add-label marker-missing || echo "WARNING: could not label PR #$PR_NUMBER."
           exit 0
 
