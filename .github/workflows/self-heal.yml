@@ -278,6 +278,15 @@ jobs:
       # instructions, to guard against a crafted test name or log line
       # trying to steer the agent (e.g. into merging, or pushing to main).
       #
+      # The prompt makes every auto-fix PR title start with "[auto-fix] "
+      # and its body end with an "Auto-fix-by: self-heal.yml" git trailer
+      # (greppable via `git log --grep="Auto-fix-by:"`). REQUIREMENT for
+      # the future squash-merge automation (Phase 5 Step 3): the trailer
+      # only reaches permanent history if that step passes it explicitly,
+      # e.g. `gh pr merge --squash --body "<text incl. the trailer>"`.
+      # GitHub's default squash message may use the commit list instead of
+      # the PR body, which would silently drop the marker at merge time.
+      #
       # allowed_tools/disallowed_tools below are a best-effort layer, not
       # the real backstop -- Claude Code's Bash permission patterns match
       # on command prefixes, so they can reliably block whole commands
@@ -335,9 +344,77 @@ jobs:
                  merge it under any circumstances and do not push to
                  main -- human approval is always required, no
                  exceptions.
+               - The PR title must begin with the exact prefix
+                 "[auto-fix] " (bracket, auto-fix, bracket, one space),
+                 followed by a concise description of the fix.
                - In the PR description, state that this is attempt
                  ${{ steps.attempts.outputs.attempts }} of 3 for this
                  failure signature, and briefly explain the fix.
+               - The PR description must END with exactly these lines,
+                 preceded by one blank line, with nothing after them:
+
+                 ---
+                 Auto-fix-by: self-heal.yml
+
+      # --- Marker verification (non-blocking) ---
+      #
+      # The title prefix and Auto-fix-by trailer are only instructions to
+      # the agent, so verify them on the PR it actually opened (looked up by
+      # the pre-computed branch name). If either is missing, label the PR
+      # marker-missing. This never fails the step or touches the PR beyond
+      # the label: continue-on-error plus `|| true` keep it advisory.
+      # No PR found (NOVEL failure, or the fix never got that far) is fine.
+      #
+      # The marker-missing label is meant to become an entry on Step 3's
+      # exclusion list once merge automation exists, so a marker-missing PR
+      # is never auto-merged even if CI passes.
+      #
+      # Title/body are agent-written, so they're passed via env and never
+      # interpolated into the script text.
+      - name: Verify auto-fix PR markers
+        id: verify_markers
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.branch.outputs.name }}
+        run: |
+          # The branch step is skipped when auto-fix didn't run (over budget
+          # or retries exhausted), leaving BRANCH empty. An empty --head
+          # filter could match an unrelated PR, so bail out first.
+          if [ -z "$BRANCH" ]; then
+            echo "No auto-fix branch for this run; nothing to verify."
+            exit 0
+          fi
+
+          PR_JSON=$(gh pr list --head "$BRANCH" --state open --json number,title,body --jq '.[0] // empty' || true)
+          if [ -z "$PR_JSON" ]; then
+            echo "No open PR found for $BRANCH; nothing to verify."
+            exit 0
+          fi
+
+          PR_NUMBER=$(echo "$PR_JSON" | jq -r '.number')
+          PR_TITLE=$(echo "$PR_JSON" | jq -r '.title')
+          PR_BODY=$(echo "$PR_JSON" | jq -r '.body' | tr -d '\r')
+
+          MISSING=""
+          case "$PR_TITLE" in
+            "[auto-fix] "*) ;;
+            *) MISSING="title prefix" ;;
+          esac
+          if ! printf '%s\n' "$PR_BODY" | grep -qxF 'Auto-fix-by: self-heal.yml'; then
+            MISSING="${MISSING:+$MISSING, }Auto-fix-by trailer"
+          fi
+
+          if [ -z "$MISSING" ]; then
+            echo "PR #$PR_NUMBER has both markers."
+            exit 0
+          fi
+
+          echo "PR #$PR_NUMBER is missing: $MISSING. Applying marker-missing label."
+          gh label create marker-missing --description "Auto-fix PR missing its title prefix or Auto-fix-by trailer" --color D93F0B 2>/dev/null || true
+          gh pr edit "$PR_NUMBER" --add-label marker-missing || echo "WARNING: could not label PR #$PR_NUMBER."
+          exit 0
 
       # --- Spend estimation ---
       #
