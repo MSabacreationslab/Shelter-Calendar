@@ -356,6 +356,58 @@ jobs:
                  ---
                  Auto-fix-by: self-heal.yml
 
+      # --- Marker verification (non-blocking) ---
+      #
+      # The title prefix and Auto-fix-by trailer are only instructions to
+      # the agent, so verify them on the PR it actually opened (looked up by
+      # the pre-computed branch name). If either is missing, label the PR
+      # marker-missing. This never fails the step or touches the PR beyond
+      # the label: continue-on-error plus `|| true` keep it advisory.
+      # No PR found (NOVEL failure, or the fix never got that far) is fine.
+      #
+      # The marker-missing label is meant to become an entry on Step 3's
+      # exclusion list once merge automation exists, so a marker-missing PR
+      # is never auto-merged even if CI passes.
+      #
+      # Title/body are agent-written, so they're passed via env and never
+      # interpolated into the script text.
+      - name: Verify auto-fix PR markers
+        id: verify_markers
+        if: always() && steps.budget.outputs.over_budget == 'false' && fromJSON(steps.attempts.outputs.attempts) <= 3
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.branch.outputs.name }}
+        run: |
+          PR_JSON=$(gh pr list --head "$BRANCH" --state open --json number,title,body --jq '.[0] // empty' || true)
+          if [ -z "$PR_JSON" ]; then
+            echo "No open PR found for $BRANCH; nothing to verify."
+            exit 0
+          fi
+
+          PR_NUMBER=$(echo "$PR_JSON" | jq -r '.number')
+          PR_TITLE=$(echo "$PR_JSON" | jq -r '.title')
+          PR_BODY=$(echo "$PR_JSON" | jq -r '.body' | tr -d '\r')
+
+          MISSING=""
+          case "$PR_TITLE" in
+            "[auto-fix] "*) ;;
+            *) MISSING="title prefix" ;;
+          esac
+          if ! printf '%s\n' "$PR_BODY" | grep -qxF 'Auto-fix-by: self-heal.yml'; then
+            MISSING="${MISSING:+$MISSING, }Auto-fix-by trailer"
+          fi
+
+          if [ -z "$MISSING" ]; then
+            echo "PR #$PR_NUMBER has both markers."
+            exit 0
+          fi
+
+          echo "PR #$PR_NUMBER is missing: $MISSING. Applying marker-missing label."
+          gh label create marker-missing --description "Auto-fix PR missing its title prefix or Auto-fix-by trailer" --color D93F0B 2>/dev/null || true
+          gh pr edit "$PR_NUMBER" --add-label marker-missing || echo "WARNING: could not label PR #$PR_NUMBER."
+          exit 0
+
       # --- Spend estimation ---
       #
       # Runs whenever the auto-fix step could have spent tokens, i.e.
