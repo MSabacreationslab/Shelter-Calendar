@@ -278,6 +278,15 @@ jobs:
       # instructions, to guard against a crafted test name or log line
       # trying to steer the agent (e.g. into merging, or pushing to main).
       #
+      # The prompt makes every auto-fix PR title start with "[auto-fix] "
+      # and its body end with an "Auto-fix-by: self-heal.yml" git trailer
+      # (greppable via `git log --grep="Auto-fix-by:"`). REQUIREMENT for
+      # the future squash-merge automation (Phase 5 Step 3): the trailer
+      # only reaches permanent history if that step passes it explicitly,
+      # e.g. `gh pr merge --squash --body "<text incl. the trailer>"`.
+      # GitHub's default squash message may use the commit list instead of
+      # the PR body, which would silently drop the marker at merge time.
+      #
       # allowed_tools/disallowed_tools below are a best-effort layer, not
       # the real backstop -- Claude Code's Bash permission patterns match
       # on command prefixes, so they can reliably block whole commands
@@ -335,9 +344,17 @@ jobs:
                  merge it under any circumstances and do not push to
                  main -- human approval is always required, no
                  exceptions.
+               - The PR title must begin with the exact prefix
+                 "[auto-fix] " (bracket, auto-fix, bracket, one space),
+                 followed by a concise description of the fix.
                - In the PR description, state that this is attempt
                  ${{ steps.attempts.outputs.attempts }} of 3 for this
                  failure signature, and briefly explain the fix.
+               - The PR description must END with exactly these lines,
+                 preceded by one blank line, with nothing after them:
+
+                 ---
+                 Auto-fix-by: self-heal.yml
 
       # --- Spend estimation ---
       #
