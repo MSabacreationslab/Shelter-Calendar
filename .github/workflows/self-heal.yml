@@ -373,12 +373,20 @@ jobs:
       # interpolated into the script text.
       - name: Verify auto-fix PR markers
         id: verify_markers
-        if: always() && steps.budget.outputs.over_budget == 'false' && fromJSON(steps.attempts.outputs.attempts) <= 3
+        if: always()
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ steps.branch.outputs.name }}
         run: |
+          # The branch step is skipped when auto-fix didn't run (over budget
+          # or retries exhausted), leaving BRANCH empty. An empty --head
+          # filter could match an unrelated PR, so bail out first.
+          if [ -z "$BRANCH" ]; then
+            echo "No auto-fix branch for this run; nothing to verify."
+            exit 0
+          fi
+
           PR_JSON=$(gh pr list --head "$BRANCH" --state open --json number,title,body --jq '.[0] // empty' || true)
           if [ -z "$PR_JSON" ]; then
             echo "No open PR found for $BRANCH; nothing to verify."
