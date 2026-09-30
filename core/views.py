@@ -9,7 +9,7 @@ from django.template.loader import render_to_string
 
 from accounts.permissions import PUBLIC, SIGNED_IN, requires
 from core import errors
-from core.forms import StyleguideForm
+from core.forms import StyleguideForm, post_data
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def styleguide(request):
     """Every component in one place, for checking the design by eye on the test site."""
     if not (settings.DEBUG or settings.DEMO_MODE):
         raise Http404
-    form = StyleguideForm(request.POST or None)
+    form = StyleguideForm(post_data(request))
     submitted = request.method == "POST" and form.is_valid()
     return render(request, "core/styleguide.html", {"form": form, "submitted": submitted})
 

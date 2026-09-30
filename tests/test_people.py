@@ -38,18 +38,20 @@ def staff_client(client, staff):
 
 
 @pytest.fixture
-def emails_sent(django_capture_on_commit_callbacks):
-    """Run after-save callbacks (the emails) as they would run outside a test."""
-    with django_capture_on_commit_callbacks(execute=True):
-        yield mail.outbox
+def post(staff_client, django_capture_on_commit_callbacks):
+    """POST as staff, then run the after-save steps (the emails) as they run for real."""
+
+    def send(path, data=None, **kwargs):
+        with django_capture_on_commit_callbacks(execute=True):
+            return staff_client.post(path, data or {}, **kwargs)
+
+    return send
 
 
-def test_adding_a_volunteer_creates_everything_and_sends_the_welcome(
-    staff_client, staff, emails_sent
-):
+def test_adding_a_volunteer_creates_everything_and_sends_the_welcome(post, staff):
     orientation = TrainingTypeFactory(name="Orientation", is_orientation=True)
     skill = Skill.objects.get(name="Dog walking")
-    response = staff_client.post(
+    response = post(
         "/volunteers/add/",
         _form(skills=[skill.pk], trainings_needed=[orientation.pk], no_training_eligible="on"),
     )
@@ -70,8 +72,8 @@ def test_adding_a_volunteer_creates_everything_and_sends_the_welcome(
     assert AuditEvent.objects.filter(
         action="account.created", actor=staff, target_user=person
     ).exists()
-    assert len(emails_sent) == 1
-    welcome = emails_sent[0]
+    assert len(mail.outbox) == 1
+    welcome = mail.outbox[0]
     assert welcome.to == ["mary@example.com"]
     assert "Mary Smith" in welcome.body
     assert "/welcome/" in welcome.body
@@ -86,8 +88,8 @@ def test_required_fields_have_plain_messages(staff_client):
     assert not User.objects.filter(role=Role.VOLUNTEER).exists()
 
 
-def test_phone_numbers_are_accepted_however_they_are_typed(staff_client, emails_sent):
-    staff_client.post("/volunteers/add/", _form(phone="+1 740 555 0142"))
+def test_phone_numbers_are_accepted_however_they_are_typed(post):
+    post("/volunteers/add/", _form(phone="+1 740 555 0142"))
     assert User.objects.get(login_name="Mary Smith").phone == "7405550142"
 
 
@@ -107,60 +109,61 @@ def test_birthdays_must_be_real_dates(staff_client, month, day, message):
     assert message in html
 
 
-def test_february_29_birthdays_are_fine(staff_client, emails_sent):
-    staff_client.post("/volunteers/add/", _form(birthday_month="2", birthday_day="29"))
+def test_february_29_birthdays_are_fine(post):
+    post("/volunteers/add/", _form(birthday_month="2", birthday_day="29"))
     assert User.objects.get(login_name="Mary Smith").profile.birthday_day == 29
 
 
-def test_a_taken_sign_in_name_asks_for_a_variant(staff_client, emails_sent):
+def test_a_taken_sign_in_name_asks_for_a_variant(post):
     UserFactory(first_name="Mary", last_name="Smith", email="other@example.com", phone="1112223333")
-    html = staff_client.post("/volunteers/add/", _form()).content.decode()
+    html = post("/volunteers/add/", _form()).content.decode()
     assert "already signs in as" in html
-    staff_client.post("/volunteers/add/", _form(login_name="Mary Smith B"))
+    post("/volunteers/add/", _form(login_name="Mary Smith B"))
     assert User.objects.filter(login_name="Mary Smith B").exists()
 
 
-def test_possible_duplicates_need_a_second_yes(staff_client, emails_sent):
+def test_possible_duplicates_need_a_second_yes(post):
     UserFactory(first_name="Maria", last_name="Smyth", email="mary@example.com")
-    first = staff_client.post("/volunteers/add/", _form())
+    first = post("/volunteers/add/", _form())
     assert "might be someone who's already here" in first.content.decode()
     assert not User.objects.filter(login_name="Mary Smith").exists()
-    staff_client.post("/volunteers/add/", _form(add_anyway="1"))
+    post("/volunteers/add/", _form(add_anyway="1"))
     assert User.objects.filter(login_name="Mary Smith").exists()
 
 
-def test_a_failed_email_keeps_the_person_and_warns_staff(staff_client, monkeypatch, emails_sent):
+def test_a_failed_email_keeps_the_person_and_warns_staff(post, staff_client, monkeypatch):
     def fail(self, *args, **kwargs):
         raise SMTPException("mail server said no")
 
     monkeypatch.setattr(EmailMultiAlternatives, "send", fail)
-    response = staff_client.post("/volunteers/add/", _form(), follow=True)
+    post("/volunteers/add/", _form())
     person = User.objects.get(login_name="Mary Smith")
     log = EmailLog.objects.get(related_user=person)
     assert log.failed and "mail server said no" in log.error
-    assert "didn't go through" in response.content.decode()
+    page = staff_client.get(f"/volunteers/{person.pk}/")
+    assert "didn't go through" in page.content.decode()
 
 
-def test_email_text_keeps_apostrophes(staff_client, emails_sent):
-    staff_client.post("/volunteers/add/", _form(first_name="Pat", last_name="O'Brien"))
-    assert "Pat O'Brien" in emails_sent[0].body
-    assert "&#x27;" not in emails_sent[0].body
+def test_email_text_keeps_apostrophes(post):
+    post("/volunteers/add/", _form(first_name="Pat", last_name="O'Brien"))
+    assert "Pat O'Brien" in mail.outbox[0].body
+    assert "&#x27;" not in mail.outbox[0].body
 
 
-def test_new_link_replaces_the_old_one_and_matches_the_situation(staff_client, emails_sent):
+def test_new_link_replaces_the_old_one_and_matches_the_situation(post):
     newcomer = UserFactory()
     newcomer.set_unusable_password()
     newcomer.save()
-    staff_client.post(f"/volunteers/{newcomer.pk}/new-link/")
-    staff_client.post(f"/volunteers/{newcomer.pk}/new-link/")
+    post(f"/volunteers/{newcomer.pk}/new-link/")
+    post(f"/volunteers/{newcomer.pk}/new-link/")
     links = SetupLink.objects.filter(user=newcomer)
     assert links.count() == 2
     assert links.filter(voided_at__isnull=True).count() == 1
-    assert "Welcome" in emails_sent[-1].subject
+    assert "Welcome" in mail.outbox[-1].subject
 
     regular = UserFactory()
-    staff_client.post(f"/volunteers/{regular.pk}/new-link/")
-    assert emails_sent[-1].subject == "Your link to choose a new PIN"
+    post(f"/volunteers/{regular.pk}/new-link/")
+    assert mail.outbox[-1].subject == "Your link to choose a new PIN"
 
 
 def test_the_admin_never_appears_in_staff_screens(staff_client):
@@ -214,3 +217,8 @@ def test_skills_can_be_added_renamed_and_taken_off_the_list(staff_client, staff)
     assert laundry.name == "Laundry and dishes" and not laundry.active
     actions = set(AuditEvent.objects.filter(actor=staff).values_list("action", flat=True))
     assert {"skill.added", "skill.renamed", "skill.turned_off"} <= actions
+
+
+def test_empty_form_posts_still_show_errors(client):
+    html = client.post("/sign-in/", {}).content.decode()
+    assert "Please enter your name." in html

@@ -11,6 +11,7 @@ from accounts.forms import SetPinForm, SignInForm
 from accounts.permissions import PUBLIC, SIGNED_IN, requires
 from accounts.services import Outcome
 from core import errors
+from core.forms import post_data
 
 
 def _safe_next(request) -> str:
@@ -28,7 +29,7 @@ def sign_in(request):
     """Name and PIN, with plain messages for every lockout rule."""
     if request.user.is_authenticated:
         return redirect("home")
-    form = SignInForm(request.POST or None)
+    form = SignInForm(post_data(request))
     problem = None
     show_forgot_hint = False
     if request.method == "POST" and form.is_valid():
@@ -66,7 +67,7 @@ def setup_pin(request, token):
         return render(
             request, "accounts/link_invalid.html", {"error": errors.LINK_EXPIRED}, status=410
         )
-    form = SetPinForm(request.POST or None, user=link.user)
+    form = SetPinForm(post_data(request), user=link.user)
     if request.method == "POST" and form.is_valid():
         user = services.set_pin_from_link(token, form.cleaned_data["pin"])
         if user is None:
