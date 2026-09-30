@@ -131,6 +131,7 @@ def apply_fill(plan: FillPlan, *, skip_days: set[date] = frozenset(), by=None) -
                 ends_at=planned.ends_at(),
                 local_date=planned.day,
                 capacity=pattern.capacity,
+                needs_approval=pattern.needs_approval,
                 notes=pattern.notes,
                 holiday_name=planned.holiday,
                 created_by=by,

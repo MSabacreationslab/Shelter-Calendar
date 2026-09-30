@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Shift approvals{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Shift approvals" lead="People asking to join shifts that need your OK. Saying yes books them and emails them." %}
+
+  {% for group in groups %}
+    {% with shift=group.shift %}
+      <section class="card" aria-labelledby="approval-{{ shift.pk }}">
+        <h2 class="card__title" id="approval-{{ shift.pk }}"><a href="{% url 'scheduling:shift' shift.pk %}">{{ shift.title }}</a></h2>
+        <p>{{ shift.starts_at|long_date }}, {{ shift.starts_at|clock }} – {{ shift.ends_at|clock }}.
+          {% if shift.spots_left %}{{ shift.spots_left }} spot{{ shift.spots_left|pluralize }} left.{% else %}<strong>It's full.</strong> Add a spot on the shift's page before saying yes.{% endif %}
+          {% if shift.needs_approval %}Staff approve everyone on this shift.{% endif %}</p>
+        <ul class="plain-list">
+          {% for signup_request in group.requests %}
+            {% with person=signup_request.volunteer %}
+              <li class="plain-list__item">
+                <span>
+                  <a href="{% url 'people:detail' person.pk %}">{{ person.get_full_name }}</a>{% if person.profile.is_minor %} <span class="badge">Minor</span>{% endif %}{% if person.profile.needs_approval %} <span class="badge">Needs approval for every shift</span>{% endif %}<br>
+                  <span class="field__hint">Asked on {{ signup_request.created_at|long_date }}.{% if person.phone %} Phone: <a href="tel:{{ person.phone|tel }}">{{ person.phone|phone }}</a>{% endif %}</span>
+                </span>
+                <span class="plain-list__actions">
+                  <form method="post" action="{% url 'scheduling:approve' signup_request.pk %}">{% csrf_token %}<button type="submit" class="btn btn--primary">Approve<span class="visually-hidden"> {{ person.get_full_name }} for {{ shift.title }}</span></button></form>
+                  <a class="btn btn--secondary" href="{% url 'scheduling:decline' signup_request.pk %}">Say no<span class="visually-hidden"> to {{ person.get_full_name }} for {{ shift.title }}</span></a>
+                </span>
+              </li>
+            {% endwith %}
+          {% endfor %}
+        </ul>
+      </section>
+    {% endwith %}
+  {% empty %}
+    {% include "components/empty_state.html" with title="Nobody is waiting" message="When someone asks to join a shift that needs approval, they'll show here." %}
+  {% endfor %}
+
+  <h2>Answered in the last {{ answered_days }} days</h2>
+  {% if answered %}
+    <ul class="plain-list">
+      {% for signup_request in answered %}
+        <li class="plain-list__item">
+          <span>{{ signup_request.volunteer.get_full_name }}: <a href="{% url 'scheduling:shift' signup_request.shift.pk %}">{{ signup_request.shift.title }}, {{ signup_request.shift.starts_at|friendly_date }}</a></span>
+          <span>{% if signup_request.status == "approved" %}Approved{% else %}Not approved{% endif %}{% if signup_request.resolved_by %} by {{ signup_request.resolved_by.get_full_name }}{% endif %}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Nothing yet.</p>
+  {% endif %}
+{% endblock %}

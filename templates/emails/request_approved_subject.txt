@@ -1,0 +1,1 @@
+{% autoescape off %}Good news: you're signed up for {{ shift }}{% endautoescape %}

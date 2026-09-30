@@ -58,3 +58,42 @@ def shift_cancelled(signup, reason):
         related_user=signup.volunteer,
         context={"person": signup.volunteer, "shift": describe(signup.shift), "reason": reason},
     )
+
+
+def asked_shift_cancelled(signup_request, reason):
+    """Someone who asked to join a shift hears that it won't happen."""
+    email.send(
+        "shift_cancelled",
+        to=signup_request.volunteer.email,
+        related_user=signup_request.volunteer,
+        context={
+            "person": signup_request.volunteer,
+            "shift": describe(signup_request.shift),
+            "reason": reason,
+            "asked": True,
+        },
+    )
+
+
+def request_approved(signup):
+    """Staff said yes: the volunteer is on the shift."""
+    email.send(
+        "request_approved",
+        to=signup.volunteer.email,
+        related_user=signup.volunteer,
+        context={"person": signup.volunteer, "shift": describe(signup.shift)},
+    )
+
+
+def request_declined(signup_request):
+    """Staff said no, kindly, with their note if they wrote one."""
+    email.send(
+        "request_declined",
+        to=signup_request.volunteer.email,
+        related_user=signup_request.volunteer,
+        context={
+            "person": signup_request.volunteer,
+            "shift": describe(signup_request.shift),
+            "note": signup_request.note,
+        },
+    )

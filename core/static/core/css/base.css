@@ -54,6 +54,11 @@ a:hover {
   text-decoration-thickness: 0.14em;
 }
 
+/* A phone number split across two lines is easy to misread. */
+a[href^="tel:"] {
+  white-space: nowrap;
+}
+
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;

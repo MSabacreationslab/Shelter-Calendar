@@ -90,6 +90,12 @@ class ShiftFieldsForm(AccessibleFormMixin, forms.Form):
         queryset=TrainingType.objects.none(),
         required=False,
     )
+    needs_approval = forms.BooleanField(
+        label="Staff approve each sign-up",
+        required=False,
+        help_text="For example, large events. Volunteers ask to join, and staff answer on "
+        "Shift approvals.",
+    )
     notes = forms.CharField(
         label="Notes for volunteers",
         required=False,
@@ -189,6 +195,7 @@ class OneOffShiftForm(ShiftFieldsForm):
             "starts_at": timezone.make_aware(datetime.combine(day, data["start_time"])),
             "ends_at": timezone.make_aware(datetime.combine(day, data["end_time"])),
             "capacity": data["capacity"],
+            "needs_approval": data["needs_approval"],
             "notes": data["notes"],
         }
 
@@ -204,6 +211,7 @@ class OneOffShiftForm(ShiftFieldsForm):
             "kind": data["kind"],
             "teaches": data["teaches"],
             "required_training": data["required_training"],
+            "needs_approval": data["needs_approval"],
             "notes": data["notes"],
             "every_n_weeks": 1,
             "active_from": data["day"],
@@ -228,6 +236,12 @@ class EditShiftForm(AccessibleFormMixin, forms.Form):
         queryset=TrainingType.objects.filter(active=True),
         required=False,
         empty_label="Choose a training",
+    )
+    needs_approval = forms.BooleanField(
+        label="Staff approve each sign-up",
+        required=False,
+        help_text="For example, large events. Volunteers ask to join, and staff answer on "
+        "Shift approvals.",
     )
     notes = forms.CharField(
         label="Notes for volunteers", required=False, widget=forms.Textarea(attrs={"rows": 2})
@@ -264,6 +278,7 @@ class EditShiftForm(AccessibleFormMixin, forms.Form):
             "starts_at": timezone.make_aware(datetime.combine(day, data["start_time"])),
             "ends_at": timezone.make_aware(datetime.combine(day, data["end_time"])),
             "capacity": data["capacity"],
+            "needs_approval": data["needs_approval"],
             "notes": data["notes"],
         }
         if "required_training" in self.fields:
@@ -391,4 +406,17 @@ class CancelForm(AccessibleFormMixin, forms.Form):
         max_length=200,
         required=False,
         widget=forms.Textarea(attrs={"rows": 2}),
+    )
+
+
+class DeclineForm(AccessibleFormMixin, forms.Form):
+    """An optional kind word when staff can't approve someone for a shift."""
+
+    note = forms.CharField(
+        label="A note for them",
+        max_length=300,
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+        help_text="Optional. It goes in the email, for example: we have enough people for "
+        "this one, please try the next.",
     )

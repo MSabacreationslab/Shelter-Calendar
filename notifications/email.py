@@ -26,6 +26,12 @@ def send(template_key: str, *, to: str, context: dict, related_user=None) -> Ema
     log = EmailLog.objects.create(
         to=to, template_key=template_key, subject=subject, related_user=related_user
     )
+    if not to:
+        # People loaded from the spreadsheet may have no email yet; Django would quietly send
+        # to nobody and the log would say it went out.
+        log.error = "No email address on file"
+        log.save(update_fields=["error"])
+        return log
     try:
         message = EmailMultiAlternatives(subject, text, settings.DEFAULT_FROM_EMAIL, [to])
         message.attach_alternative(html, "text/html")

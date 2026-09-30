@@ -66,6 +66,9 @@ class ShiftPattern(models.Model):
     teaches = models.ForeignKey(
         "training.TrainingType", null=True, blank=True, on_delete=models.PROTECT, related_name="+"
     )
+    needs_approval = models.BooleanField(
+        default=False, help_text="Staff approve each sign-up (for example, large events)."
+    )
     every_n_weeks = models.PositiveSmallIntegerField(default=1)
     anchor_date = models.DateField(
         help_text="A date in a week this pattern runs, for every-other-week."
@@ -130,6 +133,9 @@ class Shift(models.Model):
     ends_at = models.DateTimeField()
     local_date = models.DateField(editable=False, help_text="The shelter-time date it starts on.")
     capacity = models.PositiveSmallIntegerField(default=1)
+    needs_approval = models.BooleanField(
+        default=False, help_text="Staff approve each sign-up (for example, large events)."
+    )
     notes = models.TextField(blank=True)
     status = models.CharField(
         max_length=10, choices=ShiftStatus.choices, default=ShiftStatus.SCHEDULED
@@ -261,6 +267,46 @@ class WaitlistEntry(models.Model):
 
     def __str__(self):
         return f"{self.volunteer} waiting for {self.shift}"
+
+
+class RequestStatus(models.TextChoices):
+    WAITING = "waiting", "Waiting for approval"
+    APPROVED = "approved", "Approved"
+    DECLINED = "declined", "Not approved"
+    WITHDRAWN = "withdrawn", "Taken back"
+    CLOSED = "closed", "Closed: the shift passed or was cancelled"
+
+
+class SignupRequest(models.Model):
+    """Someone asking to join a shift that needs staff approval (SPEC §6, Phase 9)."""
+
+    shift = models.ForeignKey(Shift, on_delete=models.PROTECT, related_name="requests")
+    volunteer = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="signup_requests"
+    )
+    status = models.CharField(
+        max_length=10, choices=RequestStatus.choices, default=RequestStatus.WAITING
+    )
+    created_at = models.DateTimeField(default=timezone.now)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    # What staff told the volunteer when saying no (it goes in the email).
+    note = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["shift", "volunteer"],
+                condition=models.Q(status=RequestStatus.WAITING),
+                name="request_once_per_shift",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.volunteer} asking to join {self.shift}"
 
 
 class BlackoutPeriod(models.Model):

@@ -16,9 +16,11 @@ from core import audit
 from core.models import ShelterSettings
 from scheduling.models import (
     WAITLIST_MAX,
+    RequestStatus,
     Shift,
     ShiftStatus,
     Signup,
+    SignupRequest,
     SignupStatus,
     WaitlistEntry,
     WaitlistStatus,
@@ -38,6 +40,9 @@ class Problem(enum.Enum):
     CAPACITY_BELOW_SIGNUPS = "capacity_below_signups"
     TIME_CLASH = "time_clash"
     MISSING_TRAINING = "missing_training"
+    NEEDS_APPROVAL = "needs_approval"
+    NO_APPROVAL_NEEDED = "no_approval_needed"
+    ALREADY_ANSWERED = "already_answered"
 
 
 @dataclass
@@ -47,6 +52,7 @@ class Result:
     reason: str | None = None  # eligibility reason for NOT_ELIGIBLE
     signup: Signup | None = None
     entry: WaitlistEntry | None = None
+    signup_request: SignupRequest | None = None
     other_shift: Shift | None = None  # the shift it overlaps
     already: bool = False  # the request was already done (e.g. a double tap)
     late: bool = False
@@ -88,6 +94,30 @@ def _notify_after_commit(func, *args, **kwargs):
     transaction.on_commit(lambda: func(*args, **kwargs))
 
 
+def _refusal(reason) -> Result | None:
+    """An eligibility reason as a refused Result (None if they're eligible)."""
+    if reason == eligibility.CANCELLED:
+        return Result.fail(Problem.CANCELLED)
+    if reason == eligibility.STARTED:
+        return Result.fail(Problem.STARTED)
+    if reason:
+        return Result.fail(Problem.NOT_ELIGIBLE, reason=reason)
+    return None
+
+
+def needs_approval(volunteer, shift) -> bool:
+    """Staff approve this sign-up: the shift needs it, or the person does (SPEC §6, Phase 9).
+
+    Staff never need approval; they're the ones who give it.
+    """
+    if volunteer.is_staff_member:
+        return False
+    if shift.needs_approval:
+        return True
+    profile = getattr(volunteer, "profile", None)
+    return bool(profile and profile.needs_approval)
+
+
 @transaction.atomic
 def sign_up(volunteer, shift, *, by=None, now=None) -> Result:
     """Put someone on a shift, themselves or (with `by`) added by staff."""
@@ -102,13 +132,11 @@ def sign_up(volunteer, shift, *, by=None, now=None) -> Result:
     if existing:
         return Result(ok=True, signup=existing, already=True)
 
-    reason = eligibility.why_not(volunteer, shift, staff_adding=staff_adding, now=now)
-    if reason == eligibility.CANCELLED:
-        return Result.fail(Problem.CANCELLED)
-    if reason == eligibility.STARTED:
-        return Result.fail(Problem.STARTED)
-    if reason:
-        return Result.fail(Problem.NOT_ELIGIBLE, reason=reason)
+    refused = _refusal(eligibility.why_not(volunteer, shift, staff_adding=staff_adding, now=now))
+    if refused:
+        return refused
+    if not staff_adding and needs_approval(volunteer, shift):
+        return Result.fail(Problem.NEEDS_APPROVAL)
     if confirmed_count(shift) >= shift.capacity:
         return Result.fail(Problem.FULL)
     clash = _clash(volunteer, shift.starts_at, shift.ends_at, excluding_shift=shift)
@@ -127,6 +155,10 @@ def sign_up(volunteer, shift, *, by=None, now=None) -> Result:
     WaitlistEntry.objects.filter(
         shift=shift, volunteer=volunteer, status=WaitlistStatus.WAITING
     ).update(status=WaitlistStatus.PROMOTED, resolved_at=now, resolved_by=by)
+    # Being on the shift answers any request to join it, however they got there.
+    SignupRequest.objects.filter(
+        shift=shift, volunteer=volunteer, status=RequestStatus.WAITING
+    ).update(status=RequestStatus.APPROVED, resolved_at=now, resolved_by=by)
     audit.record(
         "shift.added_by_staff" if staff_adding else "shift.signed_up",
         actor=by,
@@ -206,13 +238,9 @@ def join_waitlist(volunteer, shift, *, now=None) -> Result:
     mine = waiting.filter(volunteer=volunteer).first()
     if mine:
         return Result(ok=True, entry=mine, already=True)
-    reason = eligibility.why_not(volunteer, shift, now=now)
-    if reason == eligibility.CANCELLED:
-        return Result.fail(Problem.CANCELLED)
-    if reason == eligibility.STARTED:
-        return Result.fail(Problem.STARTED)
-    if reason:
-        return Result.fail(Problem.NOT_ELIGIBLE, reason=reason)
+    refused = _refusal(eligibility.why_not(volunteer, shift, now=now))
+    if refused:
+        return refused
     if confirmed_count(shift) < shift.capacity:
         return Result.fail(Problem.HAS_SPACE)
     if waiting.count() >= WAITLIST_MAX:
@@ -330,6 +358,10 @@ def cancel_shift(shift, *, by, reason, now=None) -> Result:
     WaitlistEntry.objects.filter(shift=shift, status=WaitlistStatus.WAITING).update(
         status=WaitlistStatus.REMOVED, resolved_at=now, resolved_by=by
     )
+    asked = list(shift.requests.filter(status=RequestStatus.WAITING).select_related("volunteer"))
+    SignupRequest.objects.filter(pk__in=[r.pk for r in asked]).update(
+        status=RequestStatus.CLOSED, resolved_at=now, resolved_by=by
+    )
     audit.record(
         "shift.cancelled_by_staff",
         actor=by,
@@ -342,6 +374,8 @@ def cancel_shift(shift, *, by, reason, now=None) -> Result:
 
     for signup in signups:
         _notify_after_commit(notices.shift_cancelled, signup, reason)
+    for signup_request in asked:
+        _notify_after_commit(notices.asked_shift_cancelled, signup_request, reason)
     return Result(ok=True)
 
 
@@ -351,3 +385,135 @@ def expire_past_waitlists(now=None) -> int:
     return WaitlistEntry.objects.filter(
         status=WaitlistStatus.WAITING, shift__starts_at__lte=now
     ).update(status=WaitlistStatus.EXPIRED, resolved_at=now)
+
+
+def close_past_requests(now=None) -> int:
+    """Requests nobody answered before the shift started are closed."""
+    now = now or timezone.now()
+    return SignupRequest.objects.filter(
+        status=RequestStatus.WAITING, shift__starts_at__lte=now
+    ).update(status=RequestStatus.CLOSED, resolved_at=now)
+
+
+@transaction.atomic
+def ask_to_join(volunteer, shift, *, now=None) -> Result:
+    """Ask staff for a place on a shift that needs approval. It holds no spot until approved."""
+    now = now or timezone.now()
+    shift = _locked(shift)
+    if Signup.objects.filter(
+        shift=shift, volunteer=volunteer, status=SignupStatus.CONFIRMED
+    ).exists():
+        return Result(ok=True, already=True)
+    mine = SignupRequest.objects.filter(
+        shift=shift, volunteer=volunteer, status=RequestStatus.WAITING
+    ).first()
+    if mine:
+        return Result(ok=True, signup_request=mine, already=True)
+    refused = _refusal(eligibility.why_not(volunteer, shift, now=now))
+    if refused:
+        return refused
+    if not needs_approval(volunteer, shift):
+        return Result.fail(Problem.NO_APPROVAL_NEEDED)
+    if confirmed_count(shift) >= shift.capacity:
+        return Result.fail(Problem.FULL)
+    clash = _clash(volunteer, shift.starts_at, shift.ends_at, excluding_shift=shift)
+    if clash:
+        return Result.fail(Problem.OVERLAP, other_shift=clash.shift)
+    signup_request = SignupRequest.objects.create(shift=shift, volunteer=volunteer, created_at=now)
+    audit.record(
+        "request.asked", actor=volunteer, target_user=volunteer, target_repr=str(shift), at=now
+    )
+    return Result(ok=True, signup_request=signup_request)
+
+
+def _locked_request(signup_request) -> SignupRequest:
+    # The shift first, then the request: the same order as every other booking change.
+    _locked(signup_request.shift)
+    return SignupRequest.objects.select_for_update().get(pk=signup_request.pk)
+
+
+@transaction.atomic
+def approve_request(signup_request, *, by, now=None) -> Result:
+    """Staff say yes: the person is booked, with the same checks as staff adding them."""
+    now = now or timezone.now()
+    signup_request = _locked_request(signup_request)
+    if signup_request.status != RequestStatus.WAITING:
+        return Result.fail(Problem.ALREADY_ANSWERED)
+    result = sign_up(signup_request.volunteer, signup_request.shift, by=by, now=now)
+    if not result.ok:
+        return result
+    SignupRequest.objects.filter(pk=signup_request.pk, status=RequestStatus.WAITING).update(
+        status=RequestStatus.APPROVED, resolved_at=now, resolved_by=by
+    )
+    audit.record(
+        "request.approved",
+        actor=by,
+        target_user=signup_request.volunteer,
+        target_repr=str(signup_request.shift),
+        at=now,
+    )
+    if not result.already:
+        from scheduling import notices
+
+        _notify_after_commit(notices.request_approved, result.signup)
+    return result
+
+
+@transaction.atomic
+def decline_request(signup_request, *, by, note="", now=None) -> Result:
+    """Staff say no. The volunteer is emailed, with the note if there is one."""
+    now = now or timezone.now()
+    signup_request = _locked_request(signup_request)
+    if signup_request.status != RequestStatus.WAITING:
+        return Result.fail(Problem.ALREADY_ANSWERED)
+    signup_request.status = RequestStatus.DECLINED
+    signup_request.resolved_at = now
+    signup_request.resolved_by = by
+    signup_request.note = note[:300]
+    signup_request.save()
+    audit.record(
+        "request.declined",
+        actor=by,
+        target_user=signup_request.volunteer,
+        target_repr=str(signup_request.shift),
+        at=now,
+    )
+    from scheduling import notices
+
+    _notify_after_commit(notices.request_declined, signup_request)
+    return Result(ok=True, signup_request=signup_request)
+
+
+@transaction.atomic
+def withdraw_request(signup_request, *, by, now=None) -> Result:
+    """The volunteer takes back their request."""
+    now = now or timezone.now()
+    signup_request = _locked_request(signup_request)
+    if signup_request.status != RequestStatus.WAITING:
+        return Result(ok=True, signup_request=signup_request, already=True)
+    signup_request.status = RequestStatus.WITHDRAWN
+    signup_request.resolved_at = now
+    signup_request.resolved_by = by
+    signup_request.save()
+    audit.record(
+        "request.withdrawn",
+        actor=by,
+        target_user=signup_request.volunteer,
+        target_repr=str(signup_request.shift),
+        at=now,
+    )
+    return Result(ok=True, signup_request=signup_request)
+
+
+def waiting_requests(now=None):
+    """Requests staff haven't answered yet, for shifts still to come, soonest shift first."""
+    now = now or timezone.now()
+    return (
+        SignupRequest.objects.filter(
+            status=RequestStatus.WAITING,
+            shift__status=ShiftStatus.SCHEDULED,
+            shift__starts_at__gt=now,
+        )
+        .select_related("shift", "volunteer", "volunteer__profile")
+        .order_by("shift__starts_at", "shift_id", "created_at")
+    )

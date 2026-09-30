@@ -6,6 +6,6 @@ We're sorry, but this shift has been cancelled:
 {% if reason %}
 Why: {{ reason }}
 {% endif %}
-You don't need to do anything. Thank you for signing up!
+You don't need to do anything. {% if asked %}Thank you for offering to help!{% else %}Thank you for signing up!{% endif %}
 
 The volunteer team at {{ shelter.name }}{% endautoescape %}

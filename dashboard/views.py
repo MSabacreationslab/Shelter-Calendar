@@ -32,11 +32,14 @@ def dashboard(request):
     """Today at a glance, then everything that needs someone's attention."""
     short_count, short_list = queries.short_shifts()
     cancellations = queries.cancellations()
+    approvals_count, approvals = queries.waiting_approvals()
     context = {
         "today": queries.today(),
         "today_date": timezone.localdate(),
         "urgent": [s for s in cancellations if s.was_urgent],
         "routine": [s for s in cancellations if not s.was_urgent],
+        "approvals": approvals,
+        "approvals_count": approvals_count,
         "short_count": short_count,
         "short_list": short_list,
         "waitlists": queries.waitlists_with_space(),
@@ -57,9 +60,8 @@ def dashboard(request):
             )
         },
     }
-    context["all_clear"] = not any(
-        context[k] for k in ("urgent", "short_list", "waitlists", "conflicts", "expired", "locked")
-    )
+    sections = ("urgent", "approvals", "short_list", "waitlists", "conflicts", "expired", "locked")
+    context["all_clear"] = not any(context[k] for k in sections)
     return render(request, "dashboard/home.html", context)
 
 

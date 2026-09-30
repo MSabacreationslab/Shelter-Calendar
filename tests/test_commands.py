@@ -8,6 +8,7 @@ from django.utils import timezone
 from accounts import services
 from accounts.models import LoginAttempt, Role, User
 from core.models import AuditEvent
+from scheduling.models import Shift
 from training.models import TrainingType
 
 pytestmark = pytest.mark.django_db
@@ -52,6 +53,9 @@ def test_seed_demo_fills_the_test_site_once(settings, monkeypatch, client):
     assert User.objects.filter(role=Role.VOLUNTEER).count() == 10
     assert TrainingType.objects.filter(is_orientation=True).count() == 1
     assert "Created 0" in _run("seed_demo")
+    event = Shift.objects.get(title="Adoption event")
+    assert event.needs_approval and event.requests.count() == 1
+    assert User.objects.filter(profile__needs_approval=True).count() == 1
     response = client.post("/sign-in/", {"name": "robin demo", "pin": DEMO_PIN})
     assert response.status_code == 302
 

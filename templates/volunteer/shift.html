@@ -24,6 +24,12 @@
     {% if started %}<p>This shift has started. If something's wrong, please call the shelter{% if shelter.phone %} at <a href="tel:{{ shelter.phone_link }}">{{ shelter.phone }}</a>{% endif %}.</p>{% endif %}
   {% elif closed %}
     <p>This shift has already started.</p>
+  {% elif asked %}
+    {% include "components/notice.html" with kind="info" title="You've asked to join this shift" message="The volunteer team will email you when they answer." %}
+    <form method="post" action="{% url 'shifts:take_back' shift.pk %}">
+      {% csrf_token %}
+      <div class="actions"><button type="submit" class="btn btn--secondary">Take back my request</button></div>
+    </form>
   {% elif wait %}
     {% include "components/notice.html" with kind="info" title="You're on the waitlist" message="If a spot opens, the volunteer team will let you know." %}
     <form method="post" action="{% url 'shifts:leave_waitlist' shift.pk %}">
@@ -38,6 +44,9 @@
       {% csrf_token %}
       <div class="actions"><button type="submit" class="btn btn--primary">Join the waitlist</button></div>
     </form>
+  {% elif ask_first %}
+    <p>The volunteer team approves sign-ups for this shift. Ask to join, and we'll email you when they answer.</p>
+    <div class="actions"><a class="btn btn--primary" href="{% url 'shifts:ask' shift.pk %}">Ask to join this shift</a></div>
   {% else %}
     <div class="actions"><a class="btn btn--primary" href="{% url 'shifts:sign_up' shift.pk %}">Sign up for this shift</a></div>
   {% endif %}

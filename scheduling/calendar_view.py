@@ -10,9 +10,11 @@ from django.utils import timezone
 
 from core.templatetags.formatting import MONTHS
 from scheduling.models import (
+    RequestStatus,
     Shift,
     ShiftStatus,
     Signup,
+    SignupRequest,
     SignupStatus,
     WaitlistEntry,
     WaitlistStatus,
@@ -71,6 +73,20 @@ def my_signups(user):
             status=SignupStatus.CONFIRMED,
             shift__status=ShiftStatus.SCHEDULED,
             shift__ends_at__gt=timezone.now(),
+        )
+        .select_related("shift")
+        .order_by("shift__starts_at")
+    )
+
+
+def my_requests(user):
+    """Shifts this person has asked to join that staff haven't answered yet."""
+    return (
+        SignupRequest.objects.filter(
+            volunteer=user,
+            status=RequestStatus.WAITING,
+            shift__status=ShiftStatus.SCHEDULED,
+            shift__starts_at__gt=timezone.now(),
         )
         .select_related("shift")
         .order_by("shift__starts_at")

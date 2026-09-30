@@ -190,3 +190,15 @@ with a clear explanation of what failed and why it doesn't match a known pattern
 - Tiers: Sunday list for 4+ shifts next week; evening-before emails for everyone else
   (anyone who got that week's list is skipped). Feb 29 birthdays go out on Feb 28.
 - `--date` for every scheduled command comes from `core.commands.parse_date_option`.
+
+**Phase 9, part 1**
+- Approval is one rule, `scheduling.services.needs_approval(person, shift)`: the shift's tick box or
+  the person's "needs approval" flag, never for staff. `sign_up()` refuses self sign-ups that need
+  it (`Problem.NEEDS_APPROVAL`); staff adding someone or promoting from the waitlist is approval.
+- `SignupRequest` holds no spot. Approving goes through `sign_up(by=staff)`, so capacity and
+  overlap are checked again at that moment; a refused approval leaves the request waiting.
+- Being booked any other way marks that person's waiting request for the shift as approved.
+- `import_volunteers` reads CSV only (no Excel library); `accounts/importing.py` plans first and
+  `save()` is all-or-nothing. Spreadsheets are git-ignored (`*.csv`, `*.xlsx`).
+- `notifications.email.send()` logs "No email address on file" instead of sending to nobody.
+

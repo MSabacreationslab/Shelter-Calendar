@@ -16,9 +16,11 @@ from scheduling import services as booking
 from scheduling.forms import CancelForm
 from scheduling.messages import explain
 from scheduling.models import (
+    RequestStatus,
     Shift,
     ShiftStatus,
     Signup,
+    SignupRequest,
     SignupStatus,
     WaitlistEntry,
     WaitlistStatus,
@@ -36,6 +38,19 @@ def _my_wait(user, shift):
     ).first()
 
 
+def _my_request(user, shift):
+    return SignupRequest.objects.filter(
+        shift=shift, volunteer=user, status=RequestStatus.WAITING
+    ).first()
+
+
+def _mark_approval(user, shifts):
+    """Tag each shift with whether this person has to ask first."""
+    for shift in shifts:
+        shift.ask_first = booking.needs_approval(user, shift)
+    return shifts
+
+
 def home_context(person, month=None) -> dict:
     """Everything a volunteer's home page shows, for them or for staff viewing as them."""
     first = cal.month_start(month)
@@ -45,6 +60,7 @@ def home_context(person, month=None) -> dict:
         "greeting": cal.greeting(),
         "next_signup": upcoming[0] if upcoming else None,
         "upcoming": upcoming,
+        "asked": list(cal.my_requests(person)),
         "weeks": cal.month_grid(person, first),
         "month": cal.month_label(first),
         "previous": cal.shift_month(first, -1),
@@ -70,6 +86,11 @@ def day(request, day):
     except ValueError as exc:
         raise Http404 from exc
     mine, others, waiting = cal.day_shifts(request.user, chosen)
+    asked = set(
+        cal.my_requests(request.user)
+        .filter(shift__local_date=chosen)
+        .values_list("shift_id", flat=True)
+    )
     now = timezone.now()
     return render(
         request,
@@ -77,10 +98,12 @@ def day(request, day):
         {
             "day": chosen,
             "mine": mine,
-            "others": [
-                s for s in others if s.status == ShiftStatus.SCHEDULED and s.starts_at > now
-            ],
+            "others": _mark_approval(
+                request.user,
+                [s for s in others if s.status == ShiftStatus.SCHEDULED and s.starts_at > now],
+            ),
             "waiting": waiting,
+            "asked": asked,
             "month": chosen.strftime("%Y-%m"),
         },
     )
@@ -89,7 +112,8 @@ def day(request, day):
 @requires("view_own_schedule")
 def find(request):
     """Open shifts for the next two weeks, as a plain list."""
-    return render(request, "volunteer/find.html", {"days": cal.find_list(request.user)})
+    days = [(day, _mark_approval(request.user, s)) for day, s in cal.find_list(request.user)]
+    return render(request, "volunteer/find.html", {"days": days})
 
 
 @requires("view_own_schedule")
@@ -98,6 +122,7 @@ def shift_page(request, pk):
     shift = get_object_or_404(Shift.objects.select_related("required_training", "teaches"), pk=pk)
     signup = _my_signup(request.user, shift)
     wait = _my_wait(request.user, shift)
+    asked = None if signup else _my_request(request.user, shift)
     reason = None if signup else eligibility.why_not(request.user, shift)
     filled = booking.confirmed_count(shift)
     return render(
@@ -107,6 +132,8 @@ def shift_page(request, pk):
             "shift": shift,
             "signup": signup,
             "wait": wait,
+            "asked": asked,
+            "ask_first": booking.needs_approval(request.user, shift),
             "reason": explain(
                 booking.Result.fail(booking.Problem.NOT_ELIGIBLE, reason=reason), shift=shift
             )
@@ -128,11 +155,51 @@ def sign_up(request, pk):
         result = booking.sign_up(request.user, shift)
         if result.ok:
             return redirect("shifts:signed_up", pk=shift.pk)
+        if result.problem == booking.Problem.NEEDS_APPROVAL:
+            return redirect("shifts:ask", pk=shift.pk)
         messages.error(request, explain(result, shift=shift))
         return redirect("shifts:shift", pk=shift.pk)
     if _my_signup(request.user, shift):
         return redirect("shifts:signed_up", pk=shift.pk)
+    if booking.needs_approval(request.user, shift):
+        return redirect("shifts:ask", pk=shift.pk)
     return render(request, "volunteer/sign_up.html", {"shift": shift})
+
+
+@requires("sign_up_self")
+def ask(request, pk):
+    """Step 1 restates the shift; step 2 (the POST) sends the request to staff."""
+    shift = get_object_or_404(Shift, pk=pk)
+    if request.method == "POST":
+        result = booking.ask_to_join(request.user, shift)
+        if result.ok:
+            if result.signup_request:
+                messages.success(
+                    request,
+                    "We've asked the volunteer team. We'll email you when they answer.",
+                )
+        elif result.problem == booking.Problem.NO_APPROVAL_NEEDED:
+            return redirect("shifts:sign_up", pk=shift.pk)
+        else:
+            messages.error(request, explain(result, shift=shift))
+        return redirect("shifts:shift", pk=shift.pk)
+    if _my_signup(request.user, shift) or _my_request(request.user, shift):
+        return redirect("shifts:shift", pk=shift.pk)
+    if not booking.needs_approval(request.user, shift):
+        return redirect("shifts:sign_up", pk=shift.pk)
+    return render(request, "volunteer/ask.html", {"shift": shift})
+
+
+@requires("sign_up_self")
+@require_POST
+def take_back(request, pk):
+    """Take back a request to join a shift."""
+    shift = get_object_or_404(Shift, pk=pk)
+    asked = _my_request(request.user, shift)
+    if asked:
+        booking.withdraw_request(asked, by=request.user)
+        messages.success(request, "You've taken back your request.")
+    return redirect("shifts:shift", pk=shift.pk)
 
 
 @requires("view_own_schedule")

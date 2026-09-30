@@ -11,7 +11,14 @@ from accounts.models import Role, SetupLink, SetupLinkPurpose, Skill, Status, Us
 from accounts.permissions import has_capability
 from core import audit
 from scheduling import services as booking
-from scheduling.models import Signup, SignupStatus, WaitlistEntry, WaitlistStatus
+from scheduling.models import (
+    RequestStatus,
+    Signup,
+    SignupRequest,
+    SignupStatus,
+    WaitlistEntry,
+    WaitlistStatus,
+)
 from training.models import TrainingNeed
 
 PERSON_FIELDS = ["first_name", "last_name", "email", "phone"]
@@ -21,6 +28,7 @@ PROFILE_FIELDS = [
     "emergency_contact_relationship",
     "staff_notes",
 ]
+PROFILE_FLAGS = ["is_minor", "needs_approval"]
 
 
 def _birthday(data):
@@ -59,6 +67,8 @@ def add_volunteer(data: dict, *, added_by: User) -> Added:
         setattr(profile, field, data.get(field, ""))
     profile.birthday_month, profile.birthday_day = _birthday(data)
     profile.no_training_eligible = data.get("no_training_eligible", False)
+    for flag in PROFILE_FLAGS:
+        setattr(profile, flag, bool(data.get(flag, False)))
     profile.save()
     profile.skills.set(data.get("skills", []))
     for training_type in data.get("trainings_needed", []):
@@ -95,6 +105,10 @@ def update_volunteer(person: User, data: dict, *, by: User) -> list[str]:
         if getattr(profile, field) != data.get(field, ""):
             setattr(profile, field, data.get(field, ""))
             changed.append(field)
+    for flag in PROFILE_FLAGS:
+        if getattr(profile, flag) != bool(data.get(flag, False)):
+            setattr(profile, flag, bool(data.get(flag, False)))
+            changed.append(flag)
     birthday = _birthday(data)
     if (profile.birthday_month, profile.birthday_day) != birthday:
         profile.birthday_month, profile.birthday_day = birthday
@@ -207,6 +221,9 @@ def deactivate(person: User, *, by: User, now=None) -> list:
         booking.cancel_signup(signup, by=by, reason="Their account was turned off", now=now)
     for entry in WaitlistEntry.objects.filter(volunteer=person, status=WaitlistStatus.WAITING):
         booking.leave_waitlist(entry, by=by, now=now)
+    SignupRequest.objects.filter(volunteer=person, status=RequestStatus.WAITING).update(
+        status=RequestStatus.CLOSED, resolved_at=now, resolved_by=by
+    )
     SetupLink.objects.filter(user=person, used_at__isnull=True, voided_at__isnull=True).update(
         voided_at=now
     )

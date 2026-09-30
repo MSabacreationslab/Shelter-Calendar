@@ -1,0 +1,14 @@
+{% autoescape off %}Hello {{ person.get_short_name }},
+
+Thank you for offering to help with:
+
+{{ shift }}
+
+The volunteer team wasn't able to say yes this time.{% if note %}
+
+A note from the team: {{ note }}{% endif %}
+
+There are other shifts in the app: {{ site_url }}/shifts/{% if shelter.phone %}
+If you have questions, please call the shelter at {{ shelter.phone }}.{% endif %}
+
+The volunteer team at {{ shelter.name }}{% endautoescape %}

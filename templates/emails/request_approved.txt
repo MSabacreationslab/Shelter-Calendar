@@ -1,0 +1,9 @@
+{% autoescape off %}Hello {{ person.get_short_name }},
+
+Good news! The volunteer team said yes, and you're now signed up for:
+
+{{ shift }}
+
+If you can't make it after all, please cancel in the app so someone else can come: {{ site_url }}/my-shifts/
+
+The volunteer team at {{ shelter.name }}{% endautoescape %}
