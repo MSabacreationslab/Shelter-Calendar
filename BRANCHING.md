@@ -2,8 +2,10 @@
 
 - `main` is protected. No direct commits, ever.
 - All work happens on `feature/<short-description>` branches.
+- App features are built one PR per phase (SPEC.md §6), on `feature/phase-N-<slug>` branches.
 - Branches merge into `main` only via Pull Request.
 - Every PR requires human review and approval before merge — no auto-merge, even after the self-healing pipeline (Phase 3+) is working.
+  Mike can give that approval in chat, and Claude then performs the merge (CLAUDE.md → Merging).
 - Commit messages follow Conventional Commits: `feat:`, `fix:`, `docs:`, `test:`, `chore:`.
 - Delete feature branches after merge to keep the branch list clean.
 
