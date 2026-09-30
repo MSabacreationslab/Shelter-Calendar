@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Dashboard{% endblock %}
+{% block main_width %}wrap--wide{% endblock %}
+{% block content %}
+  <h1>Dashboard</h1>
+
+  {% if urgent %}
+    <section class="notice notice--error" aria-labelledby="urgent-heading">
+      <span class="notice__icon" aria-hidden="true">&#9888;</span>
+      <div>
+        <h2 class="notice__title" id="urgent-heading">Urgent: {{ urgent|length }} cancellation{{ urgent|length|pluralize }} close to the shift</h2>
+        <ul>
+          {% for signup in urgent %}
+            <li><strong>{{ signup.volunteer.get_full_name }}</strong> can't make <a href="{% url 'scheduling:shift' signup.shift.pk %}">{{ signup.shift.title }}, {{ signup.shift.starts_at|friendly_date }} at {{ signup.shift.starts_at|clock }}</a>{% if signup.cancel_reason %}: “{{ signup.cancel_reason }}”{% endif %}</li>
+          {% endfor %}
+        </ul>
+        <p class="field__hint">Urgent means less than {{ settings.urgent_threshold_hours }} hours before the shift.</p>
+      </div>
+    </section>
+  {% endif %}
+
+  <h2>Today, {{ today_date|long_date }}</h2>
+  {% if today %}
+    <ul class="shift-cards">
+      {% for shift in today %}
+        <li class="shift-card">
+          <a class="shift-card__title" href="{% url 'scheduling:shift' shift.pk %}">{{ shift.title }}</a>
+          <span>{{ shift.starts_at|clock }} – {{ shift.ends_at|clock }}</span>
+          {% if shift.status == "cancelled" %}
+            <span class="badge">Cancelled</span>
+          {% else %}
+            <span class="{% if shift.open_spots %}fill-open{% endif %}">{{ shift.filled }} of {{ shift.capacity }} filled{% if shift.open_spots %}, {{ shift.open_spots }} open{% endif %}</span>
+            <span class="shift-card__people">{% for person in shift.people %}{{ person.get_full_name }}{% if not forloop.last %}, {% endif %}{% empty %}Nobody yet{% endfor %}</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No shifts today.</p>
+  {% endif %}
+
+  <h2>Needs attention</h2>
+  {% if all_clear %}
+    {% include "components/notice.html" with kind="success" title="All clear" message="Nothing needs attention right now." %}
+  {% endif %}
+
+  {% if short_list %}
+    <section class="attention" aria-labelledby="short-heading">
+      <h3 id="short-heading">Shifts in the next 7 days with open spots ({{ short_count }})</h3>
+      <ul class="plain-list">
+        {% for shift in short_list %}
+          <li class="plain-list__item"><a href="{% url 'scheduling:shift' shift.pk %}">{{ shift.title }}, {{ shift.starts_at|friendly_date }} at {{ shift.starts_at|clock }}</a><span>{{ shift.filled }} of {{ shift.capacity }} filled</span></li>
+        {% endfor %}
+      </ul>
+      {% if short_count > short_list|length %}<p><a href="{% url 'scheduling:week' %}">See the whole week</a></p>{% endif %}
+    </section>
+  {% endif %}
+
+  {% if waitlists %}
+    <section class="attention" aria-labelledby="wait-heading">
+      <h3 id="wait-heading">A spot opened and someone is waiting</h3>
+      <ul class="plain-list">
+        {% for shift in waitlists %}
+          <li class="plain-list__item"><a href="{% url 'scheduling:shift' shift.pk %}">{{ shift.title }}, {{ shift.starts_at|friendly_date }}</a><span>{{ shift.waiting }} waiting</span></li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {% if conflicts %}
+    <section class="attention" aria-labelledby="conflict-heading">
+      <h3 id="conflict-heading">Orientation times that don't work</h3>
+      <ul class="plain-list">
+        {% for signup in conflicts %}
+          <li class="plain-list__item"><a href="{% url 'people:detail' signup.volunteer.pk %}">{{ signup.volunteer.get_full_name }}</a><span>{{ signup.shift.starts_at|friendly_date }}: call them at <a href="tel:{{ signup.volunteer.phone|tel }}">{{ signup.volunteer.phone|phone }}</a></span></li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {% if locked %}
+    <section class="attention" aria-labelledby="locked-heading">
+      <h3 id="locked-heading">Locked out after too many wrong PINs</h3>
+      <ul class="plain-list">
+        {% for person in locked %}
+          <li class="plain-list__item"><a href="{% url 'people:detail' person.pk %}">{{ person.get_full_name }}</a><span>{% if person.pin_reset_required %}Needs a new setup link{% else %}Can try again soon{% endif %}</span></li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {% if expired %}
+    <section class="attention" aria-labelledby="expired-heading">
+      <h3 id="expired-heading">Welcome links that ran out before they chose a PIN</h3>
+      <ul class="plain-list">
+        {% for person in expired %}
+          <li class="plain-list__item"><a href="{% url 'people:detail' person.pk %}">{{ person.get_full_name }}</a><span>Open their page to send a new link</span></li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {% if routine %}
+    <section class="attention" aria-labelledby="routine-heading">
+      <h3 id="routine-heading">Other cancellations this week</h3>
+      <ul class="plain-list">
+        {% for signup in routine %}
+          <li class="plain-list__item"><span>{{ signup.volunteer.get_full_name }}: <a href="{% url 'scheduling:shift' signup.shift.pk %}">{{ signup.shift.title }}, {{ signup.shift.starts_at|friendly_date }}</a></span></li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  <h2>Quick links</h2>
+  <nav class="quick-links" aria-label="Quick links">
+    {% if can.manage_shifts %}<a class="btn btn--secondary" href="{% url 'scheduling:add_shift' %}">Add a shift</a>
+    <a class="btn btn--secondary" href="{% url 'scheduling:fill' %}">Fill the schedule</a>{% endif %}
+    {% if can.add_volunteers %}<a class="btn btn--secondary" href="{% url 'people:add' %}">Add a volunteer</a>{% endif %}
+    {% if can.record_training %}<a class="btn btn--secondary" href="{% url 'training:overview' %}">Record training</a>{% endif %}
+    <a class="btn btn--secondary" href="{% url 'people:list' %}">Volunteers</a>
+    {% if can.manage_staff %}<a class="btn btn--secondary" href="{% url 'dashboard:staff' %}">Staff</a>{% endif %}
+    {% if can.view_change_log %}<a class="btn btn--secondary" href="{% url 'dashboard:change_log' %}">Change log</a>{% endif %}
+    {% if can.edit_settings %}<a class="btn btn--secondary" href="{% url 'dashboard:settings' %}">Settings</a>{% endif %}
+  </nav>
+{% endblock %}

@@ -13,10 +13,10 @@
       <tr>
         {% for cell in week %}
           <td class="calendar__day{% if not cell.in_month %} is-other-month{% endif %}{% if cell.mine %} is-mine{% endif %}{% if cell.is_today %} is-today{% endif %}">
-            <a href="{% url 'shifts:day' cell.day.isoformat %}" aria-label="{{ cell.day|long_date }}{% if cell.is_today %}, today{% endif %}{% if cell.mine %}: your shift{% endif %}{% if cell.open %}{% if cell.mine %},{% else %}:{% endif %} {{ cell.open }} open shift{{ cell.open|pluralize }}{% endif %}">
+            <{% if readonly %}span{% else %}a href="{% url 'shifts:day' cell.day.isoformat %}"{% endif %} class="calendar__cell" aria-label="{{ cell.day|long_date }}{% if cell.is_today %}, today{% endif %}{% if cell.mine %}: your shift{% endif %}{% if cell.open %}{% if cell.mine %},{% else %}:{% endif %} {{ cell.open }} open shift{{ cell.open|pluralize }}{% endif %}">
               <span class="calendar__num">{{ cell.day.day }}</span>
               <span class="calendar__marks" aria-hidden="true">{% if cell.mine %}<span class="calendar__mine">&#10003;</span>{% endif %}{% if cell.open %}<span class="calendar__dot"></span>{% endif %}</span>
-            </a>
+            </{% if readonly %}span{% else %}a{% endif %}>
           </td>
         {% endfor %}
       </tr>

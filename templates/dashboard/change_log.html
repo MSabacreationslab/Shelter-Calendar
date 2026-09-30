@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Change log{% endblock %}
+{% block main_width %}wrap--wide{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Change log" lead="Every change anyone made, newest first. Nothing here can be edited or deleted." back_url="/" back_label="Dashboard" %}
+  <form method="get" class="inline-form" novalidate>
+    {% include "components/field.html" with field=form.person %}
+    {% include "components/field.html" with field=form.start %}
+    {% include "components/field.html" with field=form.end %}
+    <button type="submit" class="btn btn--secondary">Show</button>
+  </form>
+
+  {% if page.object_list %}
+    <ul class="plain-list">
+      {% for event in page %}
+        <li class="plain-list__item change">
+          <span class="change__when">{{ event.created_at|long_date }}, {{ event.created_at|clock }}</span>
+          <span class="change__what"><strong>{{ event.description }}</strong>{% if event.target_user %}: <a href="{% url 'people:detail' event.target_user.pk %}">{{ event.target_user.get_full_name }}</a>{% elif event.target_repr %}: {{ event.target_repr }}{% endif %}</span>
+          <span class="change__who">By {% if event.actor %}{{ event.actor.get_full_name }}{% else %}the app{% endif %}{% if event.details.fields %} (changed: {{ event.details.fields|join:", " }}){% endif %}</span>
+        </li>
+      {% endfor %}
+    </ul>
+    {% if page.has_other_pages %}
+      <nav class="pager" aria-label="More changes">
+        {% if page.has_previous %}<a class="btn btn--secondary" href="?{{ query }}{% if query %}&{% endif %}page={{ page.previous_page_number }}">Newer</a>{% endif %}
+        <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}<a class="btn btn--secondary" href="?{{ query }}{% if query %}&{% endif %}page={{ page.next_page_number }}">Older</a>{% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    {% include "components/empty_state.html" with title="No changes to show" message="Try a different person or dates." %}
+  {% endif %}
+{% endblock %}

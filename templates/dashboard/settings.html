@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Shelter settings" lead="Only the Admin can change these. Every change goes in the change log." back_url="/" back_label="Dashboard" %}
+  {% if form.errors %}{% include "components/notice.html" with kind="error" title="Please fix the highlighted boxes" %}{% endif %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <fieldset class="form-section">
+      <legend>The shelter</legend>
+      {% include "components/field.html" with field=form.shelter_name %}
+      {% include "components/field.html" with field=form.shelter_phone %}
+      {% include "components/field.html" with field=form.shelter_email %}
+    </fieldset>
+    <fieldset class="form-section">
+      <legend>Cancellations</legend>
+      {% include "components/field.html" with field=form.self_cancel_hours %}
+      {% include "components/field.html" with field=form.urgent_threshold_hours %}
+      {% include "components/field.html" with field=form.notify_emails %}
+    </fieldset>
+    <div class="actions"><button type="submit" class="btn btn--primary">Save settings</button></div>
+  </form>
+{% endblock %}

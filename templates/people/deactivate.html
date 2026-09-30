@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Turn off {{ person.get_full_name }}{% endblock %}
+{% block content %}
+  {% url 'people:detail' person.pk as back %}
+  {% include "components/page_header.html" with title="Turn off "|add:person.get_full_name|add:"?" back_url=back back_label=person.get_full_name %}
+  <p>They won't be able to sign in, and they'll come off the lists. Nothing is deleted: you can turn them back on any time.</p>
+  {% if upcoming %}
+    <div class="card">
+      <p class="card__title">They'll be taken off these shifts</p>
+      <ul>{% for signup in upcoming %}<li>{{ signup.shift.title }}, {{ signup.shift.starts_at|long_date }} at {{ signup.shift.starts_at|clock }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <div class="actions">
+      <button type="submit" class="btn btn--danger">Yes, turn them off</button>
+      <a class="btn btn--secondary" href="{{ back }}">No, go back</a>
+    </div>
+  </form>
+{% endblock %}

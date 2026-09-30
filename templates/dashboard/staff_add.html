@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Add a staff member{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Add a staff member" lead="They'll get an email with a link to choose their PIN." back_url="/staff/" back_label="Staff" %}
+  {% if form.errors %}{% include "components/notice.html" with kind="error" title="Please fix the highlighted boxes" %}{% endif %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "components/field.html" with field=form.first_name %}
+    {% include "components/field.html" with field=form.last_name %}
+    {% include "components/field.html" with field=form.job_title %}
+    {% include "components/field.html" with field=form.email %}
+    {% include "components/field.html" with field=form.phone %}
+    {% include "components/field.html" with field=form.login_name %}
+    <div class="actions">
+      <button type="submit" class="btn btn--primary">Add and send welcome email</button>
+      <a class="btn btn--secondary" href="{% url 'dashboard:staff' %}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

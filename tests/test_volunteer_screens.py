@@ -213,6 +213,6 @@ def test_profile_changes_only_phone_and_emergency_contact(client, person):
 def test_staff_have_my_shifts_too(client):
     staff = StaffFactory()
     client.force_login(staff)
-    assert "Staff tools" in client.get("/").content.decode()
+    assert "<h1>Dashboard</h1>" in client.get("/").content.decode()
     assert client.get("/my-shifts/").status_code == 200
     assert 'href="/my-shifts/"' in client.get("/").content.decode()

@@ -202,7 +202,7 @@ def test_list_shows_active_volunteers_unless_asked(staff_client):
     gone = UserFactory(first_name="Gone", status=Status.INACTIVE)
     html = staff_client.get("/volunteers/").content.decode()
     assert active.get_full_name() in html and gone.get_full_name() not in html
-    html = staff_client.get("/volunteers/?show=all").content.decode()
+    html = staff_client.get("/volunteers/?status=all").content.decode()
     assert gone.get_full_name() in html
 
 

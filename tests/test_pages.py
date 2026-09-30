@@ -28,7 +28,7 @@ def test_home_greets_the_person_with_one_heading(client, volunteer):
 
 def test_staff_home_differs_from_volunteer_home(client, staff):
     client.force_login(staff)
-    assert "Staff tools" in client.get("/").content.decode()
+    assert "<h1>Dashboard</h1>" in client.get("/").content.decode()
 
 
 def test_footer_shows_phone_as_a_dialable_link_when_set(client):

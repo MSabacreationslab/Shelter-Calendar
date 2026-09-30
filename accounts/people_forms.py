@@ -170,18 +170,7 @@ class AddVolunteerForm(VolunteerDetailsForm):
 
     def clean(self):
         """Pick the sign-in name and make sure nobody else uses it."""
-        data = super().clean()
-        if data.get("first_name") and data.get("last_name"):
-            chosen = data.get("login_name") or f"{data['first_name']} {data['last_name']}"
-            chosen = normalize_login_name(chosen)
-            if User.objects.filter(login_name__iexact=chosen).exists():
-                self.add_error(
-                    "login_name",
-                    f"Someone already signs in as “{chosen}”. Please add something to tell "
-                    "them apart, like a middle initial.",
-                )
-            data["login_name"] = chosen
-        return data
+        return _choose_login_name(self, super().clean())
 
 
 def details_initial(person) -> dict:
@@ -241,4 +230,90 @@ class OwnContactForm(AccessibleFormMixin, forms.Form):
     )
     emergency_contact_relationship = forms.CharField(
         label="How they're related to you", max_length=60, required=False
+    )
+
+
+def _choose_login_name(form, data):
+    """Default to "First Last" and make sure nobody else signs in with it."""
+    if data.get("first_name") and data.get("last_name"):
+        chosen = data.get("login_name") or f"{data['first_name']} {data['last_name']}"
+        chosen = normalize_login_name(chosen)
+        if User.objects.filter(login_name__iexact=chosen).exists():
+            form.add_error(
+                "login_name",
+                f"Someone already signs in as “{chosen}”. Please add something to tell "
+                "them apart, like a middle initial.",
+            )
+        data["login_name"] = chosen
+    return data
+
+
+class StaffForm(AccessibleFormMixin, forms.Form):
+    """Adding a staff member (the Admin is only ever created from the command line)."""
+
+    first_name = forms.CharField(
+        label="First name",
+        max_length=150,
+        error_messages={"required": "Please enter a first name."},
+    )
+    last_name = forms.CharField(
+        label="Last name", max_length=150, error_messages={"required": "Please enter a last name."}
+    )
+    job_title = forms.CharField(
+        label="Job title",
+        max_length=100,
+        help_text="For example, Volunteer Lead. All staff can do the same things.",
+        error_messages={"required": "Please enter a job title."},
+    )
+    email = forms.EmailField(
+        label="Email",
+        help_text="Their welcome email with a PIN link goes here.",
+        error_messages={
+            "required": "Please enter an email address.",
+            "invalid": "Please check the email address; it should look like name@example.com.",
+        },
+    )
+    phone = PhoneField(label="Phone", error_messages={"required": "Please enter a phone number."})
+    login_name = forms.CharField(
+        label="Sign-in name",
+        max_length=150,
+        required=False,
+        help_text="Leave blank to use their first and last name.",
+    )
+
+    def clean(self):
+        """Pick a sign-in name nobody else uses."""
+        return _choose_login_name(self, super().clean())
+
+
+class JobTitleForm(AccessibleFormMixin, forms.Form):
+    job_title = forms.CharField(
+        label="Job title", max_length=100, error_messages={"required": "Please enter a job title."}
+    )
+
+
+class DirectoryFilterForm(forms.Form):
+    """Narrow the list (these go in the web address; names never do)."""
+
+    who = forms.ChoiceField(
+        label="Show",
+        required=False,
+        choices=[("volunteers", "Volunteers"), ("staff", "Staff"), ("everyone", "Everyone")],
+    )
+    status = forms.ChoiceField(
+        label="Who's active",
+        required=False,
+        choices=[("active", "Active only"), ("all", "Include turned off")],
+    )
+    done = forms.ModelChoiceField(
+        label="Has done",
+        required=False,
+        queryset=TrainingType.objects.all(),
+        empty_label="Any training",
+    )
+    needs = forms.ModelChoiceField(
+        label="Still needs",
+        required=False,
+        queryset=TrainingType.objects.all(),
+        empty_label="Any training",
     )
