@@ -13,6 +13,7 @@ Everything here is free. Do the steps in order the first time.
 
 **Project**
 1. In the project folder, copy `.env.example` to `.env` and put your Postgres password into `DATABASE_URL`.
+   If the password has special characters, write them as codes: `#` → `%23`, `@` → `%40`, `/` → `%2F`, `:` → `%3A`, `%` → `%25`, `?` → `%3F`, `&` → `%26`. The same applies to the Supabase string you paste into Render.
 2. Create the virtual environment and install everything:
    ```bash
    python -m venv .venv

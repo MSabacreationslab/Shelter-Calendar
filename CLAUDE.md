@@ -82,7 +82,7 @@ with a clear explanation of what failed and why it doesn't match a known pattern
 
 ## Commands
 
-- Tests: `.venv/Scripts/python -m pytest` (needs Postgres and `.env`; see docs/setup.md)
+- Tests: `DEBUG=1 .venv/Scripts/python -m pytest` (local Postgres + `.env`; see docs/setup.md)
 - Lint/format: `.venv/Scripts/ruff check .` and `.venv/Scripts/ruff format .`
 - Without a local Postgres, set `DATABASE_URL=postgres://u:p@127.0.0.1:5432/x?connect_timeout=2`
   so commands fail fast instead of hanging (Windows waits forever on `localhost`).
@@ -143,3 +143,14 @@ with a clear explanation of what failed and why it doesn't match a known pattern
 - Holidays are a table filled by `sync_holidays` on every deploy; staff add/hide/remove.
 - Orientation "can't make it" links are signed (60 days), need no sign-in, and set
   `Signup.conflict_reported_at` once; staff on the notify list are emailed.
+
+**Phase 4**
+- Volunteers' Home (`/`) is their calendar (`/my-shifts/`); staff keep their own home and get
+  "My shifts" in the header. The month is `?month=YYYY-MM`; weeks start on Sunday.
+- Calendar days are links whose spoken label carries the marks ("Tuesday, October 6: your
+  shift, 3 open shifts"), so nothing depends on colour or the tick alone.
+- Signing up and cancelling are always two steps (a page that restates the shift, then the
+  button). The success page offers an `.ics` file for the person's own shifts only.
+- Volunteers edit only their phone and emergency contact on My profile.
+- One query counting two related tables needs `Count(..., distinct=True)`.
+- Local `.env`: special characters in the database password must be URL-encoded (`#` → `%23`).
