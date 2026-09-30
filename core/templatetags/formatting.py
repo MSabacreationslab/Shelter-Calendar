@@ -74,6 +74,12 @@ def clock_text(value) -> str:
 
 
 @register.filter
+def clock_plain(value):
+    """9:00 AM as plain text, for plain-text emails."""
+    return clock_text(value)
+
+
+@register.filter
 def clock(value):
     """9:00 AM, with a no-break space so the time never splits across lines."""
     return mark_safe(clock_text(value).replace(" ", "&nbsp;"))

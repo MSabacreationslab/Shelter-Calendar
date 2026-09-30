@@ -1,0 +1,16 @@
+{% extends "emails/_base.html" %}
+{% block body %}
+  <p style="margin:0 0 16px;">Here's {{ summary.start|date:"F Y" }} in numbers.</p>
+  <table role="presentation" style="border-collapse:collapse; font-size:19px; margin:0 0 16px;">
+    <tr><td style="padding:6px 16px 6px 0;">Shifts</td><td style="padding:6px 0;"><strong>{{ summary.shifts }}</strong></td></tr>
+    <tr><td style="padding:6px 16px 6px 0;">Spots filled</td><td style="padding:6px 0;"><strong>{{ summary.filled }} of {{ summary.spots }} ({{ summary.fill_percent }}%)</strong></td></tr>
+    <tr><td style="padding:6px 16px 6px 0;">Sign-ups made</td><td style="padding:6px 0;"><strong>{{ summary.signups }}</strong></td></tr>
+    <tr><td style="padding:6px 16px 6px 0;">Cancellations</td><td style="padding:6px 0;"><strong>{{ summary.cancellations }}</strong> ({{ summary.urgent }} urgent, {{ summary.late }} inside the self-cancel window)</td></tr>
+    <tr><td style="padding:6px 16px 6px 0;">New volunteers</td><td style="padding:6px 0;"><strong>{{ summary.volunteers_added }}</strong></td></tr>
+    <tr><td style="padding:6px 16px 6px 0;">Training completed</td><td style="padding:6px 0;"><strong>{{ summary.trainings_total }}</strong></td></tr>
+  </table>
+  {% if summary.trainings %}
+    <p style="margin:0 0 16px;">{% for name, count in summary.trainings %}{{ name }}: {{ count }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</p>
+  {% endif %}
+  {% with report_url=site_url|add:"/reports/" %}{% include "emails/_button.html" with href=report_url label="See the full report" %}{% endwith %}
+{% endblock %}

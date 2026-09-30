@@ -1,0 +1,17 @@
+{% load formatting %}{% autoescape off %}Here's next week at a glance, {{ week.start|long_date }} to {{ week.end|long_date }}.
+
+BY DAY
+{% for day, shifts in week.days %}
+{{ day|long_date }}
+{% for shift in shifts %}  {{ shift.starts_at|clock_plain }} to {{ shift.ends_at|clock_plain }}  {{ shift.title }}: {% for person in shift.people %}{{ person.get_full_name }}{% if not forloop.last %}, {% endif %}{% empty %}nobody yet{% endfor %}{% if shift.open %} ({{ shift.open }} open){% endif %}
+{% empty %}  No shifts
+{% endfor %}{% endfor %}
+BY VOLUNTEER
+{% for person, shifts in week.by_person %}{{ person.get_full_name }}: {% for shift in shifts %}{{ shift.starts_at|date:"l" }} {{ shift.starts_at|clock_plain }} {{ shift.title }}{% if not forloop.last %}; {% endif %}{% endfor %}
+{% empty %}Nobody is signed up yet.
+{% endfor %}
+CANCELLATIONS IN THE LAST 7 DAYS
+{% for signup in cancellations %}{{ signup.volunteer.get_full_name }}: {{ signup.shift.title }}, {{ signup.shift.starts_at|long_date }}{% if signup.was_urgent %} (urgent){% endif %}
+{% empty %}None.
+{% endfor %}
+The full schedule: {{ site_url }}/schedule/{% endautoescape %}

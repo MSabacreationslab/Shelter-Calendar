@@ -1,0 +1,11 @@
+{% autoescape off %}Here's {{ summary.start|date:"F Y" }} in numbers.
+
+Shifts: {{ summary.shifts }}
+Spots filled: {{ summary.filled }} of {{ summary.spots }} ({{ summary.fill_percent }}%)
+Sign-ups made: {{ summary.signups }}
+Cancellations: {{ summary.cancellations }} ({{ summary.urgent }} urgent, {{ summary.late }} inside the self-cancel window)
+New volunteers: {{ summary.volunteers_added }}
+Training completed: {{ summary.trainings_total }}{% for name, count in summary.trainings %}
+  {{ name }}: {{ count }}{% endfor %}
+
+More detail, and a spreadsheet download: {{ site_url }}/reports/{% endautoescape %}

@@ -113,7 +113,7 @@ def trained(person, training_type, **kwargs):
     return TrainingRecord.objects.create(
         volunteer=person,
         training_type=training_type,
-        completed_on=timezone.localdate(),
+        completed_on=kwargs.pop("completed_on", timezone.localdate()),
         signed_off_by=kwargs.pop("signed_off_by", person),
         **kwargs,
     )
