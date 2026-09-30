@@ -231,6 +231,11 @@ class OwnContactForm(AccessibleFormMixin, forms.Form):
     emergency_contact_relationship = forms.CharField(
         label="How they're related to you", max_length=60, required=False
     )
+    wants_reminders = forms.BooleanField(
+        label="Email me a reminder before my shifts",
+        required=False,
+        help_text="The evening before, or on Sunday if you have 4 or more shifts that week.",
+    )
 
 
 def _choose_login_name(form, data):

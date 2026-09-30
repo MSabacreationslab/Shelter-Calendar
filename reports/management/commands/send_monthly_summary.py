@@ -2,7 +2,7 @@
 
 from django.core.management.base import BaseCommand
 
-from reports.management.commands.send_weekly_digest import _parse
+from core.commands import parse_date_option
 from reports.senders import send_monthly_summary
 
 
@@ -16,5 +16,5 @@ class Command(BaseCommand):
 
     def handle(self, *args, date=None, again=False, **options):
         """Report what happened in one line."""
-        result = send_monthly_summary(_parse(date), again=again)
+        result = send_monthly_summary(parse_date_option(date), again=again)
         self.stdout.write(f"Sent to {result.sent}." if result.sent else result.reason)

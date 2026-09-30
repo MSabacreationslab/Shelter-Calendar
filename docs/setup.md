@@ -90,6 +90,12 @@ Then, in the same window:
   .venv\Scripts\python manage.py send_monthly_summary
   ```
   Add `--date 2026-10-04` to act as if it's another day (the digest covers the week after that date; the summary covers the month before it).
+- Send shift reminders and birthday emails by hand (the pilot runs reminders every evening at 6 PM and birthdays every morning at 8 AM). Each reminder is only ever sent once:
+  ```powershell
+  .venv\Scripts\python manage.py send_reminders
+  .venv\Scripts\python manage.py send_birthday_emails
+  ```
+  `send_reminders` emails everyone about tomorrow's shifts; on a Sunday it first sends next week's list to anyone with 4 or more shifts. Both take `--date` too.
 
 Close the window when you're done, so the settings don't linger. `DEBUG` here only affects the command on your computer, not the site.
 

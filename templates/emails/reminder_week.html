@@ -1,0 +1,12 @@
+{% extends "emails/_base.html" %}
+{% load formatting %}
+{% block body %}
+  <p style="margin:0 0 16px;">Hello {{ person.get_short_name }},</p>
+  <p style="margin:0 0 16px;">Here are your shifts this week. Thank you for all your help!</p>
+  {% for shift in shifts %}
+    <p style="margin:0 0 12px;"><strong>{{ shift.starts_at|long_date }}</strong><br>{{ shift.title }}, {{ shift.starts_at|clock }} – {{ shift.ends_at|clock }}</p>
+  {% endfor %}
+  <p style="margin:16px 0;">Can't make one? Please let us know as soon as you can.</p>
+  {% with shifts_url=site_url|add:"/my-shifts/" %}{% include "emails/_button.html" with href=shifts_url label="Open my shifts" %}{% endwith %}
+  <p style="margin:24px 0 0; font-size:16px; color:#474E57;">To stop these reminders, turn them off on <a href="{{ site_url }}/profile/" style="color:#1B5673;">My profile</a>.</p>
+{% endblock %}

@@ -159,6 +159,9 @@ class VolunteerProfile(models.Model):
         default=False, help_text="May sign up for shifts that need no training."
     )
     staff_notes = models.TextField(blank=True)
+    wants_reminders = models.BooleanField(
+        default=True, help_text="Email reminders before their shifts (they can turn these off)."
+    )
     added_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,

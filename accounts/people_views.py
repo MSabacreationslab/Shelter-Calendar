@@ -201,6 +201,7 @@ def my_profile(request):
         "emergency_contact_name": profile.emergency_contact_name,
         "emergency_contact_phone": profile.emergency_contact_phone,
         "emergency_contact_relationship": profile.emergency_contact_relationship,
+        "wants_reminders": profile.wants_reminders,
     }
     form = OwnContactForm(post_data(request), initial=initial)
     if request.method == "POST" and form.is_valid():

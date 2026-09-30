@@ -588,7 +588,8 @@ One dashboard, shared by all staff and the Admin.
   - Everyone can turn reminders off on their profile.
 - **Adding texts later:** reminders go through a small interface, so texting can be added without touching the rules. US texting needs A2P 10DLC registration and has a small monthly cost.
 - **Birthday email:** plain text, at 8 AM ET on their birthday, only if they gave one, and signed from the shelter. Feb 29 is sent on Feb 28 in non-leap years.
-- **Command:** `send_reminders` runs daily and won't send the same reminder twice.
+- **Commands** (as built): `send_reminders` runs every evening (6 PM on the pilot): on Sundays it first sends next week's list to people with **4 or more** shifts, then everyone else gets one email about **tomorrow's** shifts (people who got this week's list are skipped). `send_birthday_emails` runs every morning (8 AM). Each reminder is recorded (`SentReminder`) so none is sent twice; both take `--date`.
+- **Turning reminders off:** a tick box on My profile ("Email me a reminder before my shifts"), on by default; staff see whether it's on from the person's page. Birthday emails don't depend on it.
 
 ### Phase 9 — Pilot prep & polish
 - **Accessibility pass:**
