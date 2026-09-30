@@ -578,7 +578,8 @@ One dashboard, shared by all staff and the Admin.
   - Pick a date range, then view tables by volunteer, by day and by shift.
   - **Download CSV** as Excel-friendly UTF-8 with a BOM.
   - Cells starting with `= + - @` are prefixed with `'` to block CSV formula injection.
-- **Commands:** `send_weekly_digest` and `send_monthly_summary`. Each records the period it sent, so a double trigger can't send twice. Railway cron triggers them on the pilot (Q13).
+- **Commands:** `send_weekly_digest` and `send_monthly_summary`. Each records the period it sent (`SentReport`), so a double trigger can't send twice; `--again` resends on purpose and `--date` acts as if it's another day. With no notification emails set, nothing is sent or recorded. Railway cron triggers them on the pilot (Q13); on the test site they're run by hand from Mike's PC.
+- **Report page** (as built): shortcuts for this month, last month and the last 4 weeks; up to a year at a time. "By person" shows shifts done, hours (shifts that have ended), coming up, cancellations and urgent ones. Each table downloads as its own spreadsheet.
 
 ### Phase 8 — Reminders & birthday email
 - **Shift reminders are email-only until an SMS provider is chosen** (decided, Q14):

@@ -175,3 +175,10 @@ with a clear explanation of what failed and why it doesn't match a known pattern
   links at all, so there's nothing to submit. Every view is logged.
 - `people.can_manage()` decides who may turn someone off: volunteers need
   `edit_volunteers`, staff need `manage_staff`, the Admin never appears.
+
+**Phase 7**
+- `reports/data.py` computes every report number once; emails and the report page share it.
+- Scheduled emails claim their period in `SentReport` (unique kind + period) *before*
+  sending, so racing triggers can't double-send. `--again` resends; `--date` fakes today.
+- CSV downloads start with a BOM (Excel reads UTF-8) and prefix `= + - @` tab/CR text
+  cells with `'` (`reports/csv_export.safe`). Plain-text emails use `|clock_plain`.

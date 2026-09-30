@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "scheduling",
     "notifications",
     "dashboard",
+    "reports",
 ]
 
 MIDDLEWARE = [

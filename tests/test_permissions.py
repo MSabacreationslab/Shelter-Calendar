@@ -28,6 +28,7 @@ SAMPLE_ARGS = {
     "entry_pk": "999999",
     "date": "2026-10-06",
     "day": "2026-10-06",
+    "table": "people",
 }
 BACKEND_PREFIX = "django-admin/"
 

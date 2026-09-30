@@ -120,6 +120,7 @@
     {% if can.record_training %}<a class="btn btn--secondary" href="{% url 'training:overview' %}">Record training</a>{% endif %}
     <a class="btn btn--secondary" href="{% url 'people:list' %}">Volunteers</a>
     {% if can.manage_staff %}<a class="btn btn--secondary" href="{% url 'dashboard:staff' %}">Staff</a>{% endif %}
+    <a class="btn btn--secondary" href="{% url 'reports:report' %}">Reports</a>
     {% if can.view_change_log %}<a class="btn btn--secondary" href="{% url 'dashboard:change_log' %}">Change log</a>{% endif %}
     {% if can.edit_settings %}<a class="btn btn--secondary" href="{% url 'dashboard:settings' %}">Settings</a>{% endif %}
   </nav>

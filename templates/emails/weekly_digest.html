@@ -1,0 +1,34 @@
+{% extends "emails/_base.html" %}
+{% load formatting %}
+{% block body %}
+  <p style="margin:0 0 16px;">Here's next week at a glance, {{ week.start|long_date }} to {{ week.end|long_date }}.</p>
+
+  <h2 style="font-size:22px; margin:24px 0 8px;">By day</h2>
+  {% for day, shifts in week.days %}
+    <p style="margin:16px 0 4px; font-weight:bold;">{{ day|long_date }}</p>
+    {% for shift in shifts %}
+      <p style="margin:0 0 6px; padding-left:12px; border-left:4px solid {% if shift.open %}#A8471A{% else %}#2D6A3A{% endif %};">
+        {{ shift.starts_at|clock }} – {{ shift.ends_at|clock }} <strong>{{ shift.title }}</strong><br>
+        {% for person in shift.people %}{{ person.get_full_name }}{% if not forloop.last %}, {% endif %}{% empty %}Nobody yet{% endfor %}{% if shift.open %}<br><span style="color:#8F3A0E; font-weight:bold;">{{ shift.open }} open</span>{% endif %}
+      </p>
+    {% empty %}
+      <p style="margin:0 0 6px; padding-left:12px; color:#474E57;">No shifts</p>
+    {% endfor %}
+  {% endfor %}
+
+  <h2 style="font-size:22px; margin:28px 0 8px;">By volunteer</h2>
+  {% for person, shifts in week.by_person %}
+    <p style="margin:0 0 8px;"><strong>{{ person.get_full_name }}</strong>: {% for shift in shifts %}{{ shift.starts_at|date:"l" }} {{ shift.starts_at|clock }} {{ shift.title }}{% if not forloop.last %}; {% endif %}{% endfor %}</p>
+  {% empty %}
+    <p style="margin:0 0 8px;">Nobody is signed up yet.</p>
+  {% endfor %}
+
+  <h2 style="font-size:22px; margin:28px 0 8px;">Cancellations in the last 7 days</h2>
+  {% for signup in cancellations %}
+    <p style="margin:0 0 8px;">{{ signup.volunteer.get_full_name }}: {{ signup.shift.title }}, {{ signup.shift.starts_at|long_date }}{% if signup.was_urgent %} <strong style="color:#A4231C;">(urgent)</strong>{% endif %}</p>
+  {% empty %}
+    <p style="margin:0 0 8px;">None.</p>
+  {% endfor %}
+
+  {% with schedule_url=site_url|add:"/schedule/" %}{% include "emails/_button.html" with href=schedule_url label="Open the schedule" %}{% endwith %}
+{% endblock %}

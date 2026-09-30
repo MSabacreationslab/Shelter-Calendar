@@ -84,6 +84,13 @@ Then, in the same window:
   .venv\Scripts\python manage.py seed_demo
   ```
 
+- Send the report emails by hand (the pilot will run these on a schedule). They go to the notification emails in Settings, and each period is only sent once unless you add `--again`:
+  ```powershell
+  .venv\Scripts\python manage.py send_weekly_digest
+  .venv\Scripts\python manage.py send_monthly_summary
+  ```
+  Add `--date 2026-10-04` to act as if it's another day (the digest covers the week after that date; the summary covers the month before it).
+
 Close the window when you're done, so the settings don't linger. `DEBUG` here only affects the command on your computer, not the site.
 
 ## 4. Gmail (sends the app's emails)

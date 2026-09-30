@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Reports{% endblock %}
+{% block main_width %}wrap--wide{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Reports" lead="Who helped, each day, and each shift, for any dates. Download any table as a spreadsheet." %}
+
+  <p class="shortcuts">{% for label, qs in shortcuts %}<a class="btn btn--secondary" href="{{ qs }}">{{ label }}</a> {% endfor %}</p>
+  <form method="get" class="inline-form" novalidate>
+    {% include "components/field.html" with field=form.start %}
+    {% include "components/field.html" with field=form.end %}
+    <button type="submit" class="btn btn--primary">Show</button>
+  </form>
+
+  {% if report %}
+    <p>{{ report.start|long_date }}, {{ report.start.year }} to {{ report.end|long_date }}, {{ report.end.year }}</p>
+
+    <section aria-labelledby="by-person">
+      <h2 id="by-person">By person</h2>
+      <p><a href="{% url 'reports:download' 'people' %}?{{ query }}">Download as a spreadsheet</a></p>
+      {% if report.by_person %}
+        <table class="data-table">
+          <thead><tr><th scope="col">Name</th><th scope="col">Shifts done</th><th scope="col">Hours</th><th scope="col">Coming up</th><th scope="col">Cancelled</th><th scope="col">Urgent</th></tr></thead>
+          <tbody>
+            {% for row in report.by_person %}
+              <tr>
+                <th scope="row" data-label="Name"><a href="{% url 'people:detail' row.person.pk %}">{{ row.person.get_full_name }}</a></th>
+                <td data-label="Shifts done">{{ row.done }}</td>
+                <td data-label="Hours">{{ row.hours }}</td>
+                <td data-label="Coming up">{{ row.coming_up }}</td>
+                <td data-label="Cancelled">{{ row.cancelled }}</td>
+                <td data-label="Urgent">{{ row.urgent }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>Nobody signed up for shifts in these dates.</p>
+      {% endif %}
+    </section>
+
+    <section aria-labelledby="by-day">
+      <h2 id="by-day">By day</h2>
+      <p><a href="{% url 'reports:download' 'days' %}?{{ query }}">Download as a spreadsheet</a></p>
+      {% if report.by_day %}
+        <table class="data-table">
+          <thead><tr><th scope="col">Day</th><th scope="col">Shifts</th><th scope="col">Spots</th><th scope="col">Filled</th></tr></thead>
+          <tbody>
+            {% for row in report.by_day %}
+              <tr>
+                <th scope="row" data-label="Day">{{ row.day|long_date }}</th>
+                <td data-label="Shifts">{{ row.shifts }}</td>
+                <td data-label="Spots">{{ row.spots }}</td>
+                <td data-label="Filled">{{ row.filled }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>No shifts in these dates.</p>
+      {% endif %}
+    </section>
+
+    <section aria-labelledby="by-shift">
+      <h2 id="by-shift">By shift</h2>
+      <p><a href="{% url 'reports:download' 'shifts' %}?{{ query }}">Download as a spreadsheet</a></p>
+      {% if report.by_shift %}
+        <table class="data-table">
+          <thead><tr><th scope="col">Shift</th><th scope="col">When</th><th scope="col">Filled</th><th scope="col">Who</th></tr></thead>
+          <tbody>
+            {% for shift in report.by_shift %}
+              <tr>
+                <th scope="row" data-label="Shift"><a href="{% url 'scheduling:shift' shift.pk %}">{{ shift.title }}</a></th>
+                <td data-label="When">{{ shift.starts_at|long_date }}, {{ shift.starts_at|clock }}</td>
+                <td data-label="Filled">{{ shift.filled }} of {{ shift.capacity }}</td>
+                <td data-label="Who">{% for person in shift.people %}{{ person.get_full_name }}{% if not forloop.last %}, {% endif %}{% empty %}Nobody{% endfor %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>No shifts in these dates.</p>
+      {% endif %}
+    </section>
+  {% endif %}
+{% endblock %}

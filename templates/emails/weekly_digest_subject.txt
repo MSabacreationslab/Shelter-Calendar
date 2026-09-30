@@ -1,0 +1,1 @@
+{% load formatting %}{% autoescape off %}Next week's volunteer schedule: {{ week.start|long_date }} to {{ week.end|long_date }}{% endautoescape %}
