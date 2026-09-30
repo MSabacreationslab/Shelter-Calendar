@@ -3,6 +3,7 @@
 {% block title %}{{ person.get_full_name }}{% endblock %}
 {% block content %}
   {% include "components/page_header.html" with title=person.get_full_name back_url="/volunteers/" back_label="Volunteers" %}
+  <p class="page-header__meta">{% include "components/role_badge.html" with person=person %}{% if person.job_title %} <span>{{ person.job_title }}</span>{% endif %}{% if profile.is_minor %} <span class="badge">Minor</span>{% endif %}{% if profile.needs_approval %} {% include "components/status.html" with kind="pending" label="Needs approval for every shift" %}{% endif %}</p>
   {% if person.status != "active" %}
     {% include "components/notice.html" with kind="warning" title="Turned off" message="They can't sign in and aren't on any lists. Turn them back on at the bottom of this page." %}
   {% endif %}
@@ -78,7 +79,7 @@
       <form method="post" action="{% url 'training:add_need' person.pk %}" class="inline-form">
         {% csrf_token %}
         {% include "components/field.html" with field=need_form.training_type %}
-        <button type="submit" class="btn btn--secondary">Add</button>
+        <button type="submit" class="btn btn--secondary">Add training they need</button>
       </form>
     {% endif %}
 

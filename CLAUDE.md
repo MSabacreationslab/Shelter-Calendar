@@ -202,3 +202,13 @@ with a clear explanation of what failed and why it doesn't match a known pattern
   `save()` is all-or-nothing. Spreadsheets are git-ignored (`*.csv`, `*.xlsx`).
 - `notifications.email.send()` logs "No email address on file" instead of sending to nobody.
 
+**UI refresh (after Phase 9 part 1)**
+- Colours are `--color-*` tokens in `tokens.css` only; `tests/test_design_tokens.py` checks every
+  pair's contrast, that no stylesheet or page template has a raw colour, and that every token used
+  exists. Emails can't use CSS variables, so their inline colours mirror the tokens by hand.
+- Blue = staff, red = volunteers, only as accents (badge, current menu item, avatar, open shifts).
+  Main buttons are charcoal; errors use a separate, brighter danger red with an icon and words.
+- Form fields keep `--color-border-strong` (3:1); the light `--color-border` is for cards and lines.
+- `{# #}` notes must fit on one line (Django prints longer ones); use `{% comment %}` otherwise.
+  A test checks every template.
+

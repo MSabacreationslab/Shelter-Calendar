@@ -32,6 +32,7 @@ class CalendarDay:
     day: date
     in_month: bool
     is_today: bool
+    is_past: bool
     mine: int
     open: int
 
@@ -128,6 +129,7 @@ def month_grid(user, first: date) -> list[list[CalendarDay]]:
                 day=day,
                 in_month=day.month == first.month,
                 is_today=day == today,
+                is_past=day < today,
                 mine=mine[day],
                 open=available[day],
             )

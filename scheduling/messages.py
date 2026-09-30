@@ -46,7 +46,7 @@ def explain(result: Result, *, shift=None, person=None) -> str:
     if problem == Problem.MISSING_TRAINING:
         return f"These people don't have that training yet: {_names(result.people)}."
     if problem == Problem.NEEDS_APPROVAL:
-        return "The volunteer team approves sign-ups for this shift, so please ask to join it."
+        return "The volunteer team approves sign-ups for this shift, so please request it."
     if problem == Problem.NO_APPROVAL_NEEDED:
         return "You can sign up for this shift yourself."
     if problem == Problem.ALREADY_ANSWERED:

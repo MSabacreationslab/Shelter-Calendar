@@ -3,6 +3,36 @@
 {% block content %}
   {% include "components/page_header.html" with title="Style guide" lead="Every building block of the app, for checking on a phone and a computer." back_url="/" back_label="Home" %}
 
+  <h2>Colours</h2>
+  <p>Every colour comes from <code>tokens.css</code>. Blue means staff and red means volunteers; everything else stays neutral.</p>
+  <ul class="swatches">
+    {% for token, use in swatches %}
+      <li class="swatch"><span class="swatch__chip" style="background: var(--color-{{ token }})"></span><span><strong>{{ token }}</strong><br><span class="muted">{{ use }}</span></span></li>
+    {% endfor %}
+  </ul>
+
+  <h2>Roles and status</h2>
+  <p>{% include "components/role_badge.html" with person=sample_staff %} {% include "components/role_badge.html" with person=sample_volunteer %}</p>
+  <p>{% include "components/status.html" with kind="confirmed" %} {% include "components/status.html" with kind="pending" %} {% include "components/status.html" with kind="waitlist" %} {% include "components/status.html" with kind="declined" %} {% include "components/status.html" with kind="cancelled" %}</p>
+  <div class="card card--pending">
+    <p class="card__eyebrow card__eyebrow--pending">Waiting for approval</p>
+    <p>You've requested this shift. The volunteer team has not approved it yet.</p>
+    <p class="card__title">Adoption event</p>
+    <p>Saturday, October 3<br>11:00 AM – 3:00 PM</p>
+    <p class="card__status">Status: {% include "components/status.html" with kind="pending" %}</p>
+  </div>
+  <div class="card card--confirmed">
+    <p class="card__eyebrow card__eyebrow--confirmed">Your next shift</p>
+    <p class="card__title">Dog walking</p>
+    <p class="card__when">Tuesday, October 6, 9:00 AM – 11:00 AM</p>
+    <p class="card__status">{% include "components/status.html" with kind="confirmed" label="Confirmed: you're signed up" %}</p>
+  </div>
+  <ul class="calendar-legend">
+    <li><span class="cal-chip cal-chip--mine" aria-hidden="true">&#10003;</span> Your shift</li>
+    <li><span class="cal-chip cal-chip--open" aria-hidden="true">2</span> Open shifts</li>
+    <li><span class="legend-today" aria-hidden="true"></span> Today</li>
+  </ul>
+
   <h2>Buttons</h2>
   <div class="actions">
     <button type="button" class="btn btn--primary">Sign up for this shift</button>
@@ -11,6 +41,10 @@
   <div class="actions">
     <button type="button" class="btn btn--danger">Cancel my shift</button>
     <button type="button" class="btn btn--primary" disabled>This shift is full</button>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn btn--quiet">Sign out</button>
+    <button type="button" class="link-button">Take off the waitlist</button>
   </div>
 
   <h2>Notices</h2>
@@ -36,9 +70,7 @@
   </div>
 
   <h2>Empty state</h2>
-  <div class="card">
-    {% include "components/empty_state.html" with title="No shifts yet" message="When you sign up for a shift, it will show here." %}
-  </div>
+  {% include "components/empty_state.html" with title="You don't have any upcoming shifts" message="Pick one that suits you. Thank you for helping!" action_url="#" action_label="Find a shift" %}
 
   <h2>Form</h2>
   {% if submitted %}

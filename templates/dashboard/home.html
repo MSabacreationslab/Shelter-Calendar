@@ -4,6 +4,7 @@
 {% block main_width %}wrap--wide{% endblock %}
 {% block content %}
   <h1>Dashboard</h1>
+  <p class="page-header__lead">Today at a glance, then anything that needs someone's attention.</p>
 
   {% if urgent %}
     <section class="notice notice--error" aria-labelledby="urgent-heading">
@@ -31,13 +32,14 @@
             <span class="badge">Cancelled</span>
           {% else %}
             <span class="{% if shift.open_spots %}fill-open{% endif %}">{{ shift.filled }} of {{ shift.capacity }} filled{% if shift.open_spots %}, {{ shift.open_spots }} open{% endif %}</span>
-            <span class="shift-card__people">{% for person in shift.people %}{{ person.get_full_name }}{% if person.profile.is_minor %} (minor){% endif %}{% if not forloop.last %}, {% endif %}{% empty %}Nobody yet{% endfor %}</span>
+            <span class="shift-card__people">{% for person in shift.people %}{{ person.get_full_name }}{% if person.profile.is_minor %} (minor){% endif %}{% if not forloop.last %}, {% endif %}{% empty %}Nobody has signed up yet{% endfor %}</span>
           {% endif %}
         </li>
       {% endfor %}
     </ul>
   {% else %}
-    <p>No shifts today.</p>
+    {% url 'scheduling:week' as week_url %}
+    {% include "components/empty_state.html" with title="No shifts today" message="See what's coming up this week on the schedule." action_url=week_url action_label="Open the schedule" %}
   {% endif %}
 
   <h2>Needs attention</h2>
@@ -46,14 +48,15 @@
   {% endif %}
 
   {% if approvals %}
-    <section class="attention" aria-labelledby="approvals-heading">
+    <section class="attention attention--pending" aria-labelledby="approvals-heading">
       <h3 id="approvals-heading">Waiting for your approval ({{ approvals_count }})</h3>
+      <p>These people have requested a shift. They're not signed up until someone approves them.</p>
       <ul class="plain-list">
         {% for signup_request in approvals %}
           <li class="plain-list__item"><span>{{ signup_request.volunteer.get_full_name }}: {{ signup_request.shift.title }}, {{ signup_request.shift.starts_at|friendly_date }}</span></li>
         {% endfor %}
       </ul>
-      <p><a href="{% url 'scheduling:approvals' %}">Open Shift approvals</a></p>
+      <p><a class="btn btn--secondary" href="{% url 'scheduling:approvals' %}">Open Shift approvals</a></p>
     </section>
   {% endif %}
 

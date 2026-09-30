@@ -655,7 +655,7 @@ Split into two PRs because the shelter's spreadsheet added features (decided 202
 
 ## 7. Design System & UX
 
-The feel: **warm, calm and very clear.** It's a friendly community notice board, not a corporate dashboard. Warm off-white background, deep teal primary, near-black text, generous space. Fewer, bigger things on each screen.
+The feel: **warm, calm and very clear.** It's a friendly community notice board, not a corporate dashboard. Warm ivory background, white cards, charcoal text, generous space. Fewer, bigger things on each screen. **Blue means staff and red means volunteers**, used as accents where someone's role matters, never to colour a whole screen (decided 2026-09-30).
 
 ### Readability (hard requirements)
 - **Text sizes:**
@@ -665,7 +665,7 @@ The feel: **warm, calm and very clear.** It's a friendly community notice board,
   - Headings: h1 **30px**, h2 **24px**, h3 **20px**.
 - **Line height and width:** body line height 1.5 or more, and lines no longer than about 70 characters.
 - **Contrast:**
-  - Body text meets **AAA (7:1)**.
+  - Body text meets **AAA (7:1)**. Secondary text (hints, dates, supporting lines) meets AA.
   - Everything else meets **AA**: 4.5:1 for text, 3:1 for large text, UI parts and focus rings.
   - A test enforces this against the tokens.
 - **Tap targets:**
@@ -678,27 +678,28 @@ The feel: **warm, calm and very clear.** It's a friendly community notice board,
 - **Motion:** none is needed, and `prefers-reduced-motion` is respected.
 - **No time limits that lose typed work.** Forms keep what was typed when there's an error.
 
-### Palette (light only for V1, proposed)
-Contrast is measured against the background `#FAF7F2` unless stated.
+### Palette (light only for V1; decided 2026-09-30)
+All colours live in `core/static/core/css/tokens.css` as `--color-*` tokens; nothing else may use a raw colour (a test checks). Contrast is against white unless stated.
 
 | Token | Hex | Use | Contrast |
 |---|---|---|---|
-| `--bg` | `#FAF7F2` | Page background (warm off-white) | – |
-| `--surface` | `#FFFFFF` | Cards, inputs | – |
-| `--ink` | `#1C2126` | Body text | 15.2:1 |
-| `--ink-soft` | `#474E57` | Secondary text | 7.9:1 |
-| `--primary` | `#1B5673` | Buttons, links, your-shift shading | 7.5:1 as text; white on it 8.0:1 |
-| `--primary-hover` | `#123F55` | Pressed / hover | white on it 11.2:1 |
-| `--primary-tint` | `#DCEAF1` | Your-shift day background | ink on it 13.2:1 |
-| `--accent` | `#A8471A` | Warm highlights (sparingly) | white on it 5.9:1 |
-| `--accent-ink` | `#8F3A0E` | Accent as text | 7.1:1 |
-| `--open-dot` | `#C0302A` | Red "open shifts" dot | 5.3:1 (UI) |
-| `--success` | `#2D6A3A` | Success text / icons | 6.1:1 |
-| `--warning` | `#7A4F00` | Warning text / icons | 6.7:1 |
-| `--error` | `#A4231C` | Error text / icons | 6.9:1 |
-| `--border` | `#7A828C` | Input borders | 3.9:1 on white |
-| `--focus` | `#C25E00` | Focus ring | 4.3:1 on white |
+| `--color-background` | `#F7F4EE` | Page background (warm ivory) | – |
+| `--color-surface` | `#FFFFFF` | Cards, forms, calendar days | – |
+| `--color-text-primary` | `#1E2A32` | Headings, body text, links, important icons | 13.4:1 on the background |
+| `--color-text-secondary` | `#52606D` | Hints, dates, supporting text | 6.5:1; 5.9:1 on the background |
+| `--color-border` | `#CBD4DC` | Card edges, dividers, the calendar grid | decorative |
+| `--color-border-strong` | `#7D8995` | Form field edges | 3.6:1 (fields must meet 3:1) |
+| `--color-action` | `#1E2A32` | Main buttons (neutral, so blue and red keep their meaning) | white on it 14.7:1 |
+| `--color-staff` / `-soft` | `#245A8D` / `#E8F1F8` | Staff badge, staff's current menu item | 7.2:1; 6.3:1 on the soft tint |
+| `--color-volunteer` / `-soft` | `#A33A3A` / `#F8EDED` | Volunteer badge, volunteer's current menu item, open shifts | 6.5:1; 5.7:1 on the soft tint |
+| `--color-success` / `-soft` | `#2E6B4F` / `#EAF3EE` | Confirmed, approved, your shifts on the calendar | 6.3:1 |
+| `--color-warning` / `-soft` | `#8A5A00` / `#FBF2DF` | Pending approval, waitlist, needs attention | 5.9:1 |
+| `--color-danger` / `-soft` | `#B42318` / `#FDECEA` | Errors and removing things: brighter than the volunteer red and always with an icon and words | 6.6:1 |
+| `--color-focus` | `#C25E00` | Focus ring | 3.9:1 on the background |
 
+- The signed-in person's role sets `<body data-role>`, which fills `--color-role` / `--color-role-soft` (the Admin uses staff blue).
+- **Statuses are words first:** "Confirmed", "Pending", "On the waitlist", "Not approved", "Cancelled" (`components/status.html`). Role badges say "Staff", "Volunteer" or "Admin" (`components/role_badge.html`).
+- **Calendar:** your shift is a green ✓ "Your shift" label on a green-tinted day; open shifts are a red "2 open" label; today has a thick charcoal border and the word "Today". On phones the labels shrink to ✓ and the number, and the legend explains both. Past days are greyed. The month buttons include **Today**.
 - The shelter's name appears in text; no logo or brand colours for now (decided, Q18). If they're provided later, map them onto these tokens **without dropping below the contrast targets**. A palette that fails is adjusted, not shipped.
 - No dark mode in V1 (proposed). It's one more thing to explain.
 
@@ -718,11 +719,14 @@ Contrast is measured against the background `#FAF7F2` unless stated.
   - A specific message appears only where the person can fix it themselves ("Please enter a 10-digit phone number").
   - Otherwise: "Something went wrong. Please try again, or call the shelter at {phone}." plus the `SC-###` code and reference.
   - A test checks templates and messages against the banned-word list.
-- **Approvals:** volunteers "ask to join" a shift; staff "approve" or "say no" on **Shift approvals**.
+- **Approvals:** volunteers "request" a shift (it's "Pending" until answered); staff "approve" or "say no" on **Shift approvals**.
+- **Buttons say what happens:** "Save my changes", "Request this shift", "Cancel my request", "Show the report". Not "Submit", "OK", "Go" or a bare "Save".
+- **Empty states say what's missing and, when there is one, offer the next step** ("You don't have any upcoming shifts" with **Find a shift**).
 
 ### Navigation
-- **Volunteers:** header links **Home · Find a shift · My profile**, plus **Sign out**.
-- **Staff:** **Dashboard · Schedule · Volunteers · Training · Reports**, shown by capability, plus **My shifts**.
+- **Header:** the shelter's name, then who is signed in with their role badge and a separate **Sign out** button, then the menu. Menu items look like buttons; the current page is tinted in the person's role colour.
+- **Volunteers:** **Home · Find a shift · My profile**.
+- **Staff:** **Dashboard · Schedule · Approvals · Training · Reports · Volunteers**, shown by capability, plus **My shifts · My profile**.
 - **No hamburger menus.** Links wrap onto a second line on small screens.
 - Every page has one clear **h1** and at most one primary button.
 

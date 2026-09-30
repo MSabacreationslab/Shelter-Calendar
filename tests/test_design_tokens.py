@@ -13,49 +13,54 @@ UI_PARTS = 3.0  # AA for borders, dots and focus rings
 
 PAIRS = [
     # (foreground, background, minimum)
-    ("ink", "bg", BODY_TEXT),
-    ("ink", "surface", BODY_TEXT),
-    ("ink-soft", "bg", BODY_TEXT),
-    ("ink-soft", "surface", BODY_TEXT),
-    ("primary", "bg", BODY_TEXT),
-    ("primary", "surface", BODY_TEXT),
-    ("on-primary", "primary", BODY_TEXT),
-    ("on-primary", "primary-hover", BODY_TEXT),
-    ("primary-hover", "primary-tint", BODY_TEXT),
-    ("ink", "primary-tint", BODY_TEXT),
-    ("ink", "success-tint", BODY_TEXT),
-    ("ink", "warning-tint", BODY_TEXT),
-    ("ink", "error-tint", BODY_TEXT),
-    ("accent-ink", "bg", OTHER_TEXT),
-    ("on-accent", "accent", OTHER_TEXT),
-    ("success", "bg", OTHER_TEXT),
+    ("text-primary", "background", BODY_TEXT),
+    ("text-primary", "surface", BODY_TEXT),
+    ("text-primary", "background-deep", BODY_TEXT),
+    ("text-primary", "staff-soft", BODY_TEXT),
+    ("text-primary", "volunteer-soft", BODY_TEXT),
+    ("text-primary", "success-soft", BODY_TEXT),
+    ("text-primary", "warning-soft", BODY_TEXT),
+    ("text-primary", "danger-soft", BODY_TEXT),
+    ("on-action", "action", BODY_TEXT),
+    ("on-action", "action-hover", BODY_TEXT),
+    ("surface", "text-primary", BODY_TEXT),
+    # Secondary text is for supporting words (hints, dates), so AA rather than AAA.
+    ("text-secondary", "background", OTHER_TEXT),
+    ("text-secondary", "surface", OTHER_TEXT),
+    ("text-secondary", "background-deep", OTHER_TEXT),
+    ("staff", "surface", OTHER_TEXT),
+    ("staff", "background", OTHER_TEXT),
+    ("staff", "staff-soft", OTHER_TEXT),
+    ("on-role", "staff", OTHER_TEXT),
+    ("volunteer", "surface", OTHER_TEXT),
+    ("volunteer", "background", OTHER_TEXT),
+    ("volunteer", "volunteer-soft", OTHER_TEXT),
+    ("on-role", "volunteer", OTHER_TEXT),
     ("success", "surface", OTHER_TEXT),
-    ("warning", "bg", OTHER_TEXT),
+    ("success", "background", OTHER_TEXT),
+    ("success", "success-soft", OTHER_TEXT),
     ("warning", "surface", OTHER_TEXT),
-    ("error", "bg", OTHER_TEXT),
-    ("error", "surface", OTHER_TEXT),
-    ("on-error", "error", OTHER_TEXT),
-    ("on-primary", "success", OTHER_TEXT),
-    ("on-primary", "warning", OTHER_TEXT),
-    ("on-primary", "error", OTHER_TEXT),
-    ("surface", "ink", OTHER_TEXT),
-    ("disabled-ink", "disabled-bg", OTHER_TEXT),
-    ("open-dot", "bg", UI_PARTS),
-    ("open-dot", "surface", UI_PARTS),
-    ("open-dot", "primary-tint", UI_PARTS),
-    ("primary", "primary-tint", UI_PARTS),
-    ("on-primary", "primary", OTHER_TEXT),
-    ("border", "surface", UI_PARTS),
+    ("warning", "background", OTHER_TEXT),
+    ("warning", "warning-soft", OTHER_TEXT),
+    ("danger", "surface", OTHER_TEXT),
+    ("danger", "background", OTHER_TEXT),
+    ("danger", "danger-soft", OTHER_TEXT),
+    ("on-danger", "danger", OTHER_TEXT),
+    ("on-action", "success", OTHER_TEXT),
+    ("on-action", "warning", OTHER_TEXT),
+    ("disabled-text", "disabled-bg", OTHER_TEXT),
+    ("border-strong", "surface", UI_PARTS),
+    ("border-strong", "background", UI_PARTS),
+    ("action", "surface", UI_PARTS),
     ("focus", "surface", UI_PARTS),
-    ("focus", "bg", UI_PARTS),
-    ("error", "surface", UI_PARTS),
+    ("focus", "background", UI_PARTS),
 ]
 
 
 def _tokens():
-    """Read every `--name: #hex` colour from tokens.css."""
+    """Read every `--color-name: #hex` colour from tokens.css, keyed without the prefix."""
     css = TOKENS.read_text(encoding="utf-8")
-    return {name: value for name, value in re.findall(r"--([\w-]+):\s*(#[0-9A-Fa-f]{6})", css)}
+    return dict(re.findall(r"--color-([\w-]+):\s*(#[0-9A-Fa-f]{6})", css))
 
 
 def _luminance(hex_colour):
@@ -81,3 +86,33 @@ def test_colour_pair_meets_contrast_target(fg, bg, minimum):
 def test_contrast_maths_matches_known_values():
     assert contrast("#000000", "#FFFFFF") == pytest.approx(21.0)
     assert contrast("#777777", "#FFFFFF") == pytest.approx(4.48, abs=0.01)
+
+
+CSS_DIR = TOKENS.parent
+TEMPLATES = TOKENS.parents[4] / "templates"
+
+
+def test_colours_are_only_defined_in_tokens():
+    """Styles and page templates use tokens, never raw colours. Emails can't, so they're skipped."""
+    hex_colour = re.compile(r"#[0-9A-Fa-f]{6}\b|#[0-9A-Fa-f]{3}\b")
+    offenders = [
+        path.name
+        for path in CSS_DIR.glob("*.css")
+        if path != TOKENS and hex_colour.search(path.read_text(encoding="utf-8"))
+    ]
+    for path in TEMPLATES.rglob("*.html"):
+        relative = path.relative_to(TEMPLATES).as_posix()
+        if relative.startswith("emails/") or relative == "errors/fallback.html":
+            continue
+        text = re.sub(r"&#\d+;|&#x[0-9A-Fa-f]+;", "", path.read_text(encoding="utf-8"))
+        if hex_colour.search(text):
+            offenders.append(relative)
+    assert not offenders
+
+
+def test_every_colour_the_styles_use_exists():
+    """A misspelt token would silently fall back to no colour at all."""
+    defined = set(re.findall(r"--(color-[\w-]+):", TOKENS.read_text(encoding="utf-8")))
+    styles = (CSS_DIR / "base.css").read_text(encoding="utf-8")
+    used = set(re.findall(r"var\(--(color-[\w-]+)", styles))
+    assert used - defined == set()

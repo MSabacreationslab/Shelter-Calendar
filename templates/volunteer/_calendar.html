@@ -1,7 +1,11 @@
 {% load formatting %}
-<div class="calendar-nav">
-  <a class="btn btn--secondary" href="?month={{ previous|date:'Y-m' }}"><span aria-hidden="true">&#9664;</span> {{ previous_label }}</a>
-  <a class="btn btn--secondary" href="?month={{ next|date:'Y-m' }}">{{ next_label }} <span aria-hidden="true">&#9654;</span></a>
+<div class="calendar-head">
+  <h2 class="calendar-head__title">{{ month }}</h2>
+  <nav class="calendar-head__nav" aria-label="Choose a month">
+    <a class="btn btn--quiet" href="?month={{ previous|date:'Y-m' }}"><span aria-hidden="true">&#9664;</span> {{ previous|date:'M' }}<span class="calendar-head__rest">{{ previous|date:'F'|slice:'3:' }}</span><span class="visually-hidden"> {{ previous|date:'Y' }}</span></a>
+    <a class="btn btn--quiet" href="?month={{ this_month|date:'Y-m' }}"{% if is_this_month %} aria-current="date"{% endif %}>Today</a>
+    <a class="btn btn--quiet" href="?month={{ next|date:'Y-m' }}">{{ next|date:'M' }}<span class="calendar-head__rest">{{ next|date:'F'|slice:'3:' }}</span><span class="visually-hidden"> {{ next|date:'Y' }}</span> <span aria-hidden="true">&#9654;</span></a>
+  </nav>
 </div>
 <table class="calendar">
   <caption class="visually-hidden">{{ month }}</caption>
@@ -12,10 +16,14 @@
     {% for week in weeks %}
       <tr>
         {% for cell in week %}
-          <td class="calendar__day{% if not cell.in_month %} is-other-month{% endif %}{% if cell.mine %} is-mine{% endif %}{% if cell.is_today %} is-today{% endif %}">
+          <td class="calendar__day{% if not cell.in_month %} is-other-month{% endif %}{% if cell.is_past %} is-past{% endif %}{% if cell.mine %} is-mine{% endif %}{% if cell.is_today %} is-today{% endif %}">
             <{% if readonly %}span{% else %}a href="{% url 'shifts:day' cell.day.isoformat %}"{% endif %} class="calendar__cell" aria-label="{{ cell.day|long_date }}{% if cell.is_today %}, today{% endif %}{% if cell.mine %}: your shift{% endif %}{% if cell.open %}{% if cell.mine %},{% else %}:{% endif %} {{ cell.open }} open shift{{ cell.open|pluralize }}{% endif %}">
               <span class="calendar__num">{{ cell.day.day }}</span>
-              <span class="calendar__marks" aria-hidden="true">{% if cell.mine %}<span class="calendar__mine">&#10003;</span>{% endif %}{% if cell.open %}<span class="calendar__dot"></span>{% endif %}</span>
+              <span class="calendar__marks" aria-hidden="true">
+                {% if cell.is_today %}<span class="calendar__today-word">Today</span>{% endif %}
+                {% if cell.mine %}<span class="cal-chip cal-chip--mine">&#10003;<span class="cal-chip__word"> Your shift</span></span>{% endif %}
+                {% if cell.open %}<span class="cal-chip cal-chip--open">{{ cell.open }}<span class="cal-chip__word"> open</span></span>{% endif %}
+              </span>
             </{% if readonly %}span{% else %}a{% endif %}>
           </td>
         {% endfor %}
@@ -23,7 +31,8 @@
     {% endfor %}
   </tbody>
 </table>
-<ul class="calendar-legend">
-  <li><span class="legend-box legend-box--mine" aria-hidden="true">&#10003;</span> Your shift</li>
-  <li><span class="legend-box" aria-hidden="true"><span class="calendar__dot"></span></span> Open shifts you can sign up for</li>
+<ul class="calendar-legend" aria-label="What the calendar marks mean">
+  <li><span class="cal-chip cal-chip--mine" aria-hidden="true">&#10003;</span> Your shift (you're signed up)</li>
+  <li><span class="cal-chip cal-chip--open" aria-hidden="true">2</span> Open shifts you can sign up for</li>
+  <li><span class="legend-today" aria-hidden="true"></span> Today</li>
 </ul>

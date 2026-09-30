@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{# A confirmation step before anything that changes a schedule.
-   Context: title, lead, summary (list of (label, value) pairs), confirm_label, cancel_url, cancel_label, danger (bool). #}
+{% comment %}A confirmation step before anything that changes a schedule.
+   Context: title, lead, summary (list of (label, value) pairs), confirm_label, cancel_url, cancel_label, danger (bool).{% endcomment %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
   {% include "components/page_header.html" with title=title lead=lead %}
