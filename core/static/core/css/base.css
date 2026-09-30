@@ -710,7 +710,8 @@ main:focus {
 .calendar-head__title {
   margin: 0;
 }
-/* One even row on a phone (short month names); full names once there's room. */
+/* One even row on a phone (short month names); full names once there's room.
+   Each name is wrapped in one span: a button's gap would otherwise split "Aug" from "ust". */
 .calendar-head__nav {
   display: grid;
   grid-template-columns: 1fr auto 1fr;

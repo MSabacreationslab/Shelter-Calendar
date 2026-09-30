@@ -60,9 +60,9 @@ def test_calendar_marks_my_days_and_open_days(client, person):
 def test_month_buttons_say_the_month_name(client, person):
     html = client.get("/my-shifts/?month=2026-12").content.decode()
     assert "December 2026" in html
-    assert 'href="?month=2026-11"><span aria-hidden="true">&#9664;</span> Nov' in html
-    assert 'Nov<span class="calendar-head__rest">ember</span>' in html
-    assert 'href="?month=2027-01">Jan<span class="calendar-head__rest">uary</span>' in html
+    # Each name is one piece inside the button, so the button's gap can't split "Nov" from "ember".
+    assert '&#9664;</span> <span>Nov<span class="calendar-head__rest">ember' in html
+    assert 'href="?month=2027-01"><span>Jan<span class="calendar-head__rest">uary</span>' in html
     this_month = timezone.localdate().strftime("%Y-%m")
     assert f'href="?month={this_month}">Today</a>' in html
 

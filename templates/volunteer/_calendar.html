@@ -2,9 +2,9 @@
 <div class="calendar-head">
   <h2 class="calendar-head__title">{{ month }}</h2>
   <nav class="calendar-head__nav" aria-label="Choose a month">
-    <a class="btn btn--quiet" href="?month={{ previous|date:'Y-m' }}"><span aria-hidden="true">&#9664;</span> {{ previous|date:'M' }}<span class="calendar-head__rest">{{ previous|date:'F'|slice:'3:' }}</span><span class="visually-hidden"> {{ previous|date:'Y' }}</span></a>
+    <a class="btn btn--quiet" href="?month={{ previous|date:'Y-m' }}"><span aria-hidden="true">&#9664;</span> <span>{{ previous|date:'M' }}<span class="calendar-head__rest">{{ previous|date:'F'|slice:'3:' }}</span><span class="visually-hidden"> {{ previous|date:'Y' }}</span></span></a>
     <a class="btn btn--quiet" href="?month={{ this_month|date:'Y-m' }}"{% if is_this_month %} aria-current="date"{% endif %}>Today</a>
-    <a class="btn btn--quiet" href="?month={{ next|date:'Y-m' }}">{{ next|date:'M' }}<span class="calendar-head__rest">{{ next|date:'F'|slice:'3:' }}</span><span class="visually-hidden"> {{ next|date:'Y' }}</span> <span aria-hidden="true">&#9654;</span></a>
+    <a class="btn btn--quiet" href="?month={{ next|date:'Y-m' }}"><span>{{ next|date:'M' }}<span class="calendar-head__rest">{{ next|date:'F'|slice:'3:' }}</span><span class="visually-hidden"> {{ next|date:'Y' }}</span></span> <span aria-hidden="true">&#9654;</span></a>
   </nav>
 </div>
 <table class="calendar">
