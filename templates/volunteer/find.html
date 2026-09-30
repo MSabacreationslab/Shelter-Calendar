@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Find a shift{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Find a shift" lead="Shifts you can sign up for in the next two weeks." %}
+  {% for day, shifts in days %}
+    <section class="day" aria-labelledby="find-{{ forloop.counter }}">
+      <h2 id="find-{{ forloop.counter }}">{{ day|friendly_date }}</h2>
+      <ul class="shift-cards">
+        {% for shift in shifts %}
+          <li class="shift-card">
+            <span class="shift-card__title">{{ shift.title }}</span>
+            <span>{{ shift.starts_at|clock }} – {{ shift.ends_at|clock }}</span>
+            <span>{{ shift.spots }} spot{{ shift.spots|pluralize }} left</span>
+            <span class="shift-card__actions">
+              <a class="btn btn--primary" href="{% url 'shifts:sign_up' shift.pk %}">Sign up<span class="visually-hidden"> for {{ shift.title }}, {{ day|long_date }}</span></a>
+              <a class="btn btn--secondary" href="{% url 'shifts:shift' shift.pk %}">See details<span class="visually-hidden">: {{ shift.title }}, {{ day|long_date }}</span></a>
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% empty %}
+    {% include "components/empty_state.html" with title="No open shifts right now" message="Please check back soon, or ask the volunteer team about training for more kinds of shifts." %}
+  {% endfor %}
+{% endblock %}

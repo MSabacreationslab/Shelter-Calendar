@@ -1,5 +1,7 @@
 """Display helpers so dates, times and phone numbers read the same everywhere (SPEC §7)."""
 
+from datetime import datetime, timedelta
+
 from django import template
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -44,6 +46,21 @@ def long_date(value):
     if hasattr(value, "tzinfo"):
         value = timezone.localtime(value)
     return f"{value:%A}, {value:%B} {value.day}"
+
+
+@register.filter
+def friendly_date(value):
+    """ "Today, Tuesday, October 6", "Tomorrow, …", or just the date."""
+    if value is None:
+        return ""
+    day = timezone.localtime(value).date() if isinstance(value, datetime) else value
+    text = long_date(day)
+    today = timezone.localdate()
+    if day == today:
+        return f"Today, {text}"
+    if day == today + timedelta(days=1):
+        return f"Tomorrow, {text}"
+    return text
 
 
 def clock_text(value) -> str:

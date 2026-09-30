@@ -344,3 +344,14 @@ class AssignForm(AccessibleFormMixin, forms.Form):
 def week_start(day: date) -> date:
     """The Monday of the week containing `day`."""
     return day - timedelta(days=day.weekday())
+
+
+class CancelForm(AccessibleFormMixin, forms.Form):
+    """An optional note when a volunteer can't make it."""
+
+    reason = forms.CharField(
+        label="Anything you'd like us to know?",
+        max_length=200,
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 2}),
+    )

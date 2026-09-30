@@ -222,3 +222,23 @@ class SkillForm(AccessibleFormMixin, forms.Form):
         if clash.exists():
             raise forms.ValidationError(f"“{name}” is already on the list.")
         return name
+
+
+class OwnContactForm(AccessibleFormMixin, forms.Form):
+    """What volunteers can change themselves: their phone and emergency contact."""
+
+    phone = PhoneField(
+        label="Your phone", error_messages={"required": "Please enter your phone number."}
+    )
+    emergency_contact_name = forms.CharField(
+        label="Emergency contact's name",
+        max_length=150,
+        error_messages={"required": "Please enter someone we can call in an emergency."},
+    )
+    emergency_contact_phone = PhoneField(
+        label="Emergency contact's phone",
+        error_messages={"required": "Please enter their phone number."},
+    )
+    emergency_contact_relationship = forms.CharField(
+        label="How they're related to you", max_length=60, required=False
+    )

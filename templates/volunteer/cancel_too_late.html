@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}This shift has started{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="This shift has already started" %}
+  <p>It's too late to cancel in the app. {% if shelter.phone %}Please call the shelter at <a href="tel:{{ shelter.phone_link }}">{{ shelter.phone }}</a>.{% else %}Please let the volunteer team know.{% endif %}</p>
+  <div class="actions"><a class="btn btn--secondary" href="{% url 'home' %}">Back to home</a></div>
+{% endblock %}
