@@ -36,10 +36,53 @@
 
   <h2>Training</h2>
   <div class="card">
-    <dl class="summary">
-      <dt>Completed</dt><dd>{% for record in records %}{{ record.training_type.name }}{% if not forloop.last %}, {% endif %}{% empty %}None yet{% endfor %}</dd>
-      <dt>Still needs</dt><dd>{% for need in open_needs %}{{ need.training_type.name }}{% if not forloop.last %}, {% endif %}{% empty %}Nothing{% endfor %}</dd>
-    </dl>
+    <h3 class="card__title">Done</h3>
+    {% if records %}
+      <ul class="plain-list">
+        {% for record in records %}
+          <li class="plain-list__item">
+            <span><strong>{{ record.training_type.name }}</strong>, {{ record.completed_on|long_date }}, {{ record.completed_on.year }}</span>
+            {% if can_record %}<span class="plain-list__actions"><a href="{% url 'training:void' record.pk %}">Recorded by mistake?<span class="visually-hidden"> {{ record.training_type.name }}</span></a></span>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>None yet.</p>
+    {% endif %}
+    {% if can_record %}<p><a href="{% url 'training:add_record' %}?person={{ person.pk }}">Add training they've done</a></p>{% endif %}
+
+    <h3 class="card__title">Still needs</h3>
+    {% if open_needs %}
+      <ul class="plain-list">
+        {% for need in open_needs %}
+          <li class="plain-list__item">
+            <span>{{ need.training_type.name }}</span>
+            {% if can_record %}
+              <form method="post" action="{% url 'training:remove_need' need.pk %}">{% csrf_token %}<button type="submit" class="link-button">Not needed<span class="visually-hidden">: {{ need.training_type.name }}</span></button></form>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Nothing.</p>
+    {% endif %}
+    {% if can_record %}
+      <form method="post" action="{% url 'training:add_need' person.pk %}" class="inline-form">
+        {% csrf_token %}
+        {% include "components/field.html" with field=need_form.training_type %}
+        <button type="submit" class="btn btn--secondary">Add</button>
+      </form>
+    {% endif %}
+
+    <h3 class="card__title">Shifts that need no training</h3>
+    <p>{% if person.is_staff_member %}Staff can always take these.{% elif profile.no_training_eligible %}{{ person.get_short_name }} can sign up for them.{% else %}{{ person.get_short_name }} can't sign up for them yet (usually until orientation is done).{% endif %}</p>
+    {% if can_edit and not person.is_staff_member %}
+      <form method="post" action="{% url 'training:no_training' person.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="allowed" value="{% if profile.no_training_eligible %}no{% else %}yes{% endif %}">
+        <button type="submit" class="btn btn--secondary">{% if profile.no_training_eligible %}Stop them signing up for these{% else %}Let them sign up for these{% endif %}</button>
+      </form>
+    {% endif %}
   </div>
 
   <h2>Signing in</h2>

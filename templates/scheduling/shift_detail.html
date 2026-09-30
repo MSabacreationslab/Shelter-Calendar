@@ -60,6 +60,10 @@
     <p>Nobody is waiting.</p>
   {% endif %}
 
+  {% if shift.kind == "training" and can_record %}
+    <p><a class="btn btn--secondary" href="{% url 'training:session' shift.pk %}">Record who came</a></p>
+  {% endif %}
+
   {% if can_manage and upcoming %}
     <div class="actions">
       <a class="btn btn--secondary" href="{% url 'scheduling:edit_shift' shift.pk %}">Change this shift</a>

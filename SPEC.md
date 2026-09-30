@@ -498,7 +498,8 @@ Then a success page: "You're signed up for Dog Walking on Tuesday, October 6, 9:
 **Hand test:** do every flow on a phone at the largest text size, then with VoiceOver or TalkBack for sign-up and cancel.
 
 ### Phase 5 — Training management
-- **Training types:** add, rename, deactivate.
+- **Training types:** add, rename, take off the list (records and shifts keep them). One can be marked as the orientation, once.
+- **"This shift needs training"** (Q20): a tick box on every shift and repeating shift. Ticked, staff choose which training; unticked, anyone who has done orientation can sign up. Editing a shift that needs training starts with the box ticked.
 - **Sessions:** a session is a **training-kind shift**, created like any shift. Its signups are its attendees. Volunteers with an open need can see and join sessions for that training.
 - **Batch completion** (one screen, one Save, one transaction):
   - Pick a session. Attendees are pre-ticked **Completed**; untick no-shows.
@@ -506,7 +507,8 @@ Then a success page: "You're signed up for Dog Walking on Tuesday, October 6, 9:
   - **Add someone who came** searches the directory.
   - **Save** creates the records, resolves the needs, turns on `no_training_eligible` after orientation, and writes audit events.
 - **Single record:** add one outside a session, which is needed to load existing volunteers' trainings before the pilot.
-- **Void:** mark a mistaken record with a reason. It's never deleted.
+- **Void:** mark a mistaken record with a reason. It's never deleted. Voiding someone's only orientation also turns off no-training shifts for them (proposed); staff can turn it back on.
+- **On each person's page:** their trainings (with "Recorded by mistake?"), the trainings they still need (add or remove), and whether they can take shifts that need no training (staff can change it).
 - **Tests:** the batch save is all-or-nothing, needs resolve, eligibility changes right away, and voiding removes eligibility.
 
 ### Phase 6 — Staff dashboard
@@ -783,4 +785,4 @@ Each question names the phase that needs the answer and the default Claude will 
 | Q17 | Phase 9 | Loading existing data | ✅ **Decided:** CSV import |
 | Q18 | Phase 0 | Logo and colours | ✅ **Decided:** neutral palette; the shelter's name in text |
 | Q19 | Phase 0 | Shelter phone and email | ✅ **Decided:** placeholder in settings until provided |
-| Q20 | Phase 3 | Which activities need training before someone can sign up? | Orientation first for everyone. Dog walking, Cat enrichment, Dog kennel cleaning and Cat cage cleaning each need their own training. Special events needs none. |
+| Q20 | Phase 3 | Which activities need training before someone can sign up? | ✅ **Decided:** it's set **per shift** with a "This shift needs training" tick box and a choice of which training, so some special events can need it and others not. Staff keep the list of trainings. The demo starts with Orientation, Dog walking, Cat enrichment, Dog kennel cleaning and Cat cage cleaning. |

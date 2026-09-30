@@ -38,6 +38,15 @@ ACTIONS = {
     "holiday.shown": "Holiday shown again",
     "holiday.removed": "Holiday removed",
     "orientation.conflict_reported": "Said their orientation time doesn't work",
+    "training.recorded": "Training recorded",
+    "training.voided": "Training record marked as a mistake",
+    "training.need_added": "Training they need added",
+    "training.need_removed": "Training they need removed",
+    "training_type.added": "Training added to the list",
+    "training_type.renamed": "Training renamed",
+    "training_type.turned_off": "Training taken off the list",
+    "training_type.turned_on": "Training put back on the list",
+    "volunteer.no_training_changed": "Changed whether they can take no-training shifts",
 }
 
 

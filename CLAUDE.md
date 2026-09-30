@@ -154,3 +154,14 @@ with a clear explanation of what failed and why it doesn't match a known pattern
 - Volunteers edit only their phone and emergency contact on My profile.
 - One query counting two related tables needs `Count(..., distinct=True)`.
 - Local `.env`: special characters in the database password must be URL-encoded (`#` → `%23`).
+
+**Phase 5**
+- Training rules live in `training/services.py`. A session's save is all-or-nothing and
+  recording the same person twice does nothing. Recording orientation turns on
+  no-training shifts; voiding someone's only orientation turns it off again.
+- Q20: "This shift needs training" is a tick box on each shift and pattern. Forms pass
+  `form.model_data()` (never raw `cleaned_data`) to services, because the tick box isn't stored.
+- The attendance tick list offers people signed up for the session or still needing that
+  training; anyone else goes in "Someone else who came".
+- Render's free plan has no Shell: `create_admin`/`seed_demo` run from Mike's PC against
+  Supabase (docs/setup.md, "Running commands against the test site").

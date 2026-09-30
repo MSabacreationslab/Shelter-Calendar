@@ -16,6 +16,7 @@ from accounts.people_forms import (
 )
 from accounts.permissions import has_capability, requires
 from core.forms import post_data
+from training.forms import NeedForm
 from training.models import TrainingNeed, TrainingRecord
 
 SETUP_TEMPLATES = ["welcome", "new_pin"]
@@ -82,6 +83,8 @@ def person_detail(request, pk):
         "records": TrainingRecord.objects.filter(volunteer=person, voided_at__isnull=True)
         .select_related("training_type")
         .order_by("training_type__name"),
+        "need_form": NeedForm(person=person),
+        "can_record": has_capability(request.user, "record_training"),
         "can_edit": has_capability(request.user, "edit_volunteers"),
         "can_send_link": people.can_send_link(request.user, person),
     }
