@@ -89,10 +89,11 @@ def test_urgent_threshold_can_be_48_hours(sent):
 
 
 def test_urgency_is_kept_when_the_threshold_changes_later(sent):
+    ShelterSettings.objects.update(urgent_threshold_hours=24)
     person = ready()
     signup = booking.sign_up(person, ShiftFactory(starts_at=later_today(30))).signup
     booking.cancel_signup(signup, by=person)
-    ShelterSettings.objects.update(urgent_threshold_hours=48)
+    ShelterSettings.objects.update(urgent_threshold_hours=72)
     signup.refresh_from_db()
     assert not signup.was_urgent
 
@@ -266,7 +267,7 @@ def test_settings_are_admin_only_and_logged(client):
     assert row.urgent_threshold_hours == 48
     assert row.notify_email_list == ["lead@example.com", "second@example.com"]
     event = AuditEvent.objects.get(action="settings.changed")
-    assert event.details["changes"]["urgent_threshold_hours"] == {"from": 24, "to": 48}
+    assert event.details["changes"]["urgent_threshold_hours"] == {"from": 72, "to": 48}
 
 
 def test_bad_notify_emails_are_explained(client):
@@ -281,3 +282,22 @@ def test_bad_notify_emails_are_explained(client):
         },
     ).content.decode()
     assert "doesn&#x27;t look like an email address" in html
+
+
+def test_existing_settings_switch_to_72_hours_and_the_change_is_logged():
+    import importlib
+
+    from django.apps import apps
+
+    migration = importlib.import_module("core.migrations.0002_urgent_72_hours")
+    ShelterSettings.load()
+    ShelterSettings.objects.update(urgent_threshold_hours=24)
+    migration.use_72_hours(apps, None)
+    assert ShelterSettings.load().urgent_threshold_hours == 72
+    event = AuditEvent.objects.get(action="settings.changed")
+    assert event.details["changes"]["urgent_threshold_hours"] == {"from": 24, "to": 72}
+    assert "72 hours" in event.details["why"]
+
+
+def test_new_installs_start_at_72_hours():
+    assert ShelterSettings.load().urgent_threshold_hours == 72
