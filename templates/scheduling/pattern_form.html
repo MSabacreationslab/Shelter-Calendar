@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}{% if pattern %}Change a repeating shift{% else %}Add a repeating shift{% endif %}{% endblock %}
+{% block content %}
+  {% if week %}{% url 'scheduling:template' week.pk as back %}{% else %}{% url 'scheduling:week' as back %}{% endif %}
+  {% if pattern %}
+    {% include "components/page_header.html" with title="Change a repeating shift" lead=pattern back_url=back back_label="Back" %}
+  {% else %}
+    {% include "components/page_header.html" with title="Add a repeating shift" lead=week.name back_url=back back_label=week.name %}
+  {% endif %}
+  {% if to_review %}
+    <div class="notice notice--warning" role="status">
+      <span class="notice__icon" aria-hidden="true">!</span>
+      <div>
+        <p class="notice__title">Saved, but {{ to_review|length }} shift{{ to_review|length|pluralize }} kept the old details</p>
+        <p>They have people on them or were changed by hand. Please check them:</p>
+        <ul>{% for shift in to_review %}<li><a href="{% url 'scheduling:shift' shift.pk %}">{{ shift.starts_at|long_date }}</a></li>{% endfor %}</ul>
+      </div>
+    </div>
+  {% elif form.errors %}
+    {% include "components/notice.html" with kind="error" title="Please fix the highlighted boxes" %}
+  {% endif %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "scheduling/_shift_fields.html" %}
+    <div class="actions">
+      <button type="submit" class="btn btn--primary">Save</button>
+      <a class="btn btn--secondary" href="{{ back }}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

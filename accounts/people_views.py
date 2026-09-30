@@ -44,11 +44,18 @@ def add_volunteer(request):
     if request.method == "POST" and form.is_valid():
         duplicates = form.possible_duplicates()
         if not duplicates or request.POST.get("add_anyway"):
-            person = people.add_volunteer(form.cleaned_data, added_by=request.user)
+            added = people.add_volunteer(form.cleaned_data, added_by=request.user)
+            person = added.person
             messages.success(
                 request,
                 f"{person.get_full_name()} is added. We've emailed them a link to choose a PIN.",
             )
+            if added.orientation_booked is False:
+                messages.warning(
+                    request,
+                    "That orientation session filled up, so they aren't booked on one yet. "
+                    "Add them from the session's page in the schedule.",
+                )
             return redirect("people:detail", pk=person.pk)
     return render(request, "people/add.html", {"form": form, "duplicates": duplicates})
 

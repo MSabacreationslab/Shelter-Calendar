@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Holidays{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Holidays" lead="Holidays are flagged on the schedule so you can decide about each one. Hide any the shelter doesn't observe." back_url="/schedule/" back_label="Schedule" %}
+  {% if holidays %}
+    <ul class="plain-list">
+      {% for holiday in holidays %}
+        <li class="plain-list__item">
+          <span><strong>{{ holiday.name }}</strong>: {{ holiday.date|long_date }}, {{ holiday.date.year }}{% if holiday.hidden %} <span class="badge">Hidden</span>{% endif %}{% if holiday.source == shelter_source %} <span class="badge">Shelter holiday</span>{% endif %}</span>
+          <span class="plain-list__actions">
+            <form method="post" action="{% url 'scheduling:toggle_holiday' holiday.pk %}">{% csrf_token %}<button type="submit" class="link-button">{% if holiday.hidden %}Show it{% else %}Hide it{% endif %}<span class="visually-hidden">: {{ holiday.name }}</span></button></form>
+            {% if holiday.source == shelter_source %}
+              <form method="post" action="{% url 'scheduling:remove_holiday' holiday.pk %}">{% csrf_token %}<button type="submit" class="link-button">Remove<span class="visually-hidden">: {{ holiday.name }}</span></button></form>
+            {% endif %}
+          </span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No holidays listed yet.</p>
+  {% endif %}
+  <h2>Add a shelter holiday</h2>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "components/field.html" with field=form.day %}
+    {% include "components/field.html" with field=form.name %}
+    <div class="actions"><button type="submit" class="btn btn--primary">Add</button></div>
+  </form>
+{% endblock %}

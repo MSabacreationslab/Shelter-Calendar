@@ -1,14 +1,14 @@
 """Test data builders. Everyone's PIN is TEST_PIN unless a test says otherwise."""
 
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 import factory
 from django.db.backends.postgresql.psycopg_any import DateTimeTZRange
 from django.utils import timezone
 
 from accounts.models import Role, User, VolunteerProfile
-from scheduling.models import Shift, ShiftKind, Signup
-from training.models import TrainingType
+from scheduling.models import Shift, ShiftKind, ShiftPattern, Signup, TemplateWeek
+from training.models import TrainingRecord, TrainingType
 
 TEST_PIN = "482916"
 
@@ -85,3 +85,35 @@ class SignupFactory(factory.django.DjangoModelFactory):
     shift = factory.SubFactory(ShiftFactory)
     volunteer = factory.SubFactory(UserFactory)
     period = factory.LazyAttribute(lambda o: DateTimeTZRange(o.shift.starts_at, o.shift.ends_at))
+
+
+class TemplateWeekFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = TemplateWeek
+
+    name = factory.Sequence(lambda n: f"Week {n}")
+
+
+class PatternFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = ShiftPattern
+
+    template_week = factory.SubFactory(TemplateWeekFactory)
+    title = "Morning dog walking"
+    weekday = 3  # Thursday
+    start_time = time(9)
+    end_time = time(11)
+    capacity = 2
+    active_from = date(2026, 10, 1)
+    anchor_date = factory.LazyAttribute(lambda o: o.active_from)
+
+
+def trained(person, training_type, **kwargs):
+    """Give someone a completed training record."""
+    return TrainingRecord.objects.create(
+        volunteer=person,
+        training_type=training_type,
+        completed_on=timezone.localdate(),
+        signed_off_by=kwargs.pop("signed_off_by", person),
+        **kwargs,
+    )

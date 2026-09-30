@@ -1,0 +1,11 @@
+{% autoescape off %}Hello {{ person.get_short_name }},
+
+We're sorry, but this shift has been cancelled:
+
+{{ shift }}
+{% if reason %}
+Why: {{ reason }}
+{% endif %}
+You don't need to do anything. Thank you for signing up!
+
+The volunteer team at {{ shelter.name }}{% endautoescape %}

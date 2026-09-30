@@ -676,7 +676,7 @@ Contrast is measured against the background `#FAF7F2` unless stated.
   - Always include the weekday: "Tuesday, October 6".
   - Times are 12-hour with AM/PM: "9:00 AM – 11:00 AM".
   - Use "Today" and "Tomorrow" where true.
-- **Errors are non-technical.** Never say server, database, exception, token, session, CSRF, HTTP, null or invalid.
+- **Errors are non-technical.** Never say server, database, exception, token, cookie, CSRF, HTTP, null or invalid. ("Session" is allowed only as in "training session".)
   - A specific message appears only where the person can fix it themselves ("Please enter a 10-digit phone number").
   - Otherwise: "Something went wrong. Please try again, or call the shelter at {phone}." plus the `SC-###` code and reference.
   - A test checks templates and messages against the banned-word list.

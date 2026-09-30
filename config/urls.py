@@ -11,6 +11,7 @@ urlpatterns = [
     path("styleguide/", core_views.styleguide, name="styleguide"),
     path("", include("accounts.urls")),
     path("", include("accounts.people_urls")),
+    path("", include("scheduling.urls")),
     # Emergency backend for the Admin only; never part of a staff workflow.
     path("django-admin/", admin.site.urls),
 ]

@@ -3,12 +3,14 @@
 import calendar
 
 from django import forms
-from django.db.models import Q
+from django.db.models import Count, F, Q
+from django.utils import timezone
 
 from accounts.models import Skill, User, normalize_login_name
 from core.forms import AccessibleFormMixin
 from core.phones import normalize_phone
-from core.templatetags.formatting import MONTHS
+from core.templatetags.formatting import MONTHS, clock_text, long_date
+from scheduling.models import Shift, ShiftKind, ShiftStatus, SignupStatus
 from training.models import TrainingType
 
 MONTH_CHOICES = [("", "Month")] + [(str(i), name) for i, name in enumerate(MONTHS, start=1)]
@@ -109,6 +111,32 @@ class VolunteerDetailsForm(AccessibleFormMixin, forms.Form):
         return list(matches[:5])
 
 
+def upcoming_orientations():
+    """Orientation sessions that haven't started and still have space."""
+    return (
+        Shift.objects.filter(
+            kind=ShiftKind.TRAINING,
+            teaches__is_orientation=True,
+            status=ShiftStatus.SCHEDULED,
+            starts_at__gt=timezone.now(),
+        )
+        .annotate(filled=Count("signups", filter=Q(signups__status=SignupStatus.CONFIRMED)))
+        .filter(filled__lt=F("capacity"))
+        .select_related("teaches")
+        .order_by("starts_at")
+    )
+
+
+class OrientationChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, shift):
+        """Tuesday, October 6 at 10:00 AM (4 spots left)."""
+        spots = shift.capacity - shift.filled
+        return (
+            f"{long_date(shift.starts_at)} at {clock_text(shift.starts_at)} "
+            f"({spots} spot{'s' if spots != 1 else ''} left)"
+        )
+
+
 class AddVolunteerForm(VolunteerDetailsForm):
     """Adding someone after the shelter's paperwork is done."""
 
@@ -127,10 +155,18 @@ class AddVolunteerForm(VolunteerDetailsForm):
         required=False,
         widget=forms.CheckboxSelectMultiple,
     )
+    orientation = OrientationChoiceField(
+        label="Orientation session",
+        queryset=Shift.objects.none(),
+        required=False,
+        empty_label="Not yet: book it later",
+        help_text="The welcome email includes it, with a link if the time doesn't work.",
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["trainings_needed"].queryset = TrainingType.objects.filter(active=True)
+        self.fields["orientation"].queryset = upcoming_orientations()
 
     def clean(self):
         """Pick the sign-in name and make sure nobody else uses it."""
