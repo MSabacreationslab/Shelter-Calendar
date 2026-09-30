@@ -32,11 +32,11 @@ def ready(**kwargs):
 
 
 @pytest.fixture
-def emails(django_capture_on_commit_callbacks):
+def sent(django_capture_on_commit_callbacks):
+    """`with sent():` runs the after-save emails as they run for real; staff get them."""
     ShelterSettings.load()
     ShelterSettings.objects.update(notify_emails="lead@example.com")
-    with django_capture_on_commit_callbacks(execute=True):
-        yield mail.outbox
+    return lambda: django_capture_on_commit_callbacks(execute=True)
 
 
 def test_signing_up_books_the_spot_and_logs_it():
@@ -110,24 +110,26 @@ def test_two_people_racing_for_the_last_spot_only_one_gets_it():
     assert Signup.objects.filter(shift=shift, status=SignupStatus.CONFIRMED).count() == 1
 
 
-def test_cancelling_early_is_routine(emails):
+def test_cancelling_early_is_routine(sent):
     person = ready()
     signup = booking.sign_up(person, ShiftFactory(starts_at=at(3, 9))).signup
-    result = booking.cancel_signup(signup, by=person)
+    with sent():
+        result = booking.cancel_signup(signup, by=person)
     assert result.ok and not result.late
-    assert emails == []
+    assert mail.outbox == []
 
 
-def test_cancelling_inside_the_window_is_late_and_tells_staff_right_away(emails):
+def test_cancelling_inside_the_window_is_late_and_tells_staff_right_away(sent):
     person = ready()
     shift = ShiftFactory(starts_at=timezone.now() + timedelta(hours=20))
     signup = booking.sign_up(person, shift).signup
-    result = booking.cancel_signup(signup, by=person, reason="Car trouble")
+    with sent():
+        result = booking.cancel_signup(signup, by=person, reason="Car trouble")
     assert result.late
     signup.refresh_from_db()
     assert signup.is_late_cancel and signup.status == SignupStatus.CANCELLED
-    assert [m.to for m in emails] == [["lead@example.com"]]
-    assert "Car trouble" in emails[0].body
+    assert [m.to for m in mail.outbox] == [["lead@example.com"]]
+    assert "Car trouble" in mail.outbox[0].body
 
 
 def test_the_window_edge_is_exact():
@@ -178,7 +180,7 @@ def test_joining_twice_keeps_one_place():
     assert WaitlistEntry.objects.filter(shift=shift, volunteer=person).count() == 1
 
 
-def test_staff_move_someone_on_when_a_spot_opens(emails):
+def test_staff_move_someone_on_when_a_spot_opens(sent):
     staff = StaffFactory()
     shift = ShiftFactory(capacity=1)
     first = ready()
@@ -187,12 +189,13 @@ def test_staff_move_someone_on_when_a_spot_opens(emails):
     entry = booking.join_waitlist(waiting, shift).entry
     assert booking.promote_from_waitlist(entry, by=staff).problem == Problem.FULL
     booking.cancel_signup(signup, by=first)
-    result = booking.promote_from_waitlist(entry, by=staff)
+    with sent():
+        result = booking.promote_from_waitlist(entry, by=staff)
     assert result.ok
     entry.refresh_from_db()
     assert entry.status == WaitlistStatus.PROMOTED
-    assert emails[-1].to == [waiting.email]
-    assert "Good news" in emails[-1].subject
+    assert mail.outbox[-1].to == [waiting.email]
+    assert "Good news" in mail.outbox[-1].subject
 
 
 def test_signing_up_directly_resolves_your_waitlist_place():
@@ -256,20 +259,21 @@ def test_requiring_training_nobody_on_the_shift_has_is_refused():
     assert result.problem == Problem.MISSING_TRAINING
 
 
-def test_cancelling_a_shift_takes_everyone_off_and_emails_them(emails):
+def test_cancelling_a_shift_takes_everyone_off_and_emails_them(sent):
     staff = StaffFactory()
     shift = ShiftFactory(capacity=1)
     person = ready()
     booking.sign_up(person, shift)
     waiting = ready()
     booking.join_waitlist(waiting, shift)
-    booking.cancel_shift(shift, by=staff, reason="Snow day")
+    with sent():
+        booking.cancel_shift(shift, by=staff, reason="Snow day")
     shift.refresh_from_db()
     assert shift.status == ShiftStatus.CANCELLED
     assert not Signup.objects.filter(shift=shift, status=SignupStatus.CONFIRMED).exists()
     assert WaitlistEntry.objects.get(volunteer=waiting).status == WaitlistStatus.REMOVED
-    assert [m.to for m in emails] == [[person.email]]
-    assert "Snow day" in emails[0].body
+    assert [m.to for m in mail.outbox] == [[person.email]]
+    assert "Snow day" in mail.outbox[0].body
 
 
 def test_waitlists_close_when_the_shift_starts():

@@ -416,6 +416,7 @@ The app doesn't take applications or handle denials (decided, Q16). The waiver s
 **Edit a pattern** (proposed):
 - Changes apply only to future shifts from that pattern that are **unedited and have no signups**.
 - The rest are listed: "3 shifts already have volunteers — review them."
+- A pattern's day and rhythm (every week / every other week) can't be changed. To move it, **stop** it after a chosen day and add a new one. Stopping removes the empty, untouched shifts after that day and lists any with people on them.
 
 **Blackout periods:**
 - The fill skips them.

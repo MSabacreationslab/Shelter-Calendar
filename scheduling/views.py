@@ -12,6 +12,7 @@ from django.views.decorators.http import require_POST
 from accounts.models import Role, Status, User
 from accounts.permissions import PUBLIC, has_capability, requires
 from core import audit, errors
+from core.forms import post_data
 from scheduling import generation, holidays, links, notices, planning, services
 from scheduling.forms import (
     WEEKDAYS,
@@ -210,7 +211,7 @@ def edit_shift(request, pk):
         "required_training": shift.required_training,
         "notes": shift.notes,
     }
-    form = EditShiftForm(request.POST or None, initial=initial, shift=shift)
+    form = EditShiftForm(post_data(request), initial=initial, shift=shift)
     if request.method == "POST" and form.is_valid():
         result = services.update_shift(shift, by=request.user, **form.changes())
         if result.ok:
@@ -224,7 +225,7 @@ def edit_shift(request, pk):
 def cancel_shift(request, pk):
     """Cancel a whole shift with a reason; everyone on it is emailed."""
     shift = _shift_or_404(pk)
-    form = ReasonForm(request.POST or None)
+    form = ReasonForm(post_data(request))
     if request.method == "POST" and form.is_valid():
         services.cancel_shift(shift, by=request.user, reason=form.cleaned_data["reason"])
         messages.success(request, "The shift is cancelled, and everyone on it has been emailed.")
@@ -239,7 +240,7 @@ def cancel_shift(request, pk):
 def add_shift(request):
     """A one-off shift, or one that repeats weekly until a date."""
     form = OneOffShiftForm(
-        request.POST or None, initial={"day": _parse_day(request.GET.get("day"), None)}
+        post_data(request), initial={"day": _parse_day(request.GET.get("day"), None)}
     )
     if request.method == "POST" and form.is_valid():
         if form.cleaned_data["repeat_until"]:
@@ -262,7 +263,7 @@ def add_shift(request):
 @requires("manage_shifts")
 def templates(request):
     """Template weeks: named sets of repeating shifts."""
-    form = TemplateWeekForm(request.POST or None)
+    form = TemplateWeekForm(post_data(request))
     if request.method == "POST" and form.is_valid():
         week_obj = planning.add_template_week(form.cleaned_data["name"], by=request.user)
         return redirect("scheduling:template", pk=week_obj.pk)
@@ -295,7 +296,7 @@ def template_detail(request, pk):
 def add_pattern(request, pk):
     """Add a repeating shift to a template week."""
     week_obj = get_object_or_404(TemplateWeek, pk=pk)
-    form = PatternForm(request.POST or None, initial={"weekday": request.GET.get("day", 0)})
+    form = PatternForm(post_data(request), initial={"weekday": request.GET.get("day", 0)})
     if request.method == "POST" and form.is_valid():
         planning.add_pattern({**form.cleaned_data, "template_week": week_obj}, by=request.user)
         messages.success(
@@ -326,7 +327,7 @@ def edit_pattern(request, pk):
         "notes",
     ]
     form = PatternForm(
-        request.POST or None, initial={f: getattr(pattern, f) for f in fields}, editing=True
+        post_data(request), initial={f: getattr(pattern, f) for f in fields}, editing=True
     )
     to_review = None
     if request.method == "POST" and form.is_valid():
@@ -345,7 +346,7 @@ def edit_pattern(request, pk):
 def end_pattern(request, pk):
     """Stop a repeating shift after a chosen day."""
     pattern = get_object_or_404(ShiftPattern, pk=pk)
-    form = EndPatternForm(request.POST or None, initial={"last_day": timezone.localdate()})
+    form = EndPatternForm(post_data(request), initial={"last_day": timezone.localdate()})
     to_review = None
     if request.method == "POST" and form.is_valid():
         to_review = planning.end_pattern(pattern, form.cleaned_data["last_day"], by=request.user)
@@ -362,7 +363,7 @@ def end_pattern(request, pk):
 @requires("manage_shifts")
 def fill(request):
     """Preview first, then create. Holidays can be kept or skipped one by one."""
-    form = FillForm(request.POST or None)
+    form = FillForm(post_data(request))
     if request.method == "POST" and form.is_valid():
         plan = generation.plan_fill(form.cleaned_data["start"], form.cleaned_data["end"])
         if request.POST.get("step") == "confirm":
@@ -377,7 +378,7 @@ def fill(request):
 @requires("manage_shifts")
 def closed_days(request):
     """Blackout periods: filling the schedule skips them."""
-    form = BlackoutForm(request.POST or None)
+    form = BlackoutForm(post_data(request))
     affected = None
     if request.method == "POST" and form.is_valid():
         data = form.cleaned_data
@@ -408,7 +409,7 @@ def remove_closed_days(request, pk):
 @requires("manage_shifts")
 def holiday_list(request):
     """This year's and next year's holidays: add the shelter's own, hide ones it doesn't observe."""
-    form = HolidayForm(request.POST or None)
+    form = HolidayForm(post_data(request))
     if request.method == "POST" and form.is_valid():
         holidays.add_shelter_holiday(
             form.cleaned_data["day"], form.cleaned_data["name"], by=request.user

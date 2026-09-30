@@ -31,25 +31,26 @@ def staff_client(client, staff):
 
 
 @pytest.fixture
-def emails(django_capture_on_commit_callbacks):
+def sent(django_capture_on_commit_callbacks):
+    """`with sent():` runs the after-save emails as they run for real; staff get them."""
     ShelterSettings.load()
     ShelterSettings.objects.update(notify_emails="lead@example.com")
-    with django_capture_on_commit_callbacks(execute=True):
-        yield mail.outbox
+    return lambda: django_capture_on_commit_callbacks(execute=True)
 
 
 def _conflict_link(body):
     return re.search(r"https?://\S+/orientation/\S+/", body).group(0)
 
 
-def test_adding_with_an_orientation_books_it_and_emails_the_time(staff_client, orientation, emails):
-    staff_client.post("/volunteers/add/", _form(orientation=orientation.pk))
+def test_adding_with_an_orientation_books_it_and_emails_the_time(staff_client, orientation, sent):
+    with sent():
+        staff_client.post("/volunteers/add/", _form(orientation=orientation.pk))
     person = User.objects.get(login_name="Mary Smith")
     assert Signup.objects.filter(
         shift=orientation, volunteer=person, status=SignupStatus.CONFIRMED
     ).exists()
     assert TrainingNeed.objects.filter(volunteer=person, training_type=orientation.teaches).exists()
-    body = emails[0].body
+    body = mail.outbox[0].body
     assert "Your orientation: Orientation" in body
     assert "/orientation/" in body
 
@@ -65,9 +66,10 @@ def test_full_orientations_are_not_offered(staff_client, orientation):
     assert f'value="{orientation.pk}"' not in html
 
 
-def test_conflict_link_asks_first_then_tells_staff_once(client, staff_client, orientation, emails):
-    staff_client.post("/volunteers/add/", _form(orientation=orientation.pk))
-    path = "/" + _conflict_link(emails[0].body).split("/", 3)[3]
+def test_conflict_link_asks_first_then_tells_staff_once(client, staff_client, orientation, sent):
+    with sent():
+        staff_client.post("/volunteers/add/", _form(orientation=orientation.pk))
+    path = "/" + _conflict_link(mail.outbox[0].body).split("/", 3)[3]
     client.logout()
     page = client.get(path)
     assert page.status_code == 200
@@ -75,11 +77,13 @@ def test_conflict_link_asks_first_then_tells_staff_once(client, staff_client, or
     signup = Signup.objects.get(shift=orientation)
     assert signup.conflict_reported_at is None
 
-    client.post(path)
-    client.post(path)
+    with sent():
+        client.post(path)
+    with sent():
+        client.post(path)
     signup.refresh_from_db()
     assert signup.conflict_reported_at is not None
-    staff_emails = [m for m in emails if m.to == ["lead@example.com"]]
+    staff_emails = [m for m in mail.outbox if m.to == ["lead@example.com"]]
     assert len(staff_emails) == 1
     assert "Mary Smith" in staff_emails[0].body
     assert AuditEvent.objects.filter(action="orientation.conflict_reported").count() == 1

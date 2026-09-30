@@ -126,3 +126,20 @@ with a clear explanation of what failed and why it doesn't match a known pattern
 - The volunteer list is filtered in the browser, so names never go into web addresses.
 - Emergency contact name and phone are required when adding someone (proposed); an edit page
   shipped with Phase 2 because a mistyped email blocks the welcome.
+- Views read forms with `post_data(request)`, never `request.POST or None` (an empty POST
+  would silently show no errors). Tests that check emails wrap the action in
+  `django_capture_on_commit_callbacks(execute=True)`; emails only send after commit.
+
+**Phase 3**
+- Booking rules live in `scheduling/services.py` and return `Result(ok, problem, …)`;
+  `scheduling/messages.explain()` turns a result into one plain sentence, worded for the
+  volunteer or (with `person=`) for staff. `training/eligibility.why_not()` is the only rule
+  for who can take a shift; `eligible_filter()` must agree with it (tested).
+- Every booking change locks the shift row (`select_for_update`); the database constraints
+  are the backstop. A real two-thread race test runs with `transaction=True`.
+- A repeating shift's day and rhythm can't be edited: stop it and add a new one. Stopping
+  removes future shifts nobody has touched; anything with people is listed for review.
+- "Session" is allowed on screen (training session); the banned word is now "cookie".
+- Holidays are a table filled by `sync_holidays` on every deploy; staff add/hide/remove.
+- Orientation "can't make it" links are signed (60 days), need no sign-in, and set
+  `Signup.conflict_reported_at` once; staff on the notify list are emailed.

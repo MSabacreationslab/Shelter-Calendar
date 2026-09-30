@@ -6,7 +6,6 @@ import pytest
 from django.core import mail
 from django.utils import timezone
 
-from core.models import ShelterSettings
 from scheduling import services as booking
 from scheduling.models import (
     BlackoutPeriod,
@@ -18,7 +17,6 @@ from scheduling.models import (
     Signup,
     SignupStatus,
     TemplateWeek,
-    WaitlistEntry,
 )
 from tests.factories import PatternFactory, ShiftFactory, UserFactory, at
 
@@ -261,5 +259,3 @@ def test_federal_holidays_cannot_be_removed(staff_client):
 def test_volunteers_see_no_schedule_tools(client, volunteer):
     client.force_login(volunteer)
     assert client.get("/schedule/").status_code == 403
-    assert WaitlistEntry.objects.count() == 0
-    assert ShelterSettings.load()
