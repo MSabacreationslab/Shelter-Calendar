@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}My profile{% endblock %}
+{% block content %}
+  <div class="profile-head">
+    <span class="avatar" aria-hidden="true">{{ person.initials }}</span>
+    <h1>{{ person.get_full_name }}</h1>
+  </div>
+  <div class="card">
+    <dl class="summary">
+      <dt>You sign in as</dt><dd>{{ person.login_name }}</dd>
+      <dt>Email</dt><dd>{{ person.email }}</dd>
+      <dt>Trainings done</dt><dd>{% for record in records %}{{ record.training_type.name }}{% if not forloop.last %}, {% endif %}{% empty %}None yet{% endfor %}</dd>
+    </dl>
+    <p class="field__hint">To change your name or email, please {% if shelter.phone %}call the shelter at <a href="tel:{{ shelter.phone_link }}">{{ shelter.phone }}</a>{% else %}ask the volunteer team{% endif %}.</p>
+  </div>
+
+  <h2>Your phone and emergency contact</h2>
+  {% if form.errors %}{% include "components/notice.html" with kind="error" title="Please fix the highlighted boxes" %}{% endif %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "components/field.html" with field=form.phone %}
+    {% include "components/field.html" with field=form.emergency_contact_name %}
+    {% include "components/field.html" with field=form.emergency_contact_phone %}
+    {% include "components/field.html" with field=form.emergency_contact_relationship %}
+    <div class="actions"><button type="submit" class="btn btn--primary">Save</button></div>
+  </form>
+{% endblock %}

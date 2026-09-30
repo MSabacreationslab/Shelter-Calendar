@@ -11,6 +11,7 @@ ACTIONS = {
     "account.needs_new_link": "Locked until they get a new setup link",
     "setup_link.sent": "Setup link sent",
     "volunteer.edited": "Details updated",
+    "profile.updated": "Updated their own contact details",
     "skill.added": "Skill added to the list",
     "skill.renamed": "Skill renamed",
     "skill.turned_off": "Skill taken off the list",

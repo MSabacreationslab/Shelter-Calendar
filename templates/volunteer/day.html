@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}{{ day|long_date }}{% endblock %}
+{% block content %}
+  {% with back="/my-shifts/?month="|add:month %}
+    {% include "components/page_header.html" with title=day|friendly_date back_url=back back_label="My shifts" %}
+  {% endwith %}
+
+  {% if mine %}
+    <h2>Your shifts</h2>
+    <ul class="shift-cards">
+      {% for signup in mine %}
+        {% with shift=signup.shift %}
+          <li class="shift-card shift-card--mine">
+            <span class="shift-card__title"><span aria-hidden="true">&#10003;</span> {{ shift.title }}</span>
+            <span>{{ shift.starts_at|clock }} – {{ shift.ends_at|clock }}</span>
+            <span class="shift-card__actions">
+              <a class="btn btn--secondary" href="{% url 'shifts:shift' shift.pk %}">See details<span class="visually-hidden">: {{ shift.title }}</span></a>
+              <a class="btn btn--secondary" href="{% url 'shifts:cancel' shift.pk %}">Cancel<span class="visually-hidden"> {{ shift.title }}</span></a>
+            </span>
+          </li>
+        {% endwith %}
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <h2>{% if mine %}Other shifts you can do{% else %}Shifts you can do{% endif %}</h2>
+  {% if others %}
+    <ul class="shift-cards">
+      {% for shift in others %}
+        <li class="shift-card">
+          <span class="shift-card__title">{{ shift.title }}</span>
+          <span>{{ shift.starts_at|clock }} – {{ shift.ends_at|clock }}</span>
+          {% if shift.filled >= shift.capacity %}
+            <span>{% if shift.pk in waiting %}You're on the waitlist{% else %}Full{% if shift.waiting_count %}, {{ shift.waiting_count }} waiting{% endif %}{% endif %}</span>
+            <span class="shift-card__actions"><a class="btn btn--secondary" href="{% url 'shifts:shift' shift.pk %}">See details<span class="visually-hidden">: {{ shift.title }}</span></a></span>
+          {% else %}
+            <span>{{ shift.spots }} spot{{ shift.spots|pluralize }} left</span>
+            <span class="shift-card__actions">
+              <a class="btn btn--primary" href="{% url 'shifts:sign_up' shift.pk %}">Sign up<span class="visually-hidden"> for {{ shift.title }}</span></a>
+              <a class="btn btn--secondary" href="{% url 'shifts:shift' shift.pk %}">See details<span class="visually-hidden">: {{ shift.title }}</span></a>
+            </span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {% include "components/empty_state.html" with title="Nothing open on this day" message="Try another day on your calendar, or Find a shift." %}
+  {% endif %}
+{% endblock %}

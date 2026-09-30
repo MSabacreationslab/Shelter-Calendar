@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Sign up for {{ shift.title }}{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Sign up for this shift?" %}
+  <div class="card">
+    <dl class="summary">
+      <dt>Shift</dt><dd>{{ shift.title }}</dd>
+      <dt>When</dt><dd>{% include "volunteer/_shift_when.html" %}</dd>
+      {% if shift.notes %}<dt>Good to know</dt><dd>{{ shift.notes|linebreaksbr }}</dd>{% endif %}
+    </dl>
+  </div>
+  <form method="post">
+    {% csrf_token %}
+    <div class="actions">
+      <button type="submit" class="btn btn--primary">Yes, sign me up</button>
+      <a class="btn btn--secondary" href="{% url 'shifts:shift' shift.pk %}">No, go back</a>
+    </div>
+  </form>
+{% endblock %}

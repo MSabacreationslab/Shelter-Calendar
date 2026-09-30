@@ -27,6 +27,7 @@ SAMPLE_ARGS = {
     "signup_pk": "999999",
     "entry_pk": "999999",
     "date": "2026-10-06",
+    "day": "2026-10-06",
 }
 BACKEND_PREFIX = "django-admin/"
 

@@ -19,7 +19,8 @@ def test_home_needs_signing_in(client):
 def test_home_greets_the_person_with_one_heading(client, volunteer):
     client.force_login(volunteer)
     html = client.get("/").content.decode()
-    assert f"Hello, {volunteer.first_name}" in html
+    # Volunteers land on their calendar with a time-of-day greeting.
+    assert re.search(rf"Good (morning|afternoon|evening), {volunteer.first_name}<", html)
     assert "Humane Society of Madison County" in html
     assert len(re.findall(r"<h1[ >]", html)) == 1
     assert 'href="#main"' in html

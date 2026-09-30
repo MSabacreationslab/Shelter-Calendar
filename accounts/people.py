@@ -151,3 +151,27 @@ def set_skill_active(skill: Skill, active: bool, *, by: User) -> None:
     audit.record(
         "skill.turned_on" if active else "skill.turned_off", actor=by, target_repr=skill.name
     )
+
+
+@transaction.atomic
+def update_own_contact(person: User, data: dict) -> list[str]:
+    """A volunteer changes their phone or emergency contact. Nothing else can change here."""
+    profile = person.profile
+    changed = []
+    if person.phone != data["phone"]:
+        person.phone = data["phone"]
+        person.save(update_fields=["phone"])
+        changed.append("phone")
+    for field in (
+        "emergency_contact_name",
+        "emergency_contact_phone",
+        "emergency_contact_relationship",
+    ):
+        if getattr(profile, field) != data.get(field, ""):
+            setattr(profile, field, data.get(field, ""))
+            changed.append(field)
+    if set(changed) - {"phone"}:
+        profile.save()
+    if changed:
+        audit.record("profile.updated", actor=person, target_user=person, fields=changed)
+    return changed
