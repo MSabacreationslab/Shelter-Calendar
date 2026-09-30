@@ -1,5 +1,7 @@
 """Display helpers so dates, times and phone numbers read the same everywhere (SPEC §7)."""
 
+from datetime import datetime, timedelta
+
 from django import template
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -47,14 +49,34 @@ def long_date(value):
 
 
 @register.filter
-def clock(value):
-    """9:00 AM, with a no-break space so the time never splits across lines."""
+def friendly_date(value):
+    """ "Today, Tuesday, October 6", "Tomorrow, …", or just the date."""
     if value is None:
         return ""
-    if hasattr(value, "tzinfo") and getattr(value, "tzinfo", None) is not None:
+    day = timezone.localtime(value).date() if isinstance(value, datetime) else value
+    text = long_date(day)
+    today = timezone.localdate()
+    if day == today:
+        return f"Today, {text}"
+    if day == today + timedelta(days=1):
+        return f"Tomorrow, {text}"
+    return text
+
+
+def clock_text(value) -> str:
+    """9:00 AM as plain text, for emails and form labels."""
+    if value is None:
+        return ""
+    if getattr(value, "tzinfo", None) is not None:
         value = timezone.localtime(value)
     hour = value.hour % 12 or 12
-    return mark_safe(f"{hour}:{value.minute:02d}&nbsp;{'AM' if value.hour < 12 else 'PM'}")
+    return f"{hour}:{value.minute:02d} {'AM' if value.hour < 12 else 'PM'}"
+
+
+@register.filter
+def clock(value):
+    """9:00 AM, with a no-break space so the time never splits across lines."""
+    return mark_safe(clock_text(value).replace(" ", "&nbsp;"))
 
 
 @register.filter

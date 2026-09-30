@@ -1,5 +1,7 @@
 """Adding and editing volunteers, setup links, and the skills list (SPEC §6, Phase 2)."""
 
+from dataclasses import dataclass
+
 from django.db import transaction
 
 from accounts import services
@@ -7,6 +9,7 @@ from accounts.emails import send_setup_email
 from accounts.models import Role, SetupLinkPurpose, Skill, User
 from accounts.permissions import has_capability
 from core import audit
+from scheduling import services as booking
 from training.models import TrainingNeed
 
 PERSON_FIELDS = ["first_name", "last_name", "email", "phone"]
@@ -23,14 +26,23 @@ def _birthday(data):
     return (int(month), int(day)) if month and day else (None, None)
 
 
-def _email_after_commit(person, token, purpose):
+def _email_after_commit(person, token, purpose, orientation_signup=None):
     """Send once the database change is saved, so a slow or failed email never undoes it."""
-    transaction.on_commit(lambda: send_setup_email(person, token, purpose))
+    transaction.on_commit(
+        lambda: send_setup_email(person, token, purpose, orientation_signup=orientation_signup)
+    )
+
+
+@dataclass
+class Added:
+    person: User
+    orientation_booked: bool | None  # None when no session was chosen
 
 
 @transaction.atomic
-def add_volunteer(data: dict, *, added_by: User) -> User:
-    """Create the volunteer, their profile, training needs and a welcome link, then email it."""
+def add_volunteer(data: dict, *, added_by: User) -> Added:
+    """Create the volunteer, their profile, training needs, orientation and a welcome link,
+    then email it."""
     person = services.create_person(
         first_name=data["first_name"],
         last_name=data["last_name"],
@@ -51,9 +63,21 @@ def add_volunteer(data: dict, *, added_by: User) -> User:
         TrainingNeed.objects.create(
             volunteer=person, training_type=training_type, created_by=added_by
         )
+    orientation_signup, booked = None, None
+    session = data.get("orientation")
+    if session is not None:
+        TrainingNeed.objects.get_or_create(
+            volunteer=person,
+            training_type=session.teaches,
+            resolved_at=None,
+            defaults={"created_by": added_by},
+        )
+        result = booking.sign_up(person, session, by=added_by)
+        booked = result.ok
+        orientation_signup = result.signup if result.ok else None
     token = services.create_setup_link(person, purpose=SetupLinkPurpose.INVITE, created_by=added_by)
-    _email_after_commit(person, token, SetupLinkPurpose.INVITE)
-    return person
+    _email_after_commit(person, token, SetupLinkPurpose.INVITE, orientation_signup)
+    return Added(person, booked)
 
 
 @transaction.atomic
@@ -127,3 +151,27 @@ def set_skill_active(skill: Skill, active: bool, *, by: User) -> None:
     audit.record(
         "skill.turned_on" if active else "skill.turned_off", actor=by, target_repr=skill.name
     )
+
+
+@transaction.atomic
+def update_own_contact(person: User, data: dict) -> list[str]:
+    """A volunteer changes their phone or emergency contact. Nothing else can change here."""
+    profile = person.profile
+    changed = []
+    if person.phone != data["phone"]:
+        person.phone = data["phone"]
+        person.save(update_fields=["phone"])
+        changed.append("phone")
+    for field in (
+        "emergency_contact_name",
+        "emergency_contact_phone",
+        "emergency_contact_relationship",
+    ):
+        if getattr(profile, field) != data.get(field, ""):
+            setattr(profile, field, data.get(field, ""))
+            changed.append(field)
+    if set(changed) - {"phone"}:
+        profile.save()
+    if changed:
+        audit.record("profile.updated", actor=person, target_user=person, fields=changed)
+    return changed

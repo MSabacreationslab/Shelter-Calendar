@@ -6,7 +6,18 @@ from pathlib import Path
 from core import audit, errors
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-BANNED = ["server", "database", "exception", "token", "session", "csrf", "http", "null", "invalid"]
+# "session" isn't here: "training session" is the plain phrase staff use.
+BANNED = [
+    "server",
+    "database",
+    "exception",
+    "token",
+    "cookie",
+    "csrf",
+    "http",
+    "null",
+    "invalid",
+]
 
 HIDDEN = [
     re.compile(r"\{#.*?#\}", re.S),

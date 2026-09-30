@@ -1,0 +1,16 @@
+{# Shared by "Add a shift" and the repeating-shift forms. #}
+{% include "components/field.html" with field=form.title %}
+{% if form.weekday %}{% include "components/field.html" with field=form.weekday %}{% endif %}
+{% if form.day %}{% include "components/field.html" with field=form.day %}{% endif %}
+<div class="inline-fields">
+  {% include "components/field.html" with field=form.start_time %}
+  {% include "components/field.html" with field=form.end_time %}
+</div>
+{% if form.every_n_weeks %}{% include "components/field.html" with field=form.every_n_weeks %}{% endif %}
+{% if form.active_from %}{% include "components/field.html" with field=form.active_from %}{% endif %}
+{% if form.repeat_until %}{% include "components/field.html" with field=form.repeat_until %}{% endif %}
+{% include "components/field.html" with field=form.capacity %}
+{% include "components/choices.html" with field=form.kind %}
+{% include "components/field.html" with field=form.required_training %}
+{% include "components/field.html" with field=form.teaches %}
+{% include "components/field.html" with field=form.notes %}

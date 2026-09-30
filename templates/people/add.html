@@ -29,6 +29,7 @@
       <legend>Shifts and training</legend>
       {% include "components/checkbox.html" with field=form.no_training_eligible %}
       {% include "components/choices.html" with field=form.trainings_needed %}
+      {% include "components/field.html" with field=form.orientation %}
     </fieldset>
     <div class="actions">
       {% if duplicates %}

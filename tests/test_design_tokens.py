@@ -43,6 +43,8 @@ PAIRS = [
     ("open-dot", "bg", UI_PARTS),
     ("open-dot", "surface", UI_PARTS),
     ("open-dot", "primary-tint", UI_PARTS),
+    ("primary", "primary-tint", UI_PARTS),
+    ("on-primary", "primary", OTHER_TEXT),
     ("border", "surface", UI_PARTS),
     ("focus", "surface", UI_PARTS),
     ("focus", "bg", UI_PARTS),

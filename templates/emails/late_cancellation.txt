@@ -1,0 +1,9 @@
+{% load formatting %}{% autoescape off %}{{ person.get_full_name }} can't make their shift, and it starts soon:
+
+{{ shift }}
+{% if reason %}
+What they said: {{ reason }}
+{% endif %}
+Their phone: {{ person.phone|phone }}
+
+The spot is open again in the app.{% endautoescape %}

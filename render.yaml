@@ -9,7 +9,7 @@ services:
     autoDeployTrigger: checksPass
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
     # Free instances have no pre-deploy step, so migrations run just before the server starts.
-    startCommand: python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    startCommand: python manage.py migrate --noinput && python manage.py sync_holidays && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60
     healthCheckPath: /healthz
     envVars:
       - key: SECRET_KEY

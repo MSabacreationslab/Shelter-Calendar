@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Orientation time{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Can't make your orientation?" %}
+  <div class="card">
+    <dl class="summary">
+      <dt>Your orientation</dt><dd>{{ shift.starts_at|long_date }}, {{ shift.starts_at|clock }} – {{ shift.ends_at|clock }}</dd>
+    </dl>
+  </div>
+  <p>Tap the button and we'll let the volunteer team know. Someone will call you to find a better time.</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="actions"><button type="submit" class="btn btn--primary">This time doesn't work for me</button></div>
+  </form>
+{% endblock %}

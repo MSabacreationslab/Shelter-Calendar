@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}{{ shift.title }}{% endblock %}
+{% block content %}
+  {% with back="/schedule/?week="|add:shift.local_date.isoformat %}
+    {% include "components/page_header.html" with title=shift.title back_url=back back_label="Schedule" %}
+  {% endwith %}
+  {% if shift.status == "cancelled" %}
+    {% include "components/notice.html" with kind="warning" title="This shift is cancelled" message=shift.cancel_reason %}
+  {% endif %}
+  <div class="card">
+    <dl class="summary">
+      <dt>When</dt><dd>{{ shift.starts_at|long_date }}, {{ shift.starts_at|clock }} – {{ shift.ends_at|clock }}</dd>
+      {% if shift.holiday_name %}<dt>Holiday</dt><dd>{{ shift.holiday_name }}</dd>{% endif %}
+      <dt>People</dt><dd>{{ signups|length }} of {{ shift.capacity }}{% if spots_left %} ({{ spots_left }} open){% endif %}</dd>
+      <dt>Training</dt><dd>{% if shift.kind == "training" %}This session teaches {{ shift.teaches.name }}{% elif shift.required_training %}Needs {{ shift.required_training.name }}{% else %}None needed{% endif %}</dd>
+      {% if shift.notes %}<dt>Notes</dt><dd>{{ shift.notes|linebreaksbr }}</dd>{% endif %}
+    </dl>
+  </div>
+
+  <h2>Signed up</h2>
+  {% if signups %}
+    <ul class="plain-list">
+      {% for signup in signups %}
+        <li class="plain-list__item">
+          <span><a href="{% url 'people:detail' signup.volunteer.pk %}">{{ signup.volunteer.get_full_name }}</a>, <a href="tel:{{ signup.volunteer.phone|tel }}">{{ signup.volunteer.phone|phone }}</a>{% if signup.conflict_reported_at %} <span class="badge">Says this time doesn't work</span>{% endif %}</span>
+          {% if can_assign and upcoming %}<span class="plain-list__actions"><a href="{% url 'scheduling:remove' shift.pk signup.pk %}">Take off<span class="visually-hidden"> {{ signup.volunteer.get_full_name }}</span></a></span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Nobody yet.</p>
+  {% endif %}
+
+  {% if can_assign and upcoming %}
+    <form method="post" action="{% url 'scheduling:assign' shift.pk %}" class="inline-form">
+      {% csrf_token %}
+      {% include "components/field.html" with field=assign_form.person %}
+      <button type="submit" class="btn btn--secondary">Add to this shift</button>
+    </form>
+  {% endif %}
+
+  <h2>Waitlist</h2>
+  {% if waiting %}
+    <ol class="plain-list">
+      {% for entry in waiting %}
+        <li class="plain-list__item">
+          <span>{{ entry.volunteer.get_full_name }}, waiting since {{ entry.created_at|long_date }}</span>
+          {% if can_waitlist and upcoming %}
+            <span class="plain-list__actions">
+              <form method="post" action="{% url 'scheduling:promote' shift.pk entry.pk %}">{% csrf_token %}<button type="submit" class="link-button">Move onto the shift<span class="visually-hidden">: {{ entry.volunteer.get_full_name }}</span></button></form>
+              <form method="post" action="{% url 'scheduling:unwait' shift.pk entry.pk %}">{% csrf_token %}<button type="submit" class="link-button">Take off the waitlist<span class="visually-hidden">: {{ entry.volunteer.get_full_name }}</span></button></form>
+            </span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+    {% if spots_left and can_waitlist %}<p class="field__hint">There's a spot open. Moving someone on emails them the good news.</p>{% endif %}
+  {% else %}
+    <p>Nobody is waiting.</p>
+  {% endif %}
+
+  {% if can_manage and upcoming %}
+    <div class="actions">
+      <a class="btn btn--secondary" href="{% url 'scheduling:edit_shift' shift.pk %}">Change this shift</a>
+      <a class="btn btn--danger" href="{% url 'scheduling:cancel_shift' shift.pk %}">Cancel this shift</a>
+    </div>
+  {% endif %}
+{% endblock %}

@@ -1,9 +1,10 @@
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime, time, timedelta
 
 import pytest
+from django.utils import timezone
 
 from core.phones import format_phone, normalize_phone
-from core.templatetags.formatting import clock, long_date, month_name
+from core.templatetags.formatting import clock, friendly_date, long_date, month_name
 
 
 @pytest.mark.parametrize(
@@ -42,3 +43,10 @@ def test_aware_times_show_in_shelter_time():
 def test_month_names():
     assert month_name(3) == "March"
     assert month_name("") == ""
+
+
+def test_friendly_dates_say_today_and_tomorrow():
+    today = timezone.localdate()
+    assert friendly_date(today).startswith("Today, ")
+    assert friendly_date(today + timedelta(days=1)).startswith("Tomorrow, ")
+    assert friendly_date(today + timedelta(days=2)) == long_date(today + timedelta(days=2))

@@ -10,6 +10,7 @@ urlpatterns = [
     path("volunteers/<int:pk>/", views.person_detail, name="detail"),
     path("volunteers/<int:pk>/edit/", views.edit_person, name="edit"),
     path("volunteers/<int:pk>/new-link/", views.send_link, name="send_link"),
+    path("profile/", views.my_profile, name="profile"),
     path("skills/", views.skills, name="skills"),
     path("skills/<int:pk>/", views.edit_skill, name="edit_skill"),
     path("skills/<int:pk>/toggle/", views.toggle_skill, name="toggle_skill"),

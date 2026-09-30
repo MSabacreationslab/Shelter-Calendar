@@ -16,8 +16,17 @@
         <nav class="site-nav" aria-label="Main">
           <ul>
             {% block nav_links %}
-              <li><a href="{% url 'home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>Home</a></li>
-              {% if user|can:"view_contacts" %}<li><a href="{% url 'people:list' %}"{% if request.resolver_match.namespace == 'people' %} aria-current="page"{% endif %}>Volunteers</a></li>{% endif %}
+              {% with here=request.resolver_match %}
+                <li><a href="{% url 'home' %}"{% if here.url_name == 'home' %} aria-current="page"{% endif %}>Home</a></li>
+                {% if user|can:"view_dashboard" %}
+                  {% if user|can:"view_full_schedule" %}<li><a href="{% url 'scheduling:week' %}"{% if here.namespace == 'scheduling' %} aria-current="page"{% endif %}>Schedule</a></li>{% endif %}
+                  {% if user|can:"view_contacts" %}<li><a href="{% url 'people:list' %}"{% if here.namespace == 'people' and here.url_name != 'profile' %} aria-current="page"{% endif %}>Volunteers</a></li>{% endif %}
+                  <li><a href="{% url 'shifts:home' %}"{% if here.namespace == 'shifts' %} aria-current="page"{% endif %}>My shifts</a></li>
+                {% else %}
+                  <li><a href="{% url 'shifts:find' %}"{% if here.url_name == 'find' %} aria-current="page"{% endif %}>Find a shift</a></li>
+                {% endif %}
+                <li><a href="{% url 'people:profile' %}"{% if here.url_name == 'profile' %} aria-current="page"{% endif %}>My profile</a></li>
+              {% endwith %}
             {% endblock %}
             {% if user|can:"edit_settings" %}<li><a href="{% url 'admin:index' %}">Backend</a></li>{% endif %}
             <li>

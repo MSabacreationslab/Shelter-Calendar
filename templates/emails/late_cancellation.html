@@ -1,0 +1,9 @@
+{% extends "emails/_base.html" %}
+{% load formatting %}
+{% block body %}
+  <p style="margin:0 0 16px;"><strong>{{ person.get_full_name }}</strong> can't make their shift, and it starts soon:</p>
+  <p style="margin:0 0 16px; font-size:21px;"><strong>{{ shift }}</strong></p>
+  {% if reason %}<p style="margin:0 0 16px;">What they said: {{ reason }}</p>{% endif %}
+  <p style="margin:0 0 16px;">Their phone: {{ person.phone|phone }}</p>
+  <p style="margin:0 0 16px;">The spot is open again in the app.</p>
+{% endblock %}

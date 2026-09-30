@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Fill the schedule{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Fill the schedule" lead="Creates shifts from your template weeks and repeating shifts. You'll see what it will do before anything changes." back_url="/schedule/" back_label="Schedule" %}
+  {% if form.errors %}{% include "components/notice.html" with kind="error" title="Please fix the highlighted boxes" %}{% endif %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="step" value="preview">
+    <div class="inline-fields">
+      {% include "components/field.html" with field=form.start %}
+      {% include "components/field.html" with field=form.end %}
+    </div>
+    <div class="actions"><button type="submit" class="btn btn--primary">Show me what it will do</button></div>
+  </form>
+{% endblock %}

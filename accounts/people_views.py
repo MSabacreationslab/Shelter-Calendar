@@ -7,7 +7,13 @@ from django.views.decorators.http import require_POST
 
 from accounts import people
 from accounts.models import Role, Skill, Status, User
-from accounts.people_forms import AddVolunteerForm, SkillForm, VolunteerDetailsForm, details_initial
+from accounts.people_forms import (
+    AddVolunteerForm,
+    OwnContactForm,
+    SkillForm,
+    VolunteerDetailsForm,
+    details_initial,
+)
 from accounts.permissions import has_capability, requires
 from core.forms import post_data
 from training.models import TrainingNeed, TrainingRecord
@@ -45,11 +51,18 @@ def add_volunteer(request):
     if request.method == "POST" and form.is_valid():
         duplicates = form.possible_duplicates()
         if not duplicates or request.POST.get("add_anyway"):
-            person = people.add_volunteer(form.cleaned_data, added_by=request.user)
+            added = people.add_volunteer(form.cleaned_data, added_by=request.user)
+            person = added.person
             messages.success(
                 request,
                 f"{person.get_full_name()} is added. We've emailed them a link to choose a PIN.",
             )
+            if added.orientation_booked is False:
+                messages.warning(
+                    request,
+                    "That orientation session filled up, so they aren't booked on one yet. "
+                    "Add them from the session's page in the schedule.",
+                )
             return redirect("people:detail", pk=person.pk)
     return render(request, "people/add.html", {"form": form, "duplicates": duplicates})
 
@@ -131,3 +144,29 @@ def toggle_skill(request, pk):
     skill = get_object_or_404(Skill, pk=pk)
     people.set_skill_active(skill, not skill.active, by=request.user)
     return redirect("people:skills")
+
+
+@requires("edit_own_contact")
+def my_profile(request):
+    """Your details. You can change your phone and emergency contact; call for anything else."""
+    person = request.user
+    profile = person.profile
+    initial = {
+        "phone": person.phone,
+        "emergency_contact_name": profile.emergency_contact_name,
+        "emergency_contact_phone": profile.emergency_contact_phone,
+        "emergency_contact_relationship": profile.emergency_contact_relationship,
+    }
+    form = OwnContactForm(post_data(request), initial=initial)
+    if request.method == "POST" and form.is_valid():
+        changed = people.update_own_contact(person, form.cleaned_data)
+        messages.success(request, "Saved. Thank you!" if changed else "Nothing needed changing.")
+        return redirect("people:profile")
+    records = (
+        TrainingRecord.objects.filter(volunteer=person, voided_at__isnull=True)
+        .select_related("training_type")
+        .order_by("training_type__name")
+    )
+    return render(
+        request, "people/profile.html", {"form": form, "person": person, "records": records}
+    )

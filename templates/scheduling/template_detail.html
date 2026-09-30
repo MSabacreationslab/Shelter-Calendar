@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}{{ week.name }}{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title=week.name lead="Each day's repeating shifts. Changes here apply to future shifts nobody has touched." back_url="/schedule/templates/" back_label="Template weeks" %}
+  {% for day in days %}
+    <section class="day" aria-labelledby="tday-{{ forloop.counter0 }}">
+      <h2 id="tday-{{ forloop.counter0 }}">{{ day.name }}</h2>
+      {% if day.patterns %}
+        <ul class="plain-list">
+          {% for pattern in day.patterns %}
+            <li class="plain-list__item">
+              <span><strong>{{ pattern.title }}</strong>, {{ pattern.start_time|clock }} – {{ pattern.end_time|clock }}, {{ pattern.capacity }} {% if pattern.capacity == 1 %}person{% else %}people{% endif %}{% if pattern.every_n_weeks == 2 %}, every other week{% endif %}{% if pattern.kind == "training" %}, teaches {{ pattern.teaches.name }}{% elif pattern.required_training %}, needs {{ pattern.required_training.name }}{% endif %}</span>
+              <span class="plain-list__actions">
+                <a href="{% url 'scheduling:edit_pattern' pattern.pk %}">Change<span class="visually-hidden"> {{ pattern.title }}</span></a>
+                <a href="{% url 'scheduling:end_pattern' pattern.pk %}">Stop<span class="visually-hidden"> {{ pattern.title }}</span></a>
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      <p><a href="{% url 'scheduling:add_pattern' week.pk %}?day={{ forloop.counter0 }}">Add a {{ day.name }} shift</a></p>
+    </section>
+  {% endfor %}
+  <div class="actions"><a class="btn btn--primary" href="{% url 'scheduling:fill' %}">Fill the schedule</a></div>
+{% endblock %}
