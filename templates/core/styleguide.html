@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Style guide{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Style guide" lead="Every building block of the app, for checking on a phone and a computer." back_url="/" back_label="Home" %}
+
+  <h2>Buttons</h2>
+  <div class="actions">
+    <button type="button" class="btn btn--primary">Sign up for this shift</button>
+    <button type="button" class="btn btn--secondary">No, go back</button>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn btn--danger">Cancel my shift</button>
+    <button type="button" class="btn btn--primary" disabled>This shift is full</button>
+  </div>
+
+  <h2>Notices</h2>
+  {% include "components/notice.html" with kind="success" title="You're signed up!" message="Dog walking on Tuesday, October 6, 9:00 AM – 11:00 AM." %}
+  {% include "components/notice.html" with kind="warning" title="This shift starts soon" message="If you can't make it, please let us know right away." %}
+  {% include "components/notice.html" with kind="error" title="That didn't work" message="Please check the highlighted fields below." %}
+  {% include "components/notice.html" with kind="info" message="Your next shift is tomorrow." %}
+
+  <h2>Card</h2>
+  <div class="card">
+    <p class="card__title">Dog walking</p>
+    <p>Tuesday, October 6<br>9:00 AM – 11:00 AM</p>
+    <p><a href="#">See details</a></p>
+  </div>
+
+  <h2>Summary</h2>
+  <div class="card">
+    <dl class="summary">
+      <dt>Shift</dt><dd>Dog walking</dd>
+      <dt>When</dt><dd>Tuesday, October 6, 9:00 AM – 11:00 AM</dd>
+      <dt>Spots left</dt><dd>2 of 4</dd>
+    </dl>
+  </div>
+
+  <h2>Empty state</h2>
+  <div class="card">
+    {% include "components/empty_state.html" with title="No shifts yet" message="When you sign up for a shift, it will show here." %}
+  </div>
+
+  <h2>Form</h2>
+  {% if submitted %}
+    {% include "components/notice.html" with kind="success" title="Thanks!" message="That form was filled in correctly." %}
+  {% elif form.errors %}
+    {% include "components/notice.html" with kind="error" title="Please fix the highlighted fields" %}
+  {% endif %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "components/field.html" with field=form.name %}
+    {% include "components/field.html" with field=form.phone %}
+    {% include "components/field.html" with field=form.notes %}
+    <div class="actions">
+      <button type="submit" class="btn btn--primary">Check this form</button>
+    </div>
+  </form>
+{% endblock %}

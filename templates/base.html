@@ -1,0 +1,33 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Volunteer schedule{% endblock %} · {{ shelter.name }}</title>
+  <link rel="stylesheet" href="{% static 'core/css/tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'core/css/base.css' %}">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <header class="site-header">
+    <div class="wrap {% block header_width %}{% endblock %} site-header__inner">
+      <a class="site-name" href="{% url 'home' %}">{{ shelter.name }}</a>
+      {% block nav %}{% endblock %}
+    </div>
+  </header>
+  <main id="main" class="wrap {% block main_width %}{% endblock %}" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">
+    <div class="wrap">
+      {% if shelter.phone %}
+        <p>Questions? Call the shelter at <a href="tel:{{ shelter.phone_link }}">{{ shelter.phone }}</a>.</p>
+      {% else %}
+        <p>Questions? Please ask a member of the volunteer team.</p>
+      {% endif %}
+      {% if shelter.email %}<p>Email: <a href="mailto:{{ shelter.email }}">{{ shelter.email }}</a></p>{% endif %}
+    </div>
+  </footer>
+  <script src="{% static 'core/js/app.js' %}" defer></script>
+</body>
+</html>

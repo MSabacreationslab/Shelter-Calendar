@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Welcome{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Volunteer schedule" lead="Sign up for shifts, see when you're helping, and keep your details up to date." %}
+  <div class="card">
+    <p class="card__title">Coming soon</p>
+    <p>Signing in with your name and PIN is being added next. Thank you for your patience.</p>
+  </div>
+  {% if demo_mode %}
+    <p><a href="{% url 'styleguide' %}">See the style guide</a> (test site only).</p>
+  {% endif %}
+{% endblock %}

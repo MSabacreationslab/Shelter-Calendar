@@ -1,4 +1,19 @@
-# Phase 1 scaffolding placeholder.
-# This will eventually be the root URL configuration for the project,
-# mapping incoming request paths to views (directly or via included
-# app-level URLconfs). No real implementation yet.
+"""Root URL configuration."""
+
+from django.contrib import admin
+from django.urls import path
+
+from core import views as core_views
+
+urlpatterns = [
+    path("", core_views.home, name="home"),
+    path("healthz", core_views.healthz, name="healthz"),
+    path("styleguide/", core_views.styleguide, name="styleguide"),
+    # Emergency backend for the Admin only; never part of a staff workflow.
+    path("django-admin/", admin.site.urls),
+]
+
+handler400 = "core.views.bad_request"
+handler403 = "core.views.permission_denied"
+handler404 = "core.views.page_not_found"
+handler500 = "core.views.server_error"

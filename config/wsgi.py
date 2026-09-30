@@ -1,3 +1,9 @@
-# Phase 1 scaffolding placeholder.
-# This will eventually expose the WSGI callable that web servers use to
-# serve the Django project in production. No real implementation yet.
+"""WSGI entry point used by gunicorn."""
+
+import os
+
+from django.core.wsgi import get_wsgi_application
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+
+application = get_wsgi_application()

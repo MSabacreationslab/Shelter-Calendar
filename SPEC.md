@@ -12,7 +12,7 @@ This spec is the source of truth for building the app. It replaces `shelter-app-
 
 **Client:** Humane Society of Madison County, West Jefferson, Ohio.
 
-**What it does:** people apply to volunteer, staff approve them, and volunteers sign up for the shifts they're trained for. Staff run the schedule, track training, and get a weekly picture of who's coming.
+**What it does:** once the shelter's paperwork is done, staff add each volunteer to the app, and volunteers sign up for the shifts they're trained for. Staff run the schedule, track training, and get a weekly picture of who's coming.
 
 **Who uses it:** volunteers and staff, many aged 65 or older, and some not confident with phones or computers. **When a feature and simplicity pull in different directions, simplicity wins.** Anything that confuses a first-time user on a phone is a bug.
 
@@ -21,7 +21,7 @@ This spec is the source of truth for building the app. It replaces `shelter-app-
 **Devices:** people's own phones (iPhone and Android), home computers, and the shelter's iPad (used for check-in in V2).
 
 **Out of scope indefinitely:** push notifications, and donor/adopter CRM or categorization.
-**Not in V1 (see §6, V2):** hour tracking, volunteer availability, the Petfinder birthday photo, QR badges, and a custom domain.
+**Not in V1 (see §6, V2):** hour tracking, volunteer availability, the Petfinder birthday photo, QR badges, and a custom domain. Online applications and approvals are a possible future feature (Q16).
 
 ---
 
@@ -33,7 +33,7 @@ This spec is the source of truth for building the app. It replaces `shelter-app-
 | Framework | **Django 5.2 LTS** | Supported until April 2028; fits the existing `Django>=5.0,<6.0` pin |
 | Pages | Server-rendered Django templates, plain CSS with design tokens, small vanilla JS only as an enhancement | No build step and fewer moving parts. Fast on old phones and friendly to screen readers. **Every core flow works with JavaScript turned off.** |
 | Database | **PostgreSQL 16+ everywhere** (local, CI, test site, pilot) | Double-booking is blocked by a Postgres exclusion constraint (`django.contrib.postgres`). SQLite can't do that, so there's no SQLite fallback. |
-| Packages | `psycopg[binary]` (v3, replacing `psycopg2-binary`), `dj-database-url`, `whitenoise`, `gunicorn`, `holidays`, `segno` (QR codes); dev: `pytest-django`, `factory-boy`, `ruff` | Keep the list short. A new dependency needs a one-line reason in its PR. |
+| Packages | `psycopg[binary]` (v3, replacing `psycopg2-binary`), `dj-database-url`, `whitenoise`, `gunicorn`, `holidays`; dev: `pytest-django`, `factory-boy`, `ruff` | Keep the list short. A new dependency needs a one-line reason in its PR. |
 | Email | Django SMTP backend. Test site: a dedicated Gmail account with an app password, as Pantry Sprite does. Local: console backend. Tests: locmem backend. | $0 |
 | Time zone | `America/New_York`, `USE_TZ = True` | Shelter is in Ohio |
 
@@ -48,13 +48,13 @@ This spec is the source of truth for building the app. It replaces `shelter-app-
 - **Connecting:** use Supabase's **session pooler** connection string, which works over IPv4. The direct connection string is IPv6-only and many hosts can't reach it.
 - **Deploys:** a `render.yaml` blueprint in the repo. The start command runs `migrate` and then `gunicorn`. Auto-deploy from `main`.
 
-**Pilot: Railway**, as the plan says. It's always on with no cold starts. The pilot database (Railway Postgres or Supabase Pro, for real backups) is decided in Phase 9 (Q15).
+**Pilot: Railway**, as the plan says. It's always on with no cold starts. The pilot database is Railway Postgres with daily backups (decided, Q15).
 
-**Scheduled jobs** (weekly digest, reminders; Phase 7 onward) are Django management commands. What triggers them is decided in Phase 7 (Q13). Render's free tier has no cron.
+**Scheduled jobs** (weekly digest, reminders; Phase 7 onward) are Django management commands. Railway cron runs them on the pilot; on the test site they're run by hand (decided, Q13). Render's free tier has no cron.
 
 ### CI (`.github/workflows/ci.yml`)
 - One job, pip cache, no matrix.
-- **Triggers:** pull requests to `main`, and pushes to `main`. This drops the current "push to every branch" trigger, which runs everything twice.
+- **Triggers:** pull requests (to any base branch, so stacked phase PRs are checked too) and pushes to `main`. This drops the current "push to every branch" trigger, which runs everything twice.
 - **Steps:**
   1. `ruff check` and `ruff format --check`
   2. `manage.py check`
@@ -72,33 +72,43 @@ This spec is the source of truth for building the app. It replaces `shelter-app-
 
 ## 3. Roles & Permissions
 
-### Roles
+### Roles (decided 2026-09-29, Q1)
 | Role | Who | In one line |
 |---|---|---|
 | **Volunteer** | Approved volunteers | Signs up for and cancels their own shifts, and keeps their own contact details current |
-| **Shelter Lead** | On-site staff running the day | Sees the whole schedule and contacts, records training, and handles the waitlist and day-to-day swaps |
-| **Coordinator** | Runs the volunteer program | Everything a Shelter Lead does, plus approving applicants, building the schedule, resetting volunteer PINs and reports |
-| **Admin** | Shelter management / owner | Everything a Coordinator does, plus managing staff accounts, settings and the audit log |
+| **Staff** | The shelter's leads. At launch: the **Shelter Lead**, the **Volunteer Lead** and the **Volunteer Lead's Assistant**. Staff can add more. | Runs everything in the app's staff screens. **All staff have the same powers**; the job title is only a label. |
+| **Admin** | Mike only | Everything staff can do, plus app settings and the Django admin. Mike is the only person with backend access (database, code, deploys). |
 
-These tiers are a proposal (Q1). The plan names the roles but not their differences.
+- Each staff account has a `job_title` shown next to their name ("Volunteer Lead").
+- **Admin accounts can only be created from the command line** (`create_admin`), so nobody can make themselves or anyone else an Admin in the app. Staff can't edit, reset or deactivate an Admin account.
 
-**"Admin transparency / limited scope"** (proposed interpretation, Q1):
-1. Every staff action that changes someone else's data is written to an **audit log**. Every Admin can read it, and each person's page shows who last changed what.
-2. **Nobody** can see a PIN, sign in as someone else, or act on a volunteer's behalf. "View as volunteer" is read-only.
-3. Nothing that forms a person's history can be deleted in the app: training records, past shifts and audit entries. Records are deactivated, cancelled or voided instead.
+### Change log (decided)
+Every change is recorded: who made it, what changed, and when. That includes:
+- shift assignments, sign-ups and cancellations (a volunteer's own included)
+- PIN resets, setup links sent, accounts created or deactivated
+- volunteers added, and training records
+- shift and schedule edits, and settings changes
+- hours changes (V2)
+
+All staff and the Admin can read the change log and filter it by person and date. Each person's page shows their recent changes. The log is append-only: nobody can edit or delete it in the app.
+
+### Safeguards
+- **Nobody** can see a PIN, sign in as someone else, or act on a volunteer's behalf. "View as volunteer" is read-only.
+- Nothing that forms a person's history can be deleted in the app: training records, past shifts and change-log entries. Records are deactivated, cancelled or voided instead.
 
 ### Capability map
-Code checks **capabilities**, never role names. Role names appear in exactly one place: the map in `accounts/permissions.py`.
+Code checks **capabilities**, never role names. Role names appear in exactly one place: the map in `accounts/permissions.py`. If staff ever need different levels, only the map changes.
 
-| Capability | Volunteer | Shelter Lead | Coordinator | Admin |
-|---|:-:|:-:|:-:|:-:|
-| `view_own_schedule`, `edit_own_contact`, `sign_up_self`, `cancel_own_signup` | ✓ | ✓¹ | ✓¹ | ✓¹ |
-| `view_full_schedule`, `view_contacts`, `view_as_volunteer`, `view_dashboard` | – | ✓ | ✓ | ✓ |
-| `record_training`, `manage_waitlist`, `assign_volunteers` | – | ✓ | ✓ | ✓ |
-| `approve_applicants`, `manage_shifts`, `manage_trainings`, `edit_volunteers`, `reset_volunteer_pin`, `view_reports` | – | – | ✓ | ✓ |
-| `manage_staff`, `reset_staff_pin`, `view_audit_log`, `edit_settings` | – | – | – | ✓ |
+| Capability | Volunteer | Staff | Admin |
+|---|:-:|:-:|:-:|
+| `view_own_schedule`, `edit_own_contact`, `sign_up_self`, `cancel_own_signup` | ✓ | ✓¹ | ✓¹ |
+| `view_dashboard`, `view_full_schedule`, `view_contacts`, `view_as_volunteer`, `view_change_log` | – | ✓ | ✓ |
+| `manage_shifts`, `assign_volunteers`, `manage_waitlist`, `record_training`, `manage_trainings` | – | ✓ | ✓ |
+| `add_volunteers`, `edit_volunteers`, `reset_volunteer_pin`, `view_reports` | – | ✓ | ✓ |
+| `manage_staff`: add staff, change job titles, deactivate staff, send a staff member a new PIN link (never an Admin account) | – | ✓ | ✓ |
+| `edit_settings`, Django admin | – | – | ✓ |
 
-¹ Only if staff can take shifts themselves (Q3). Proposed: yes, using the same eligibility rules as volunteers.
+¹ Staff and the Admin can sign up for shifts they're trained for, under the same eligibility rules as volunteers (decided, Q3).
 
 ### Rules
 - Views declare their capability with a decorator or mixin, and templates check it with a template tag. **Every URL must declare a capability** (or `public` / `signed_in`).
@@ -107,7 +117,7 @@ Code checks **capabilities**, never role names. Role names appear in exactly one
   - The test **fails if any URL has no declared capability**. New pages can't slip through.
 - **Object-level:** volunteers only ever touch their own signups, waitlist entries and profile. Tests must cover tampering with IDs in URLs and forms.
 - Denied pages are friendly ("This page is for shelter staff.") with an error code, not a bare 403. Signed-out users are sent to sign in and then returned.
-- The Django admin site lives at `/django-admin/`, is for the superuser only, and is for emergencies. It's never part of a staff workflow.
+- The Django admin site lives at `/django-admin/`, is for the superuser (Mike) only, and is for emergencies. It's never part of a staff workflow.
 
 ---
 
@@ -116,16 +126,17 @@ Code checks **capabilities**, never role names. Role names appear in exactly one
 ### The sign-in screen
 Two large fields, **"Your name"** and **"PIN"**, and a big **Sign in** button.
 - **Name matching:** case-insensitive, with extra spaces trimmed and collapsed.
-- Each person has a unique **sign-in name** (`login_name`), which defaults to "First Last". If it's taken, the coordinator adds something at approval (e.g. "Mary Smith B"). The welcome email and printed letter state the sign-in name.
+- Each person has a unique **sign-in name** (`login_name`), which defaults to "First Last". If it's taken, staff add something when adding them (e.g. "Mary Smith B"). The welcome email states the sign-in name.
 
 ### PINs
-- Volunteers: exactly **4 digits**. Staff: 4 digits per the plan, but **6 recommended** (Q2). Staff can see everyone's phone numbers and emergency contacts.
+- Everyone uses exactly **6 digits** (decided, Q2; the original plan said 4).
 - Stored with Django's password hashing. **No one can see a PIN, and staff never choose one for someone else.**
 - **Blocked PINs:**
-  - all the same digit (0000, 1111…)
-  - straight runs up or down (0123…6789, 9876…3210)
-  - a short list of common PINs: 1212, 1122, 1313, 2000, 1004, 6969, 2580, 0852
-  - the last 4 digits of the person's own phone number
+  - all the same digit (000000, 111111…)
+  - straight runs up or down (012345…456789, 987654…543210)
+  - a repeated pair or triple (121212, 101010, 123123, 112233)
+  - a short list of other common PINs: 123321, 111222, 147258, 159753, 102030
+  - the last 6 digits of the person's own phone number
   - The error gives an example of a good choice: "Please pick a PIN that's harder to guess, like one without a pattern."
 - **Entry fields:**
   - PIN fields use `inputmode="numeric"` and `autocomplete="current-password"`, or `"new-password"` when setting one.
@@ -150,13 +161,13 @@ Two large fields, **"Your name"** and **"PIN"**, and a big **Sign in** button.
 - Setting a new PIN signs out that person's other sessions.
 
 ### Setup links (one-time, single-use, 1-week expiry)
-- **Created by:** approval (volunteers), an Admin creating a staff account, **Reset PIN**, and **Resend invite**.
+- **Created by:** adding a volunteer or a staff account, **Reset PIN**, and **Resend invite**.
 - **Token:** 32 random bytes, URL-safe. **Only its hash is stored.** Valid for **7 days** and used once. Creating a new link voids the person's older unused links.
 - **Opening a link must not use it up.** Email link scanners prefetch links. The link is used when the person **submits** their new PIN, and a GET never changes anything.
-- **Flow:** open link → "Welcome, Mary. Choose a 4-digit PIN." → enter it twice → signed in → Home. This also clears any lockout.
+- **Flow:** open link → "Welcome, Mary. Choose a 6-digit PIN." → enter it twice → signed in → Home. This also clears any lockout.
 - **Expired or used link:** a friendly page ("This link has expired. Please call the shelter at {phone} and we'll send a new one.") with an error code.
-- **People without email** (Q4, proposed): staff can open a **printable welcome letter**. It has the person's sign-in name, the setup link, a QR code of the link (`segno`) and the shelter's phone number, in large type.
-- **No self-service "email me a new link" in V1.** The plan has staff do resets (Q5).
+- **Email is required** for every volunteer and staff member (decided, Q4: everyone has email).
+- **No self-service "email me a new link".** Staff or the Admin reset PINs by sending a new setup link (decided, Q5).
 
 ---
 
@@ -167,17 +178,17 @@ Apps: `core` (base templates, design tokens, error codes, settings, audit), `acc
 All datetimes are timezone-aware. People and history are never hard-deleted in the app.
 
 ### core
-- **`ShelterSettings`** (single row): `shelter_name`, `shelter_phone`, `shelter_email`, `self_cancel_hours` (default 48, Q9), `urgent_threshold_hours` (24 or 48, for the pilot A/B), `coordinator_emails` (who gets notifications).
+- **`ShelterSettings`** (single row): `shelter_name`, `shelter_phone`, `shelter_email`, `self_cancel_hours` (default 24, decided Q9), `urgent_threshold_hours` (24 or 48, for the pilot A/B), `notify_emails` (the staff who get notification emails).
   - The waitlist maximum is fixed at **10** per the plan. It's a constant, not a setting.
-- **`AuditEvent`** (append-only; `save()` refuses updates):
-  - fields: `actor`, `action` (string key, e.g. `applicant.approved`), `target_user` (nullable), `target_repr` (text), `details` (JSON), `created_at`
+- **`AuditEvent`** (shown on screen as the **change log**, §3; append-only, and `save()` refuses updates):
+  - fields: `actor`, `action` (string key, e.g. `volunteer.added`), `target_user` (nullable), `target_repr` (text), `details` (JSON), `created_at`
   - indexed on `(target_user, created_at)`
 
 ### accounts
 - **`User`** (custom `AUTH_USER_MODEL`, **created in Phase 0's first migration**, because Django can't switch later without pain):
   - `first_name`, `last_name`, `login_name`, `email`, `phone`
-  - `role` (`volunteer` | `shelter_lead` | `coordinator` | `admin`)
-  - `status` (`applicant` | `active` | `inactive` | `denied`)
+  - `role` (`volunteer` | `staff` | `admin`), `job_title` (staff only, e.g. "Volunteer Lead")
+  - `status` (`active` | `inactive`)
   - `password` (the PIN hash), `avatar` (key or blank, meaning initials)
   - `last_login`, `date_joined`, `deactivated_at`
   - `is_superuser` / `is_staff` are for the Django admin only.
@@ -186,13 +197,12 @@ All datetimes are timezone-aware. People and history are never hard-deleted in t
     - check that `role` and `status` are valid
 - **`VolunteerProfile`** (1:1 with User):
   - emergency contact: `emergency_contact_name`, `emergency_contact_phone`, `emergency_contact_relationship`
-  - `experience` (text), `skills` (M2M `Skill`)
-  - waiver: `waiver_version`, `waiver_accepted_at`, `waiver_signed_name`
+  - `skills` (M2M `Skill`)
   - `birthday_month`, `birthday_day` (optional; no year, proposed)
   - `no_training_eligible` (bool: may take shifts that need no training)
   - `staff_notes` (staff-only)
-  - application record: `applied_at`, `approved_by`/`approved_at`, `denied_by`/`denied_at`, `possible_duplicate` (bool)
-- **`Skill`**: `name`, `active`. Skills are self-reported at signup and are **informational only, never used for eligibility**. The list is Q7.
+  - `added_by` (the staff member who added them)
+- **`Skill`**: `name`, `active`. Staff tick skills when adding a volunteer. They're **informational only, never used for eligibility**. Starting list (decided, Q7): Dog walking, Cat enrichment, Dog kennel cleaning, Cat cage cleaning, Special events. Staff can add, rename and deactivate skills.
 - **`SetupLink`**:
   - fields: `user`, `token_hash` (unique), `purpose` (`invite` | `reset`), `created_by`, `created_at`, `expires_at`, `used_at`, `voided_at`
   - valid = not used, not voided, not expired
@@ -210,7 +220,7 @@ All datetimes are timezone-aware. People and history are never hard-deleted in t
   - Voided, never deleted.
 - **Eligibility**, one function, `training.eligibility.can_take(user, shift)` (used everywhere):
   - The user is `active` and the shift is `scheduled` and in the future.
-  - A **regular** shift with no required training needs `no_training_eligible`.
+  - A **regular** shift with no required training needs `no_training_eligible`. Staff and the Admin always count as eligible for these.
   - A **regular** shift that requires training X needs a non-voided `TrainingRecord` for X.
   - A **training** shift (a session teaching X) needs an unresolved `TrainingNeed` for X, or `assign_volunteers` staff adding them.
 - Saving an **orientation** record automatically sets `no_training_eligible = True` (proposed).
@@ -244,7 +254,10 @@ All datetimes are timezone-aware. People and history are never hard-deleted in t
   - Unique `(shift, volunteer)` while waiting.
   - At most **10** waiting per shift, checked under the shift lock. Order is by `created_at`.
 - **`BlackoutPeriod`**: `start_date`, `end_date`, `reason`, `created_by`.
-- **Holidays:** US federal holidays are computed with the `holidays` package, so there's no table. Shelter-specific closures are blackout periods (Q10).
+- **`Holiday`**: `date`, `name`, `source` (`federal` | `shelter`), `hidden` (bool). Unique on `(date, name)`.
+  - US federal holidays for this year and next are filled in from the `holidays` package by an idempotent command that also runs on deploy.
+  - Staff can add the shelter's own holidays and hide federal ones they don't observe (decided, Q10).
+  - Holidays are flags only. Closures are blackout periods.
 
 ### notifications (Phase 2+)
 - **`EmailLog`**: `to`, `template_key`, `subject`, `related_user`, `sent_at`, `error`. It answers "did the email go out?" without digging through server logs.
@@ -259,6 +272,8 @@ Every phase is **one PR** on `feature/phase-N-<slug>` and ends with:
 - a **hand-test checklist**: what to tap, as which role, on a phone and on a computer
 
 Then **stop**. Don't start the next phase until Mike says so.
+
+When Mike asks for a run of phases, **stack** them: each phase branch starts from the previous one, and its PR targets that branch until the previous phase merges. Then it's retargeted to `main`.
 
 ### Phase 0 — Foundation *(new)*
 **Goal:** a real, deployed, empty-but-styled Django app that tests the product, not just the pipeline.
@@ -284,7 +299,7 @@ Then **stop**. Don't start the next phase until Mike says so.
 - **Health and deploy:**
   - A health check at `/healthz`.
   - `render.yaml`, plus `docs/setup.md`. It covers:
-    - Windows local setup: venv, PostgreSQL via `winget install PostgreSQL.PostgreSQL.17`, `.env`
+    - Windows local setup: venv, PostgreSQL 17 (EDB installer), `.env`
     - a Supabase project and its session pooler URL
     - the Render service
     - the Gmail app password
@@ -305,10 +320,10 @@ Then **stop**. Don't start the next phase until Mike says so.
 - **Screens:**
   - sign-in, choose PIN (from a link), link expired, locked out
   - a placeholder Home for each role, and Sign out
-- **Rules:** every rule in §4, plus the capability map, decorator/mixin, template tag, friendly denied page and audit events for staff actions (all §3).
+- **Rules:** every rule in §4, plus the capability map, decorator/mixin, template tag, friendly denied page and change-log entries for every change (all §3).
 - **Management commands:**
   - `create_admin "First Last" email@example.com` prints a setup link. This bootstraps the first Admin.
-  - `seed_demo` creates obviously fake demo data: one of each staff role, 10 volunteers, training types, a template week and a month of shifts.
+  - `seed_demo` creates obviously fake demo data: the three staff accounts (Shelter Lead, Volunteer Lead, Volunteer Lead's Assistant), 10 volunteers, training types, a template week and a month of shifts.
     - Only when `DEMO_MODE=1`. Never on the pilot.
     - Demo accounts get the PIN in the `DEMO_PIN` env var.
 - **Tests:**
@@ -318,7 +333,7 @@ Then **stop**. Don't start the next phase until Mike says so.
   - the setup-link lifecycle: hash stored, a GET doesn't use it, expiry, single use, older links voided
   - session length by role
   - the permission matrix, including "every URL declares a capability"
-  - audit events written
+  - change-log entries written
   - `login_name` unique regardless of case
   - the overlap exclusion constraint and the double-signup constraint at database level
 - **Hand test:**
@@ -327,52 +342,51 @@ Then **stop**. Don't start the next phase until Mike says so.
   - Lock yourself out on purpose and read every message.
   - Try a staff URL as a volunteer.
 
-### Phase 2 — Volunteer application & approval
-**Goal:** people apply online, and a coordinator approves them on one screen and sends a welcome.
+### Phase 2 — Adding volunteers & welcome
+**Goal:** once the shelter's paperwork is done, staff add a volunteer on one screen, and the volunteer gets a welcome email to set their PIN.
 
-**Public "Volunteer with us" form** (no sign-in):
+The app doesn't take applications or handle denials (decided, Q16). The waiver stays on the shelter's paper forms (decided, Q6).
+
+**Add a volunteer** (one page, one Save):
 - **Fields:**
-  - name, email, phone
+  - first and last name, email (required), phone
   - emergency contact (name, phone, relationship)
   - birthday month and day (optional)
-  - experience, skills (checkboxes plus "Other")
-  - age confirmation (Q6)
-- **Waiver:** the full text is shown on the page (Q6 supplies it). The person ticks "I have read and agree" and **types their full name**. The waiver version is stored.
-- **Spam protection:** a honeypot field plus a per-IP rate limit. **No CAPTCHA**, which is too hard for many older users.
-- **Duplicates:** an email or phone matching an existing person is still accepted but flagged `possible_duplicate`.
-- **After submitting:** a thank-you page says what happens next ("A coordinator will be in touch within a few days"), and coordinators get an email: "New volunteer application: Mary Smith."
-
-**Pending queue:** oldest first, with the key details on each row.
-
-**Combined approval screen** (one page, one Save, one transaction):
-- The applicant's details.
-- The **sign-in name**, pre-filled; if it's taken, the page asks for a variant.
+  - skills (checkboxes from the staff-managed list)
+  - staff notes
+- **Sign-in name:** pre-filled as "First Last". If it's taken, the page asks for a variant.
 - **"Can sign up for no-training shifts now"** checkbox.
 - **Trainings needed** checkboxes (creates `TrainingNeed`s).
 - **Orientation:** picking a session is added in Phase 3.
-- **Approve** does all of this together:
-  - status → `active`
+- **Possible duplicates:** if the email or phone matches someone already in the app, the page names them and asks "Add anyway?" before saving.
+- **Save**, in one transaction:
+  - person created (`active`)
   - needs created
   - setup link created
-  - welcome email sent
-  - audit event written
-  - then offers "Print welcome letter" (§4)
+  - change-log entry written
+- **After the save commits, the welcome email is sent.** A failed send never loses the person. It's logged in `EmailLog` and shown on their page with **Try again**.
 
 **Welcome email:**
 - plain text plus simple large-type HTML
 - the sign-in name and setup link (valid 7 days)
-- orientation details (from Phase 3), with the "this time doesn't work" link (Q8)
+- orientation details (from Phase 3), with the "This time doesn't work for me" link (Q8)
 - the shelter's phone number
 
-**Deny:** a confirm step, then status → `denied`. **No email**, per the plan. The record is kept so a repeat application is spotted, with an optional private note and an audit event.
+**Resend invite:** sends a fresh setup link and voids the old one.
+
+**Skills list:** staff add, rename and deactivate skills.
 
 **Tests:**
-- form validation, honeypot, rate limit
-- the duplicate flag
-- approval is all-or-nothing
+- validation: required fields, phone format, a real birthday date
+- the duplicate warning
+- the save is all-or-nothing, and an email failure keeps the person and logs the failure
 - email content (outbox)
-- deny sends nothing
-- permissions
+- resend voids the old link
+- permissions and change-log entries
+
+**Hand test:** add yourself as a volunteer with your real email. Open the email on your phone, set a PIN, and sign in.
+
+**Future (not scheduled):** online applications with approval and denial. If they're built, denied applicants' details are anonymized after 12 months (Q16).
 
 ### Phase 3 — Shifts & scheduling core
 **Goal:** staff build the schedule quickly, and the rules that protect it are airtight.
@@ -407,7 +421,7 @@ Then **stop**. Don't start the next phase until Mike says so.
 - The fill skips them.
 - Shifts already inside a new blackout are **listed for staff to cancel, not auto-cancelled**.
 
-**Holidays:** flagged on the calendar and in the fill preview (Q10).
+**Holidays:** flagged on the calendar and in the fill preview. Staff can add the shelter's own holidays and hide federal ones (Q10).
 
 **Services** (`scheduling/services.py`, shared by all screens):
 - `sign_up`, `cancel_signup`, `join_waitlist`, `leave_waitlist`, `promote_from_waitlist`, `assign`, `remove`
@@ -421,11 +435,11 @@ Then **stop**. Don't start the next phase until Mike says so.
 - **Expiry:** entries for past shifts expire.
 
 **Orientation hookup:**
-- The approval screen lists upcoming orientation sessions with space. Picking one signs the applicant up.
+- The Add a volunteer screen lists upcoming orientation sessions with space. Picking one signs the new volunteer up.
 - The welcome email includes it and a **"This time doesn't work for me"** link.
   - The link is a signed token, no sign-in needed.
-  - It leads to a confirm page and flags a conflict for coordinators (email plus a dashboard item).
-  - It doesn't cancel anything by itself (proposed, Q8).
+  - It leads to a confirm page and flags a conflict for staff (email to the notify list plus a dashboard item).
+  - It doesn't cancel anything by itself (decided, Q8).
 
 **Tests:**
 - **Generation:** weekly and every-other-week; stays at 9:00 AM local across **the DST change on Sunday November 1, 2026**; blackout skip; holiday flag; running twice creates nothing new.
@@ -457,19 +471,19 @@ Then **stop**. Don't start the next phase until Mike says so.
 Then a success page: "You're signed up for Dog Walking on Tuesday, October 6, 9:00–11:00 AM", with **Add to my calendar** (an `.ics` file) and **Back to home**.
 
 **Cancelling:**
-- **More than `self_cancel_hours` before the start** (Q9, default 48):
+- **More than `self_cancel_hours` before the start** (24 hours, decided Q9):
   - The button says **Cancel my shift**, followed by a confirm step.
   - It's recorded as routine.
 - **Inside that window:**
   - The button says **I can't make it**.
   - Confirm, with an optional reason.
-  - It's cancelled, flagged late, and **coordinators are emailed right away**: "Thanks for letting us know. We've told the coordinator."
+  - It's cancelled, flagged late, and **the notify list is emailed right away**: "Thanks for letting us know. We've told the volunteer team."
 - **After the shift starts:** it can't be cancelled in the app. "Please call the shelter at {phone}."
 
 **My profile:**
 - name and email are read-only ("To change these, call the shelter")
 - **edit phone and emergency contact only**
-- an **avatar picker**: a grid of about 12 animal pictures with big targets (Q11; initials until the artwork arrives)
+- an **avatar picker**: a grid of about 12 animal pictures with big targets (initials in a coloured circle until the artwork arrives, Q11)
 - completed trainings (read-only)
 
 **Tests:**
@@ -483,7 +497,7 @@ Then a success page: "You're signed up for Dog Walking on Tuesday, October 6, 9:
 **Hand test:** do every flow on a phone at the largest text size, then with VoiceOver or TalkBack for sign-up and cancel.
 
 ### Phase 5 — Training management
-- **Training types** (Coordinator+): add, rename, deactivate.
+- **Training types:** add, rename, deactivate.
 - **Sessions:** a session is a **training-kind shift**, created like any shift. Its signups are its attendees. Volunteers with an open need can see and join sessions for that training.
 - **Batch completion** (one screen, one Save, one transaction):
   - Pick a session. Attendees are pre-ticked **Completed**; untick no-shows.
@@ -495,7 +509,7 @@ Then a success page: "You're signed up for Dog Walking on Tuesday, October 6, 9:
 - **Tests:** the batch save is all-or-nothing, needs resolve, eligibility changes right away, and voiding removes eligibility.
 
 ### Phase 6 — Staff dashboard
-One dashboard for Shelter Lead, Coordinator and Admin. Sections show according to capability.
+One dashboard, shared by all staff and the Admin.
 
 **Today:**
 - today's shifts in time order, with names
@@ -503,7 +517,6 @@ One dashboard for Shelter Lead, Coordinator and Admin. Sections show according t
 - today's late cancellations
 
 **Needs attention:**
-- new applications
 - late cancellations (urgent or routine, see below)
 - shifts in the next 7 days that are under capacity
 - waitlists with an open spot
@@ -514,7 +527,7 @@ One dashboard for Shelter Lead, Coordinator and Admin. Sections show according t
 **Quick links:**
 - Add a shift
 - Fill the schedule
-- Applications
+- Add a volunteer
 - Record training
 - Volunteers
 - Reports
@@ -524,9 +537,9 @@ One dashboard for Shelter Lead, Coordinator and Admin. Sections show according t
 - **Person page:**
   - details (editable with `edit_volunteers`)
   - trainings, upcoming shifts and history
-  - **Send new setup link** (reset PIN), **Resend invite**, **Print welcome letter**
+  - **Send new setup link** (reset PIN), **Resend invite**
   - **Deactivate** / **Reactivate**
-  - the change history (Admin)
+  - recent changes from the change log
 
 **View as volunteer:**
 - Shows that person's Home, read-only, under a banner: "Viewing as Mary Smith — read only. [Stop viewing]".
@@ -534,38 +547,38 @@ One dashboard for Shelter Lead, Coordinator and Admin. Sections show according t
 - Viewing is audit-logged.
 
 **Urgent vs routine:**
-- A late cancellation for a shift starting within `urgent_threshold_hours` is **urgent**. It sends an immediate email to coordinators and appears in red at the top of the dashboard.
+- Any cancellation for a shift starting within `urgent_threshold_hours` is **urgent**, whether it came through **Cancel my shift** or **I can't make it**. It sends an immediate email to the notify list and appears in red at the top of the dashboard.
 - Everything else is **routine**: dashboard plus the weekly digest.
-- **Pilot A/B:** run 24 hours first, then 48 hours. Settings changes are audit-logged, so reports can compare the two periods (Q12).
+- **Pilot A/B:** run 24 hours first, then 48 hours. Settings changes are audit-logged, so reports can compare the two periods. Staff feedback decides (Q12).
 
-**Staff management (Admin):** create staff (sends a setup link), change a role, deactivate.
+**Change log:** every change, newest first, filterable by person and date (§3).
+
+**Staff management:** add a staff member (sends a setup link), change a job title, deactivate, send a new PIN link. The Admin account isn't listed here.
 
 **Settings (Admin):** the fields of `ShelterSettings`.
 
 ### Phase 7 — Reporting
-- **Sunday digest email** to coordinators (Sunday 6 PM ET, proposed):
+- **Sunday digest email** to the notify list (Sunday 6 PM ET, proposed):
   - next week by day (each shift with names and open spots)
   - next week by volunteer
   - last week's cancellations
 - **Monthly summary email** (on the 1st):
   - shifts offered and filled (%), signups
   - cancellations (late and routine)
-  - applications and approvals
+  - volunteers added
   - trainings completed
 - **Report page:**
   - Pick a date range, then view tables by volunteer, by day and by shift.
   - **Download CSV** as Excel-friendly UTF-8 with a BOM.
   - Cells starting with `= + - @` are prefixed with `'` to block CSV formula injection.
-- **Commands:** `send_weekly_digest` and `send_monthly_summary`. Each records the period it sent, so a double trigger can't send twice. The trigger is Q13.
+- **Commands:** `send_weekly_digest` and `send_monthly_summary`. Each records the period it sent, so a double trigger can't send twice. Railway cron triggers them on the pilot (Q13).
 
 ### Phase 8 — Reminders & birthday email
-- **Shift reminders by tier** (per the plan):
-  - **1–2 shifts** in the coming week: a **text** the evening before each shift (6 PM ET, proposed).
+- **Shift reminders are email-only until an SMS provider is chosen** (decided, Q14):
+  - **1–3 shifts** in the coming week: an email the evening before each shift (6 PM ET, proposed).
   - **4–5 shifts:** a **Sunday email** listing their week.
-  - **3 shifts:** Q14.
-  - People without a mobile get the reminder by email.
   - Everyone can turn reminders off on their profile.
-- **SMS:** built behind a small interface with an email fallback, so the phase can ship before an SMS provider is chosen. US texting requires A2P 10DLC registration and has a small monthly cost (Q14).
+- **Adding texts later:** reminders go through a small interface, so texting can be added without touching the rules. US texting needs A2P 10DLC registration and has a small monthly cost.
 - **Birthday email:** plain text, at 8 AM ET on their birthday, only if they gave one, and signed from the shelter. Feb 29 is sent on Feb 28 in non-leap years.
 - **Command:** `send_reminders` runs daily and won't send the same reminder twice.
 
@@ -583,15 +596,14 @@ One dashboard for Shelter Lead, Coordinator and Admin. Sections show according t
 - **Security and privacy:**
   - `check --deploy` is clean, with security headers and a CSP
   - no personal data in URLs or logs
-  - a data-retention rule for denied applicants (Q16)
-- **Data load:** a CSV import command for existing volunteers and their trainings (Q17).
-- **Hosting move:** to Railway and its database (Q15). Backups are verified by a test restore.
+- **Data load:** a CSV import command for existing volunteers and their trainings (decided, Q17).
+- **Hosting move:** to Railway, with Railway Postgres and daily backups (Q15). Backups are verified by a test restore.
 - **Guides:** a one-page printable **staff guide** and **volunteer guide** in large type with screenshots.
 - **Pilot launch:** 10 volunteers and 4 staff.
 
 ### Phase 10 — Pilot fixes
 - Fix what the pilot turns up: bugs, confusing flows, accessibility gaps, and edge cases this spec missed.
-- Settle the 24-hour vs 48-hour urgency threshold using coordinator feedback.
+- Settle the 24-hour vs 48-hour urgency threshold using staff feedback.
 - Make any data-model corrections before growing past the pilot group.
 
 ### V2 (Phases 11–15, spec each one before building)
@@ -649,7 +661,7 @@ Contrast is measured against the background `#FAF7F2` unless stated.
 | `--border` | `#7A828C` | Input borders | 3.9:1 on white |
 | `--focus` | `#C25E00` | Focus ring | 4.3:1 on white |
 
-- If the shelter has brand colours and a logo we have permission to use (Q18), map them onto these tokens **without dropping below the contrast targets**. A palette that fails is adjusted, not shipped.
+- The shelter's name appears in text; no logo or brand colours for now (decided, Q18). If they're provided later, map them onto these tokens **without dropping below the contrast targets**. A palette that fails is adjusted, not shipped.
 - No dark mode in V1 (proposed). It's one more thing to explain.
 
 ### Typography
@@ -658,7 +670,7 @@ Contrast is measured against the background `#FAF7F2` unless stated.
 - The system font stack is the fallback.
 
 ### Words we use on screen
-- **Consistent terms:** "shift", "sign up" (not book, claim or register), "cancel", "waitlist", "training", "orientation", "coordinator", "PIN".
+- **Consistent terms:** "shift", "sign up" (not book, claim or register), "cancel", "waitlist", "training", "orientation", "volunteer team" (how volunteers hear about staff), "PIN".
 - **Plain language** at about a 6th–8th grade reading level. Say what happened and what to do next, in full sentences.
 - **Dates and times:**
   - Always include the weekday: "Tuesday, October 6".
@@ -671,7 +683,7 @@ Contrast is measured against the background `#FAF7F2` unless stated.
 
 ### Navigation
 - **Volunteers:** header links **Home · Find a shift · My profile**, plus **Sign out**.
-- **Staff:** **Dashboard · Schedule · Volunteers · Training · Reports**, shown by capability, plus **My shifts** if staff take shifts (Q3).
+- **Staff:** **Dashboard · Schedule · Volunteers · Training · Reports**, shown by capability, plus **My shifts**.
 - **No hamburger menus.** Links wrap onto a second line on small screens.
 - Every page has one clear **h1** and at most one primary button.
 
@@ -694,7 +706,7 @@ Contrast is measured against the background `#FAF7F2` unless stated.
   - uniqueness, the overlap exclusion and check constraints
   - Services check first so they can give friendly messages, and the database is the backstop.
 - **Audit and history:**
-  - Every staff action that changes someone else's data writes an `AuditEvent` in the same transaction.
+  - Every change listed in §3 → Change log writes an `AuditEvent` in the same transaction.
   - People and history are never hard-deleted in the app.
 - **Security:**
   - Secrets live only in env vars, with `.env.example` committed.
@@ -731,11 +743,15 @@ Contrast is measured against the background `#FAF7F2` unless stated.
 ## 10. Decisions Locked
 
 - Django web app, server-rendered.
-- Sign-in with **name + 4-digit PIN** (staff length Q2), with **one-time, single-use setup links that expire after 1 week**, and rate-limited lockout.
+- Sign-in with **name + 6-digit PIN** for everyone (changed from the plan's 4), with **one-time, single-use setup links that expire after 1 week**, and rate-limited lockout.
 - **Waitlist:** at most 10 people, and only staff promote from it; the person is emailed when promoted.
-- **Denial is manual**, with no email.
+- **Roles:** Volunteer, Staff (all staff have equal powers; job titles are labels), and Admin (Mike only, created from the command line).
+- **Change log** of every change, readable by all staff.
+- **No applications or denials in the app** for now. Staff add volunteers after the shelter's paperwork, which includes the waiver.
+- **Self-service cancellation** up to 24 hours before a shift. After that, **I can't make it** tells the volunteer team right away.
+- **Reminders are email-only** until an SMS provider is chosen.
 - **Shifts are independent, editable instances** generated from repeating patterns and template weeks. US holidays are flagged; blackout dates are set by hand.
-- **Pilot:** 10 volunteers and 4 staff on **Railway**. **Testing:** Render free + Supabase free Postgres.
+- **Pilot:** 10 volunteers and 4 staff on **Railway**, with Railway Postgres and daily backups. **Testing:** Render free + Supabase free Postgres.
 - **One PR per phase**, stopping for hand testing after each.
 - **Push notifications and donor/adopter CRM are out of scope indefinitely.**
 
@@ -747,22 +763,23 @@ Each question names the phase that needs the answer and the default Claude will 
 
 | # | Needed by | Question | Proposed default |
 |---|---|---|---|
-| Q1 | Phase 1 | What exactly differs between Shelter Lead, Coordinator and Admin? What did "admin transparency / limited scope" mean? | The tiers and interpretation in §3 |
-| Q2 | Phase 1 | Staff PIN: 4 digits (plan) or 6? | **6 for staff**, 4 for volunteers |
-| Q3 | Phase 1 | Can staff also sign up for shifts themselves? | Yes, same eligibility rules |
-| Q4 | Phase 2 | Do all volunteers have email? | Email required; printable welcome letter with QR code as the fallback |
-| Q5 | Phase 1 | Self-service "email me a new PIN link" on the sign-in page? | No for V1 (staff reset, per plan) |
-| Q6 | Phase 2 | Waiver text (from the shelter), and a minimum age? | Need the text; "I am 18 or older" checkbox |
-| Q7 | Phase 2 | Skills list for the application form | Dog handling, Cat handling, Cleaning/laundry, Front desk/customer service, Events/fundraising, Photography/social media, Repairs/handy work, Transport/driving, Spanish, Other |
-| Q8 | Phase 3 | What was the approval email's "conflict-flag link" for? | "This orientation time doesn't work for me", which flags coordinators |
-| Q9 | Phase 4 | Self-service cancellation window | 48 hours |
-| Q10 | Phase 3 | Is the shelter open on federal holidays? Any extra closure days? | Holidays flagged only; closures entered as blackouts |
-| Q11 | Phase 4 | Avatar artwork: who makes it? | Initials in a coloured circle until art arrives |
-| Q12 | Phase 6 | How will the 24h vs 48h urgency trial be judged? | Coordinator feedback, plus counts of urgent alerts per week |
-| Q13 | Phase 7 | What triggers scheduled emails? | Railway cron on the pilot; on the test site, run by hand |
-| Q14 | Phase 8 | SMS provider and budget, and which tier gets 3 shifts/week? | Email-only reminders until decided; 3/week → texts |
-| Q15 | Phase 9 | Pilot database: Railway Postgres or Supabase Pro (backups)? | Railway Postgres with daily backups |
-| Q16 | Phase 9 | How long to keep denied applicants' details? | 12 months, then anonymize |
-| Q17 | Phase 9 | Where does the shelter's current volunteer and training data live, and what format? | CSV import |
-| Q18 | Phase 0 | Shelter logo/colours: available, and do we have permission? | Neutral palette above; the shelter's name in text |
-| Q19 | Phase 0 | Shelter phone number and email to show on every page | Placeholder in settings until provided |
+| Q1 | Phase 1 | Role differences and "admin transparency" | ✅ **Decided:** one Staff role with equal powers (job titles are labels); Admin = Mike only; change log readable by all staff (§3) |
+| Q2 | Phase 1 | PIN length | ✅ **Decided:** 6 digits for everyone |
+| Q3 | Phase 1 | Can staff sign up for shifts? | ✅ **Decided:** yes, when they have the training |
+| Q4 | Phase 2 | Do all volunteers have email? | ✅ **Decided:** yes; email is required |
+| Q5 | Phase 1 | Self-service PIN reset? | ✅ **Decided:** no; staff or the Admin reset PINs |
+| Q6 | Phase 2 | Waiver and minimum age | ✅ **Decided:** not in the app; they're on the shelter's official paperwork |
+| Q7 | Phase 2 | Skills list | ✅ **Decided:** Dog walking, Cat enrichment, Dog kennel cleaning, Cat cage cleaning, Special events; staff can add more |
+| Q8 | Phase 3 | The welcome email's conflict link | ✅ **Decided:** "This orientation time doesn't work for me", which flags staff |
+| Q9 | Phase 4 | Self-service cancellation window | ✅ **Decided:** 24 hours |
+| Q10 | Phase 3 | Holidays | ✅ **Decided:** flagged; staff can add shelter holidays and hide federal ones |
+| Q11 | Phase 4 | Avatar artwork | ✅ **Decided:** initials in a coloured circle until art arrives |
+| Q12 | Phase 6 | Judging the 24h vs 48h urgency trial | ✅ **Decided:** staff feedback |
+| Q13 | Phase 7 | What triggers scheduled emails? | ✅ **Decided:** Railway cron on the pilot; run by hand on the test site |
+| Q14 | Phase 8 | SMS | ✅ **Decided:** email only until an SMS provider is chosen |
+| Q15 | Phase 9 | Pilot database | ✅ **Decided:** Railway Postgres with daily backups |
+| Q16 | — | Applications and denials | ✅ **Decided:** not in the app for now (possible future feature; denied details anonymized after 12 months) |
+| Q17 | Phase 9 | Loading existing data | ✅ **Decided:** CSV import |
+| Q18 | Phase 0 | Logo and colours | ✅ **Decided:** neutral palette; the shelter's name in text |
+| Q19 | Phase 0 | Shelter phone and email | ✅ **Decided:** placeholder in settings until provided |
+| Q20 | Phase 3 | Which activities need training before someone can sign up? | Orientation first for everyone. Dog walking, Cat enrichment, Dog kennel cleaning and Cat cage cleaning each need their own training. Special events needs none. |

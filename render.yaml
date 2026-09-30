@@ -1,0 +1,28 @@
+# Free test site: Django on Render, Postgres on Supabase (see docs/setup.md).
+services:
+  - type: web
+    name: shelter-calendar
+    runtime: python
+    plan: free
+    region: ohio
+    branch: main
+    autoDeployTrigger: checksPass
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    # Free instances have no pre-deploy step, so migrations run just before the server starts.
+    startCommand: python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    healthCheckPath: /healthz
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL_REQUIRE
+        value: "1"
+      - key: DEMO_MODE
+        value: "1"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: SHELTER_PHONE
+        sync: false

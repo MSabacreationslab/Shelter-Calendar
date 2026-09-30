@@ -1,0 +1,5 @@
+{# Usage: include "components/empty_state.html" with title="..." message="..." #}
+<div class="empty-state">
+  <p class="empty-state__title">{{ title }}</p>
+  {% if message %}<p>{{ message }}</p>{% endif %}
+</div>
