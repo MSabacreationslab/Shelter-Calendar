@@ -11,7 +11,7 @@ from pathlib import Path
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 
-from config.env import env_bool, env_list, load_dotenv
+from config.env import BAD_DATABASE_URL, database_url_from_env, env_bool, env_list, load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -82,17 +82,19 @@ TEMPLATES = [
     },
 ]
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "")
-if not DATABASE_URL:
-    raise ImproperlyConfigured("DATABASE_URL must be set (see .env.example).")
-DATABASES = {
-    "default": dj_database_url.parse(
-        DATABASE_URL,
-        conn_max_age=60,
-        conn_health_checks=True,
-        ssl_require=env_bool("DATABASE_SSL_REQUIRE", False),
-    )
-}
+DATABASE_URL = database_url_from_env()
+try:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=60,
+            conn_health_checks=True,
+            ssl_require=env_bool("DATABASE_SSL_REQUIRE", False),
+        )
+    }
+except (ValueError, dj_database_url.ParseError, dj_database_url.UnknownSchemeError):
+    # Never echo the value: it contains the database password.
+    raise ImproperlyConfigured(BAD_DATABASE_URL) from None
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "accounts.User"
