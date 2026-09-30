@@ -112,7 +112,8 @@ def test_two_people_racing_for_the_last_spot_only_one_gets_it():
 
 def test_cancelling_early_is_routine(sent):
     person = ready()
-    signup = booking.sign_up(person, ShiftFactory(starts_at=at(3, 9))).signup
+    # Five days out: outside both the 24-hour window and the 72-hour urgent window.
+    signup = booking.sign_up(person, ShiftFactory(starts_at=at(5, 9))).signup
     with sent():
         result = booking.cancel_signup(signup, by=person)
     assert result.ok and not result.late

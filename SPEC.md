@@ -178,7 +178,7 @@ Apps: `core` (base templates, design tokens, error codes, settings, audit), `acc
 All datetimes are timezone-aware. People and history are never hard-deleted in the app.
 
 ### core
-- **`ShelterSettings`** (single row): `shelter_name`, `shelter_phone`, `shelter_email`, `self_cancel_hours` (default 24, decided Q9), `urgent_threshold_hours` (24 or 48, for the pilot A/B), `notify_emails` (the staff who get notification emails).
+- **`ShelterSettings`** (single row): `shelter_name`, `shelter_phone`, `shelter_email`, `self_cancel_hours` (default 24, decided Q9), `urgent_threshold_hours` (24, 48 or 72; **72 during testing** at the shelter's request), `notify_emails` (the staff who get notification emails).
   - The waitlist maximum is fixed at **10** per the plan. It's a constant, not a setting.
 - **`AuditEvent`** (shown on screen as the **change log**, §3; append-only, and `save()` refuses updates):
   - fields: `actor`, `action` (string key, e.g. `volunteer.added`), `target_user` (nullable), `target_repr` (text), `details` (JSON), `created_at`
@@ -552,7 +552,7 @@ One dashboard, shared by all staff and the Admin.
 **Urgent vs routine:**
 - Any cancellation for a shift starting within `urgent_threshold_hours` is **urgent**, whether it came through **Cancel my shift** or **I can't make it**. It sends an immediate email to the notify list and appears in red at the top of the dashboard.
 - Everything else is **routine**: dashboard plus the weekly digest.
-- **Pilot A/B:** run 24 hours first, then 48 hours. Settings changes are audit-logged, so reports can compare the two periods. Staff feedback decides (Q12).
+- **Testing period:** 72 hours, at the shelter's request, so staff get enough notice to find cover. **Pilot A/B:** try 24 and 48 hours (or keep 72). Settings changes are audit-logged, so reports can compare the periods. Staff feedback decides (Q12).
 
 **Change log:** every change, newest first, filterable by person and date (§3).
 
