@@ -10,6 +10,11 @@ ACTIONS = {
     "account.locked_out": "Locked out for 15 minutes after too many wrong PINs",
     "account.needs_new_link": "Locked until they get a new setup link",
     "setup_link.sent": "Setup link sent",
+    "volunteer.edited": "Details updated",
+    "skill.added": "Skill added to the list",
+    "skill.renamed": "Skill renamed",
+    "skill.turned_off": "Skill taken off the list",
+    "skill.turned_on": "Skill put back on the list",
 }
 
 

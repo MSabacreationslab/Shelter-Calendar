@@ -1,0 +1,20 @@
+{# The details shared by the add and edit pages. #}
+<fieldset class="form-section">
+  <legend>About them</legend>
+  {% include "components/field.html" with field=form.first_name %}
+  {% include "components/field.html" with field=form.last_name %}
+  {% include "components/field.html" with field=form.email %}
+  {% include "components/field.html" with field=form.phone %}
+  <div class="inline-fields">
+    {% include "components/field.html" with field=form.birthday_month %}
+    {% include "components/field.html" with field=form.birthday_day %}
+  </div>
+</fieldset>
+<fieldset class="form-section">
+  <legend>Emergency contact</legend>
+  {% include "components/field.html" with field=form.emergency_contact_name %}
+  {% include "components/field.html" with field=form.emergency_contact_phone %}
+  {% include "components/field.html" with field=form.emergency_contact_relationship %}
+</fieldset>
+{% include "components/choices.html" with field=form.skills %}
+{% include "components/field.html" with field=form.staff_notes %}

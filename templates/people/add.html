@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Add a volunteer{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Add a volunteer" lead="Once their paperwork is done, add them here. They'll get an email with a link to choose their PIN." back_url="/volunteers/" back_label="Volunteers" %}
+
+  {% if duplicates %}
+    <div class="notice notice--warning" role="status">
+      <span class="notice__icon" aria-hidden="true">!</span>
+      <div>
+        <p class="notice__title">This might be someone who's already here</p>
+        <p>The same email or phone is used by:
+          {% for other in duplicates %}<a href="{% url 'people:detail' other.pk %}">{{ other.get_full_name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.
+        </p>
+        <p>If this is a different person, use <strong>Yes, add them anyway</strong> at the bottom.</p>
+      </div>
+    </div>
+  {% elif form.errors %}
+    {% include "components/notice.html" with kind="error" title="Please fix the highlighted boxes" %}
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "people/_details_fields.html" %}
+    <fieldset class="form-section">
+      <legend>Signing in</legend>
+      {% include "components/field.html" with field=form.login_name %}
+    </fieldset>
+    <fieldset class="form-section">
+      <legend>Shifts and training</legend>
+      {% include "components/checkbox.html" with field=form.no_training_eligible %}
+      {% include "components/choices.html" with field=form.trainings_needed %}
+    </fieldset>
+    <div class="actions">
+      {% if duplicates %}
+        <button type="submit" name="add_anyway" value="1" class="btn btn--primary">Yes, add them anyway</button>
+      {% else %}
+        <button type="submit" class="btn btn--primary">Add and send welcome email</button>
+      {% endif %}
+      <a class="btn btn--secondary" href="{% url 'people:list' %}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

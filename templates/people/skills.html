@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Skills list{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Skills list" lead="What volunteers can tick when they're added. Taking a skill off the list doesn't remove it from anyone." back_url="/volunteers/" back_label="Volunteers" %}
+  <ul class="plain-list">
+    {% for skill in skills %}
+      <li class="plain-list__item">
+        <span>{{ skill.name }}{% if not skill.active %} <span class="badge">Off the list</span>{% endif %}</span>
+        <span class="plain-list__actions">
+          <a href="{% url 'people:edit_skill' skill.pk %}">Rename<span class="visually-hidden"> {{ skill.name }}</span></a>
+          <form method="post" action="{% url 'people:toggle_skill' skill.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="link-button">{% if skill.active %}Take off the list{% else %}Put back on the list{% endif %}<span class="visually-hidden"> {{ skill.name }}</span></button>
+          </form>
+        </span>
+      </li>
+    {% endfor %}
+  </ul>
+  <h2>Add a skill</h2>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "components/field.html" with field=form.name %}
+    <div class="actions"><button type="submit" class="btn btn--primary">Add to the list</button></div>
+  </form>
+{% endblock %}

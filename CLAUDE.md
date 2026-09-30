@@ -114,3 +114,15 @@ with a clear explanation of what failed and why it doesn't match a known pattern
   a new PIN signs out the person's other devices.
 - `seed_demo` makes people and training types (Q20 default). Shifts join the seed in Phase 3.
 - Tests hash PINs with MD5 for speed; production uses Django's PBKDF2 (slow on Render free).
+
+**Phase 2**
+- Staff screens for people live in `accounts/people*.py` (URL namespace `people`).
+- Emails go through `notifications.email.send()`, after the database commit. Failures never
+  undo the change: they're kept in `EmailLog` and shown on the person's page. Tokens aren't
+  stored, so "try again" means sending a new setup link.
+- Plain-text email templates are wrapped in `{% autoescape off %}` (apostrophes in names).
+- Phones are stored as 10 digits (`core/phones.py`); `formatting` filters show phones, dates
+  ("Tuesday, October 6") and times ("9:00 AM" with a no-break space).
+- The volunteer list is filtered in the browser, so names never go into web addresses.
+- Emergency contact name and phone are required when adding someone (proposed); an edit page
+  shipped with Phase 2 because a mistyped email blocks the welcome.

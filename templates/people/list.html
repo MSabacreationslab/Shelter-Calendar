@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load capabilities formatting %}
+{% block title %}Volunteers{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Volunteers" %}
+  <div class="actions actions--top">
+    {% if user|can:"add_volunteers" %}<a class="btn btn--primary" href="{% url 'people:add' %}">Add a volunteer</a>{% endif %}
+    {% if user|can:"edit_volunteers" %}<a class="btn btn--secondary" href="{% url 'people:skills' %}">Skills list</a>{% endif %}
+  </div>
+
+  <div class="field filter-box" hidden data-filter-box>
+    <label for="find-person">Find a person</label>
+    <input type="text" id="find-person" data-filter-input="people" autocomplete="off">
+  </div>
+
+  {% if volunteers %}
+    <ul class="people-list" data-filter-list="people">
+      {% for person in volunteers %}
+        <li class="people-list__item" data-filter-item>
+          <a class="people-list__name" href="{% url 'people:detail' person.pk %}">{{ person.get_full_name }}</a>
+          <span>{{ person.phone|phone }}</span>
+          <span class="people-list__email">{{ person.email }}</span>
+          {% if not person.has_usable_password %}<span class="badge">Hasn't chosen a PIN yet</span>{% endif %}
+          {% if person.status != "active" %}<span class="badge">Turned off</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    <p class="filter-none" hidden data-filter-none="people">Nobody matches that name.</p>
+  {% else %}
+    {% include "components/empty_state.html" with title="No volunteers yet" message="When you add a volunteer, they'll appear here." %}
+  {% endif %}
+
+  <p>
+    {% if show_inactive %}<a href="{% url 'people:list' %}">Show only active volunteers</a>
+    {% else %}<a href="{% url 'people:list' %}?show=all">Also show volunteers who are turned off</a>{% endif %}
+  </p>
+{% endblock %}

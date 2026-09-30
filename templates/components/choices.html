@@ -1,0 +1,11 @@
+{# A group of checkboxes or radios: include "components/choices.html" with field=form.skills #}
+<fieldset class="field choices{% if field.errors %} field--error{% endif %}"{% if field.help_text %} aria-describedby="{{ field.auto_id }}_hint"{% endif %}>
+  <legend>{{ field.label }}{% if not field.field.required %} <span class="field__optional">(optional)</span>{% endif %}</legend>
+  {% if field.help_text %}<p class="field__hint" id="{{ field.auto_id }}_hint">{{ field.help_text }}</p>{% endif %}
+  {% if field.errors %}<p class="field__error"><span aria-hidden="true">&#9888;</span> {{ field.errors.0 }}</p>{% endif %}
+  {% for choice in field %}
+    <label class="choice" for="{{ choice.id_for_label }}">{{ choice.tag }} <span>{{ choice.choice_label }}</span></label>
+  {% empty %}
+    <p class="field__hint">Nothing to choose from yet.</p>
+  {% endfor %}
+</fieldset>
