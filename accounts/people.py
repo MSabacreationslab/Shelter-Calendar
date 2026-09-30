@@ -172,6 +172,10 @@ def update_own_contact(person: User, data: dict) -> list[str]:
         if getattr(profile, field) != data.get(field, ""):
             setattr(profile, field, data.get(field, ""))
             changed.append(field)
+    wants = bool(data.get("wants_reminders", profile.wants_reminders))
+    if profile.wants_reminders != wants:
+        profile.wants_reminders = wants
+        changed.append("wants_reminders")
     if set(changed) - {"phone"}:
         profile.save()
     if changed:

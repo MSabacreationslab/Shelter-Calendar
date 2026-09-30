@@ -182,3 +182,11 @@ with a clear explanation of what failed and why it doesn't match a known pattern
   sending, so racing triggers can't double-send. `--again` resends; `--date` fakes today.
 - CSV downloads start with a BOM (Excel reads UTF-8) and prefix `= + - @` tab/CR text
   cells with `'` (`reports/csv_export.safe`). Plain-text emails use `|clock_plain`.
+
+**Phase 8**
+- Reminders live in `notifications/reminders.py`; everything goes through `deliver()`, the
+  one place texts would be added (Q14). Each reminder is claimed in `SentReminder`
+  (kind + person + date) before sending.
+- Tiers: Sunday list for 4+ shifts next week; evening-before emails for everyone else
+  (anyone who got that week's list is skipped). Feb 29 birthdays go out on Feb 28.
+- `--date` for every scheduled command comes from `core.commands.parse_date_option`.

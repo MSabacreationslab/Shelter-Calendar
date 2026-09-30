@@ -1,0 +1,12 @@
+{% load formatting %}{% autoescape off %}Hello {{ person.get_short_name }},
+
+Here are your shifts this week. Thank you for all your help!
+{% for shift in shifts %}
+{{ shift.starts_at|long_date }}: {{ shift.title }}, {{ shift.starts_at|clock_plain }} to {{ shift.ends_at|clock_plain }}{% endfor %}
+
+Can't make one? Please let us know as soon as you can in the app: {{ site_url }}/my-shifts/{% if shelter.phone %}
+Or call the shelter at {{ shelter.phone }}.{% endif %}
+
+The volunteer team at {{ shelter.name }}
+
+To stop these reminders, turn them off on My profile: {{ site_url }}/profile/{% endautoescape %}

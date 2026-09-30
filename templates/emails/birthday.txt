@@ -1,0 +1,6 @@
+{% autoescape off %}Happy birthday, {{ person.get_short_name }}!
+
+Everyone at {{ shelter.name }}, people and animals alike, wants to wish you a wonderful day. Thank you for all the time and care you give to the animals. We're so glad you're part of our team.
+
+With warm wishes,
+The volunteer team at {{ shelter.name }}{% endautoescape %}

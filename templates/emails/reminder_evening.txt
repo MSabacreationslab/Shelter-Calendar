@@ -1,0 +1,14 @@
+{% load formatting %}{% autoescape off %}Hello {{ person.get_short_name }},
+
+Just a reminder about your shift{{ shifts|length|pluralize }} tomorrow:
+{% for shift in shifts %}
+{{ shift.title }}, {{ shift.starts_at|long_date }}, {{ shift.starts_at|clock_plain }} to {{ shift.ends_at|clock_plain }}{% if shift.notes %}
+Good to know: {{ shift.notes }}{% endif %}
+{% endfor %}
+Can't make it? Please let us know as soon as you can in the app: {{ site_url }}/my-shifts/{% if shelter.phone %}
+Or call the shelter at {{ shelter.phone }}.{% endif %}
+
+Thank you for helping!
+The volunteer team at {{ shelter.name }}
+
+To stop these reminders, turn them off on My profile: {{ site_url }}/profile/{% endautoescape %}

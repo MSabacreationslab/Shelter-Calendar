@@ -1,0 +1,1 @@
+{% autoescape off %}Reminder: your shift{{ shifts|length|pluralize }} tomorrow{% endautoescape %}

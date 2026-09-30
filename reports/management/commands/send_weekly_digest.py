@@ -1,9 +1,8 @@
 """Email next week's schedule to staff (Railway cron runs it Sundays at 6 PM on the pilot)."""
 
-from datetime import date
+from django.core.management.base import BaseCommand
 
-from django.core.management.base import BaseCommand, CommandError
-
+from core.commands import parse_date_option
 from reports.senders import send_weekly_digest
 
 
@@ -17,14 +16,5 @@ class Command(BaseCommand):
 
     def handle(self, *args, date=None, again=False, **options):
         """Report what happened in one line."""
-        result = send_weekly_digest(_parse(date), again=again)
+        result = send_weekly_digest(parse_date_option(date), again=again)
         self.stdout.write(f"Sent to {result.sent}." if result.sent else result.reason)
-
-
-def _parse(value):
-    if not value:
-        return None
-    try:
-        return date.fromisoformat(value)
-    except ValueError as exc:
-        raise CommandError("Use a date like 2026-10-04.") from exc
