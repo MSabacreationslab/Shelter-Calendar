@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 CLEARED = {
     "DEBUG",
@@ -61,3 +63,33 @@ def test_deploy_check_passes_with_production_settings():
     env = _env(SECRET_KEY=secrets.token_urlsafe(50), ALLOWED_HOSTS="shelter.example.org")
     result = _run(["manage.py", "check", "--deploy", "--fail-level", "WARNING"], env)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "postgresql://postgres.abc:[my-pass]@db.example.com:5432/postgres",
+        "postgresql://postgres.abc:pa#ss@db.example.com:5432/postgres",
+        "db.example.com:5432/postgres",
+    ],
+)
+def test_a_malformed_database_address_is_explained_without_the_password(value):
+    result = _run(["-c", "import config.settings"], _env(SECRET_KEY="x" * 60, DATABASE_URL=value))
+    assert result.returncode != 0
+    assert "isn't a database address the app can read" in result.stderr
+    assert "my-pass" not in result.stderr and "pa#ss" not in result.stderr
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        '"postgresql://u:p@db.example.com:5432/x"',
+        "DATABASE_URL=postgresql://u:p@db.example.com:5432/x",
+        "  postgresql://u:p@db.example.com:5432/x  ",
+    ],
+)
+def test_common_pasting_slips_are_forgiven(value):
+    code = "import config.settings as s; print(s.DATABASES['default']['HOST'])"
+    result = _run(["-c", code], _env(SECRET_KEY="x" * 60, DATABASE_URL=value))
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "db.example.com"

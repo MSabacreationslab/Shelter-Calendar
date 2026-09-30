@@ -43,7 +43,9 @@ Everything here is free. Do the steps in order the first time.
 1. At <https://supabase.com>, create a new project called `shelter-calendar` in **East US (Ohio)**. This is your second free project (Pantry Sprite is the first).
 2. Save the database password in your password manager.
 3. Click **Connect** and copy the **Session pooler** connection string. It works over IPv4; the "Direct connection" string doesn't work from Render.
-4. Replace `[YOUR-PASSWORD]` in it with the database password. Keep it for step 3.
+4. Replace `[YOUR-PASSWORD]` in it with the database password, **brackets included**. Keep it for step 3.
+
+A password with only letters and numbers avoids trouble: other characters have to be written as codes in the address (`#` → `%23`, `@` → `%40`, `/` → `%2F`, `:` → `%3A`, `%` → `%25`, `?` → `%3F`, `&` → `%26`). To change it: Project Settings → Database → Reset database password.
 
 Free projects pause after 7 days with no visits. Restore with one click in the Supabase dashboard.
 
@@ -59,10 +61,30 @@ Free projects pause after 7 days with no visits. Restore with one click in the S
 
 The free service sleeps after 15 minutes without visits; the first visit after that takes 30–60 seconds.
 
-To create your Admin account on the test site (from Phase 1), open the service's **Shell** tab and run:
-```bash
-python manage.py create_admin "Your Name" you@example.com
+### Running commands against the test site
+
+Render's free plan has no Shell, so commands like `create_admin` and `seed_demo` run on your computer, pointed at the Supabase database. In **PowerShell**, in the project folder:
+
+```powershell
+$env:DATABASE_URL = "the same value as DATABASE_URL in Render"
+$env:DATABASE_SSL_REQUIRE = "1"
+$env:SITE_URL = "https://shelter-calendar.onrender.com"
+$env:DEBUG = "1"
 ```
+
+Then, in the same window:
+
+- Create your Admin account (from Phase 1). It prints a link to open on your phone:
+  ```powershell
+  .venv\Scripts\python manage.py create_admin "Your Name" you@example.com
+  ```
+- Add demo people, training and shifts (from Phase 1; shifts from Phase 3). `DEMO_PIN` is the PIN every demo account gets:
+  ```powershell
+  $env:DEMO_MODE = "1"; $env:DEMO_PIN = "a 6-digit PIN"
+  .venv\Scripts\python manage.py seed_demo
+  ```
+
+Close the window when you're done, so the settings don't linger. `DEBUG` here only affects the command on your computer, not the site.
 
 ## 4. Gmail (sends the app's emails)
 
