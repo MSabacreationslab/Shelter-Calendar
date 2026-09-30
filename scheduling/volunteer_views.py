@@ -67,6 +67,8 @@ def home_context(person, month=None) -> dict:
         "next": cal.shift_month(first, 1),
         "previous_label": cal.month_label(cal.shift_month(first, -1)),
         "next_label": cal.month_label(cal.shift_month(first, 1)),
+        "this_month": timezone.localdate().replace(day=1),
+        "is_this_month": first == timezone.localdate().replace(day=1),
         "day_names": cal.DAY_NAMES,
     }
 
@@ -176,7 +178,8 @@ def ask(request, pk):
             if result.signup_request:
                 messages.success(
                     request,
-                    "We've asked the volunteer team. We'll email you when they answer.",
+                    "Request sent. You're not signed up yet: the volunteer team will email "
+                    "you when they answer.",
                 )
         elif result.problem == booking.Problem.NO_APPROVAL_NEEDED:
             return redirect("shifts:sign_up", pk=shift.pk)
@@ -198,7 +201,7 @@ def take_back(request, pk):
     asked = _my_request(request.user, shift)
     if asked:
         booking.withdraw_request(asked, by=request.user)
-        messages.success(request, "You've taken back your request.")
+        messages.success(request, "Your request is cancelled. You're not signed up for this shift.")
     return redirect("shifts:shift", pk=shift.pk)
 
 

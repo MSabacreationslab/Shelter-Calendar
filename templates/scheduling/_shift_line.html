@@ -9,4 +9,5 @@
   {% endif %}
   {% if shift.kind == 'training' %}<span class="badge">Training: {{ shift.teaches.name }}</span>
   {% elif shift.required_training %}<span class="badge">Needs {{ shift.required_training.name }}</span>{% endif %}
+  {% if shift.needs_approval %}<span class="badge">Staff approve sign-ups</span>{% endif %}
 </li>

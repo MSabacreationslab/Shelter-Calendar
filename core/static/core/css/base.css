@@ -13,8 +13,8 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--ink);
+  background: var(--color-background);
+  color: var(--color-text-primary);
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: 1.6;
@@ -44,14 +44,14 @@ dl {
 }
 
 a {
-  color: var(--primary);
+  color: var(--color-text-primary);
   text-decoration: underline;
   text-underline-offset: 0.2em;
   text-decoration-thickness: 0.08em;
 }
 a:hover {
-  color: var(--primary-hover);
-  text-decoration-thickness: 0.14em;
+  color: var(--color-action-hover);
+  text-decoration-thickness: 0.16em;
 }
 
 /* A phone number split across two lines is easy to misread. */
@@ -60,7 +60,7 @@ a[href^="tel:"] {
 }
 
 :focus-visible {
-  outline: 3px solid var(--focus);
+  outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
 
@@ -101,8 +101,8 @@ main:focus {
   left: var(--space-4);
   top: -10rem;
   z-index: 10;
-  background: var(--surface);
-  color: var(--primary);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   font-weight: 700;
@@ -111,56 +111,87 @@ main:focus {
   top: var(--space-4);
 }
 
+/* Header: the shelter's name, who is signed in, then the menu. */
+
 .site-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--divider);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
 }
 .site-header__inner {
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+.site-header__top {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3) var(--space-5);
-  padding-top: var(--space-3);
-  padding-bottom: var(--space-3);
+  gap: var(--space-2) var(--space-5);
 }
 .site-name {
   font-size: var(--text-h3);
   font-weight: 700;
-  color: var(--ink);
+  color: var(--color-text-primary);
   text-decoration: none;
   min-height: var(--tap);
   display: inline-flex;
   align-items: center;
 }
 .site-name:hover {
-  color: var(--primary);
   text-decoration: underline;
 }
+.site-user {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+.site-user__name {
+  font-weight: 700;
+}
+.sign-out {
+  margin: 0;
+}
 
+.site-nav {
+  margin-top: var(--space-2);
+}
 .site-nav ul {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-2);
   list-style: none;
   margin: 0;
   padding: 0;
 }
+/* Menu items look like buttons, so they read as places to go, not as passing text. */
 .site-nav a {
   display: inline-flex;
   align-items: center;
   min-height: var(--tap);
+  padding: 0 var(--space-3);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-text-primary);
   font-weight: 700;
+  text-decoration: none;
+}
+.site-nav a:hover {
+  background: var(--color-background-deep);
+  border-color: var(--color-border-strong);
+  text-decoration: underline;
 }
 .site-nav a[aria-current="page"] {
-  color: var(--ink);
-  text-decoration-thickness: 0.2em;
+  background: var(--color-role-soft, var(--color-background-deep));
+  border-color: var(--color-role, var(--color-text-primary));
+  box-shadow: inset 0 -4px 0 var(--color-role, var(--color-text-primary));
 }
 
 .site-footer {
-  border-top: 1px solid var(--divider);
+  border-top: 1px solid var(--color-border);
   padding: var(--space-5) 0 var(--space-6);
-  color: var(--ink-soft);
+  color: var(--color-text-secondary);
   font-size: var(--text-sm);
 }
 .site-footer a {
@@ -169,9 +200,6 @@ main:focus {
   line-height: var(--tap);
 }
 
-.sign-out {
-  margin: 0;
-}
 .link-button {
   display: inline-flex;
   align-items: center;
@@ -179,7 +207,7 @@ main:focus {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--primary);
+  color: var(--color-text-primary);
   font: inherit;
   font-weight: 700;
   text-decoration: underline;
@@ -187,7 +215,62 @@ main:focus {
   cursor: pointer;
 }
 .link-button:hover {
-  color: var(--primary-hover);
+  color: var(--color-action-hover);
+  text-decoration-thickness: 0.16em;
+}
+
+/* Role badges: blue for staff, red for volunteers. Always a word, never colour alone. */
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem var(--space-2);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.role-badge--staff,
+.role-badge--admin {
+  color: var(--color-staff);
+  background: var(--color-staff-soft);
+}
+.role-badge--volunteer {
+  color: var(--color-volunteer);
+  background: var(--color-volunteer-soft);
+}
+
+/* Status labels: where something stands, in words. */
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0.1rem var(--space-2);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.status--confirmed {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+.status--pending,
+.status--waitlist {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+.status--cancelled,
+.status--declined {
+  color: var(--color-text-secondary);
+  background: var(--color-background);
 }
 
 /* Page header */
@@ -202,8 +285,15 @@ main:focus {
   margin-bottom: var(--space-2);
 }
 .page-header__lead {
-  color: var(--ink-soft);
+  color: var(--color-text-secondary);
   font-size: var(--text-base);
+}
+.page-header__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: calc(-1 * var(--space-2));
 }
 
 /* Buttons */
@@ -226,35 +316,45 @@ main:focus {
 }
 .btn--primary {
   min-height: var(--tap-primary);
-  background: var(--primary);
-  color: var(--on-primary);
+  background: var(--color-action);
+  color: var(--color-on-action);
 }
 .btn--primary:hover {
-  background: var(--primary-hover);
-  color: var(--on-primary);
+  background: var(--color-action-hover);
+  color: var(--color-on-action);
 }
 .btn--secondary {
-  background: var(--surface);
-  color: var(--primary);
-  border-color: var(--primary);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border-color: var(--color-action);
 }
 .btn--secondary:hover {
-  background: var(--primary-tint);
-  color: var(--primary-hover);
+  background: var(--color-background-deep);
+  color: var(--color-text-primary);
 }
 .btn--danger {
-  background: var(--error);
-  color: var(--on-error);
+  background: var(--color-danger);
+  color: var(--color-on-danger);
 }
 .btn--danger:hover {
-  background: var(--ink);
-  color: var(--surface);
+  background: var(--color-text-primary);
+  color: var(--color-surface);
+}
+/* Quieter than a secondary button, for Sign out and calendar steps. */
+.btn--quiet {
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
+}
+.btn--quiet:hover {
+  background: var(--color-background-deep);
 }
 .btn:disabled,
 .btn[aria-disabled="true"] {
-  background: var(--disabled-bg);
-  color: var(--disabled-ink);
-  border-color: var(--disabled-bg);
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  border-color: var(--color-disabled-bg);
   cursor: not-allowed;
 }
 
@@ -277,11 +377,11 @@ main:focus {
   }
 }
 
-/* Cards */
+/* Cards and sections */
 
 .card {
-  background: var(--surface);
-  border: 1px solid var(--divider);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: var(--space-5);
   margin-bottom: var(--space-4);
@@ -293,6 +393,39 @@ main:focus {
   font-size: var(--text-h3);
   font-weight: 700;
   margin: 0 0 var(--space-2);
+}
+/* Status cards carry a coloured edge; the words say what it means. */
+.card--confirmed {
+  border-left: 6px solid var(--color-success);
+}
+.card--pending {
+  border-left: 6px solid var(--color-warning);
+}
+.card__eyebrow {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.card__eyebrow--confirmed {
+  color: var(--color-success);
+}
+.card__eyebrow--pending {
+  color: var(--color-warning);
+}
+.card__when {
+  font-size: var(--text-h3);
+}
+.card__status {
+  margin-top: var(--space-3);
+}
+.section {
+  margin-bottom: var(--space-6);
+}
+.section > h2:first-child {
+  margin-top: 0;
 }
 
 /* Forms */
@@ -308,15 +441,15 @@ main:focus {
 }
 .field__optional {
   font-weight: 400;
-  color: var(--ink-soft);
+  color: var(--color-text-secondary);
 }
 .field__hint {
-  color: var(--ink-soft);
+  color: var(--color-text-secondary);
   font-size: var(--text-sm);
   margin: 0 0 var(--space-2);
 }
 .field__error {
-  color: var(--error);
+  color: var(--color-danger);
   font-weight: 700;
   margin: 0 0 var(--space-2);
 }
@@ -334,10 +467,10 @@ main:focus {
   width: 100%;
   min-height: var(--tap);
   padding: var(--space-2) var(--space-3);
-  border: 2px solid var(--border);
+  border: 2px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--ink);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
   /* 16px or more stops iPhones zooming in when a field is tapped. */
   font: inherit;
   font-size: var(--text-base);
@@ -348,14 +481,14 @@ main:focus {
 .field--error input,
 .field--error select,
 .field--error textarea {
-  border-color: var(--error);
+  border-color: var(--color-danger);
   border-width: 3px;
 }
 .field input[type="checkbox"],
 .field input[type="radio"] {
   width: 1.5rem;
   height: 1.5rem;
-  accent-color: var(--primary);
+  accent-color: var(--color-action);
 }
 
 .pin-row {
@@ -374,7 +507,7 @@ main:focus {
 
 .form-section {
   border: 0;
-  border-top: 1px solid var(--divider);
+  border-top: 1px solid var(--color-border);
   padding: var(--space-5) 0 0;
   margin: 0 0 var(--space-4);
 }
@@ -409,15 +542,15 @@ main:focus {
   width: 1.5rem;
   height: 1.5rem;
   margin: 0;
-  accent-color: var(--primary);
+  accent-color: var(--color-action);
 }
 
 .badge {
   display: inline-block;
   padding: 0 var(--space-2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
-  color: var(--ink-soft);
+  color: var(--color-text-secondary);
   font-size: var(--text-sm);
 }
 
@@ -426,7 +559,7 @@ main:focus {
   list-style: none;
   margin: 0 0 var(--space-5);
   padding: 0;
-  border-top: 1px solid var(--divider);
+  border-top: 1px solid var(--color-border);
 }
 .people-list__item,
 .plain-list__item {
@@ -435,7 +568,7 @@ main:focus {
   align-items: center;
   gap: var(--space-1) var(--space-4);
   padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: 1px solid var(--color-border);
 }
 .people-list__name {
   flex: 1 1 100%;
@@ -443,7 +576,7 @@ main:focus {
   font-size: var(--text-base);
 }
 .people-list__email {
-  color: var(--ink-soft);
+  color: var(--color-text-secondary);
   overflow-wrap: anywhere;
 }
 .plain-list__item > :first-child {
@@ -476,7 +609,7 @@ main:focus {
   gap: var(--space-1) var(--space-4);
   margin: 0 0 var(--space-5);
   padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: 1px solid var(--color-border);
 }
 .tools a {
   display: inline-flex;
@@ -503,17 +636,17 @@ main:focus {
 .day h3 {
   margin: 0 0 var(--space-2);
   padding-bottom: var(--space-1);
-  border-bottom: 2px solid var(--divider);
+  border-bottom: 2px solid var(--color-border);
 }
 .day--today h3 {
-  border-bottom-color: var(--primary);
+  border-bottom: 4px solid var(--color-text-primary);
 }
 .day__flag {
   display: inline-block;
   margin: 0 var(--space-2) var(--space-2) 0;
   padding: 0 var(--space-2);
-  border-left: 4px solid var(--warning);
-  background: var(--warning-tint);
+  border-left: 4px solid var(--color-warning);
+  background: var(--color-warning-soft);
   font-weight: 700;
 }
 .shift-lines {
@@ -527,7 +660,7 @@ main:focus {
   align-items: center;
   gap: var(--space-1) var(--space-4);
   padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: 1px solid var(--color-border);
 }
 .shift-line__title {
   flex: 1 1 100%;
@@ -541,12 +674,13 @@ main:focus {
 .shift-line--cancelled .shift-line__title {
   text-decoration: line-through;
 }
+/* Open spots are a volunteer need, so they use the volunteer colour. */
 .fill-open {
-  color: var(--accent-ink);
+  color: var(--color-volunteer);
   font-weight: 700;
 }
 .muted {
-  color: var(--ink-soft);
+  color: var(--color-text-secondary);
 }
 .inline-form {
   display: flex;
@@ -563,29 +697,54 @@ main:focus {
   margin-bottom: var(--space-3);
 }
 
-/* Volunteer calendar and shift cards */
+/* Volunteer calendar */
 
-.calendar-nav {
+.calendar-head {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   margin-bottom: var(--space-3);
 }
-.calendar-nav .btn {
+.calendar-head__title {
+  margin: 0;
+}
+/* One even row on a phone (short month names); full names once there's room.
+   Each name is wrapped in one span: a button's gap would otherwise split "Aug" from "ust". */
+.calendar-head__nav {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--space-2);
+  width: 100%;
+}
+.calendar-head__nav .btn {
   padding-left: var(--space-3);
   padding-right: var(--space-3);
 }
+.calendar-head__rest {
+  display: none;
+}
+@media (min-width: 36rem) {
+  .calendar-head__nav {
+    display: flex;
+    width: auto;
+  }
+  .calendar-head__rest {
+    display: inline;
+  }
+}
 .calendar {
-  width: 100%;
   table-layout: fixed;
   border-collapse: separate;
-  border-spacing: 3px;
-  margin-bottom: var(--space-3);
+  border-spacing: 4px;
+  margin: 0 -4px var(--space-3);
+  width: calc(100% + 8px);
 }
 .calendar th {
   font-size: var(--text-sm);
   font-weight: 700;
-  color: var(--ink-soft);
+  color: var(--color-text-secondary);
   padding-bottom: var(--space-1);
 }
 .calendar abbr {
@@ -593,8 +752,8 @@ main:focus {
 }
 .calendar__day {
   padding: 0;
-  background: var(--surface);
-  border: 1px solid var(--divider);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   vertical-align: top;
 }
@@ -603,50 +762,83 @@ main:focus {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  min-height: 3.5rem;
-  padding: var(--space-1) 0;
-  color: var(--ink);
+  gap: 2px;
+  min-height: 4rem;
+  padding: var(--space-1) 2px;
+  color: var(--color-text-primary);
   text-decoration: none;
   border-radius: var(--radius-sm);
 }
 .calendar__day a.calendar__cell:hover {
-  background: var(--bg);
+  background: var(--color-background-deep);
 }
 .calendar__num {
   font-size: var(--text-base);
   font-weight: 700;
   line-height: 1.3;
 }
+.calendar__today-word {
+  display: none;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.2;
+}
 .calendar__marks {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 2px;
-  min-height: 1.25rem;
 }
-.calendar__mine {
-  color: var(--primary);
+/* Small labels inside a day. On narrow screens only the mark or number shows;
+   the words appear once there's room, and the legend explains both. */
+.cal-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 1.5rem;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
   font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
 }
-.calendar__dot {
-  display: inline-block;
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: 50%;
-  background: var(--open-dot);
+.cal-chip__word {
+  display: none;
+}
+.cal-chip--mine {
+  background: var(--color-success);
+  color: var(--color-on-action);
+}
+.cal-chip--open {
+  background: var(--color-volunteer-soft);
+  color: var(--color-volunteer);
+  border: 1px solid var(--color-volunteer);
 }
 .calendar__day.is-mine {
-  background: var(--primary-tint);
-  border-color: var(--primary);
+  background: var(--color-success-soft);
+  border-color: var(--color-success);
 }
 .calendar__day.is-mine a.calendar__cell:hover {
-  background: var(--primary-tint);
+  background: var(--color-success-soft);
 }
 .calendar__day.is-today {
-  border: 3px solid var(--primary);
+  border: 3px solid var(--color-text-primary);
 }
+.calendar__day.is-past .calendar__num,
 .calendar__day.is-other-month .calendar__num {
-  color: var(--ink-soft);
+  color: var(--color-text-secondary);
   font-weight: 400;
+}
+.calendar__day.is-other-month {
+  background: var(--color-background);
+}
+@media (min-width: 36rem) {
+  .cal-chip__word,
+  .calendar__today-word {
+    display: inline;
+  }
 }
 .calendar-legend {
   display: flex;
@@ -662,22 +854,16 @@ main:focus {
   align-items: center;
   gap: var(--space-2);
 }
-.legend-box {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.legend-today {
+  display: inline-block;
   width: 1.5rem;
   height: 1.5rem;
-  border: 1px solid var(--divider);
+  border: 3px solid var(--color-text-primary);
   border-radius: 4px;
-  background: var(--surface);
+  background: var(--color-surface);
 }
-.legend-box--mine {
-  background: var(--primary-tint);
-  border-color: var(--primary);
-  color: var(--primary);
-  font-weight: 700;
-}
+
+/* Shift cards */
 
 .shift-cards {
   list-style: none;
@@ -691,13 +877,15 @@ main:focus {
   gap: var(--space-1) var(--space-4);
   padding: var(--space-4);
   margin-bottom: var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--divider);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
 }
 .shift-card--mine {
-  background: var(--primary-tint);
-  border-color: var(--primary);
+  border-left: 6px solid var(--color-success);
+}
+.shift-card--pending {
+  border-left: 6px solid var(--color-warning);
 }
 .shift-card__title {
   flex: 1 1 100%;
@@ -711,19 +899,9 @@ main:focus {
   gap: var(--space-2);
   margin-top: var(--space-2);
 }
-.card--next {
-  border: 2px solid var(--primary);
-}
-.card__eyebrow {
-  margin: 0 0 var(--space-1);
-  color: var(--ink-soft);
-  font-weight: 700;
-  font-size: var(--text-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.card__when {
-  font-size: var(--text-h3);
+.shift-card__people {
+  flex: 1 1 100%;
+  color: var(--color-text-secondary);
 }
 .notice__heading {
   font-size: var(--text-h2);
@@ -731,8 +909,9 @@ main:focus {
 }
 .profile-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3) var(--space-4);
   margin-bottom: var(--space-5);
 }
 .profile-head h1 {
@@ -746,8 +925,8 @@ main:focus {
   width: 4rem;
   height: 4rem;
   border-radius: 50%;
-  background: var(--primary);
-  color: var(--on-primary);
+  background: var(--color-role, var(--color-action));
+  color: var(--color-on-role);
   font-size: var(--text-h3);
   font-weight: 700;
 }
@@ -755,20 +934,26 @@ main:focus {
 /* Dashboard */
 
 .attention {
-  margin-bottom: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-4);
 }
 .attention h3 {
   margin-top: 0;
+}
+.attention > :last-child {
+  margin-bottom: 0;
+}
+.attention--pending {
+  border-left: 6px solid var(--color-warning);
 }
 .quick-links {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
   margin-bottom: var(--space-6);
-}
-.shift-card__people {
-  flex: 1 1 100%;
-  color: var(--ink-soft);
 }
 .pager {
   display: flex;
@@ -779,7 +964,7 @@ main:focus {
 }
 .change__when {
   flex: 0 0 auto;
-  color: var(--ink-soft);
+  color: var(--color-text-secondary);
   min-width: 14rem;
 }
 .change__what {
@@ -787,7 +972,7 @@ main:focus {
 }
 .change__who {
   flex: 1 1 100%;
-  color: var(--ink-soft);
+  color: var(--color-text-secondary);
   font-size: var(--text-sm);
 }
 .viewing-banner {
@@ -802,18 +987,18 @@ main:focus {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: var(--space-5);
-  background: var(--surface);
+  background: var(--color-surface);
 }
 .data-table th,
 .data-table td {
   padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--divider);
+  border-bottom: 1px solid var(--color-border);
   text-align: left;
   vertical-align: top;
 }
 .data-table thead th {
   font-size: var(--text-sm);
-  color: var(--ink-soft);
+  color: var(--color-text-secondary);
 }
 @media (max-width: 40rem) {
   .data-table thead {
@@ -825,7 +1010,7 @@ main:focus {
   }
   .data-table tr {
     display: block;
-    border: 1px solid var(--divider);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius);
     margin-bottom: var(--space-3);
     padding: var(--space-2) 0;
@@ -840,27 +1025,31 @@ main:focus {
   .data-table td::before {
     content: attr(data-label);
     font-weight: 700;
-    color: var(--ink-soft);
+    color: var(--color-text-secondary);
   }
 }
 .shortcuts .btn {
   margin: 0 var(--space-2) var(--space-2) 0;
 }
 
-/* Notices */
+/* Notices. Information is neutral; blue and red are kept for roles. */
 
 .notice {
   display: flex;
   gap: var(--space-3);
   align-items: flex-start;
   padding: var(--space-4);
-  border-left: 6px solid var(--primary);
+  border: 1px solid var(--color-border);
+  border-left: 6px solid var(--color-text-primary);
   border-radius: var(--radius-sm);
-  background: var(--primary-tint);
+  background: var(--color-surface);
   margin-bottom: var(--space-5);
 }
 .notice p {
   margin: 0;
+}
+.notice p + p {
+  margin-top: var(--space-2);
 }
 .notice__icon {
   flex: none;
@@ -870,31 +1059,38 @@ main:focus {
   width: 1.75rem;
   height: 1.75rem;
   border-radius: 50%;
-  background: var(--primary);
-  color: var(--on-primary);
+  background: var(--color-text-primary);
+  color: var(--color-on-action);
   font-weight: 700;
 }
 .notice__title {
   font-weight: 700;
 }
-.notice--success { background: var(--success-tint); border-left-color: var(--success); }
-.notice--success .notice__icon { background: var(--success); }
-.notice--warning { background: var(--warning-tint); border-left-color: var(--warning); }
-.notice--warning .notice__icon { background: var(--warning); }
-.notice--error { background: var(--error-tint); border-left-color: var(--error); }
-.notice--error .notice__icon { background: var(--error); }
+.notice--success { background: var(--color-success-soft); border-color: var(--color-success); border-left-color: var(--color-success); }
+.notice--success .notice__icon { background: var(--color-success); }
+.notice--warning { background: var(--color-warning-soft); border-color: var(--color-warning); border-left-color: var(--color-warning); }
+.notice--warning .notice__icon { background: var(--color-warning); }
+.notice--error { background: var(--color-danger-soft); border-color: var(--color-danger); border-left-color: var(--color-danger); }
+.notice--error .notice__icon { background: var(--color-danger); }
 
-/* Empty state */
+/* Empty state: says what's missing and, when there is one, what to do next. */
 
 .empty-state {
   text-align: center;
   padding: var(--space-6) var(--space-4);
-  color: var(--ink-soft);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-5);
 }
 .empty-state__title {
-  color: var(--ink);
+  color: var(--color-text-primary);
   font-size: var(--text-h3);
   font-weight: 700;
+}
+.empty-state > :last-child {
+  margin-bottom: 0;
 }
 
 /* Summary lists (confirmation pages, details) */
@@ -922,7 +1118,7 @@ main:focus {
 /* Error page */
 
 .error-code {
-  color: var(--ink-soft);
+  color: var(--color-text-secondary);
   font-size: var(--text-sm);
 }
 
@@ -932,4 +1128,28 @@ main:focus {
     transition: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Style guide swatches */
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0 0 var(--space-5);
+  padding: 0;
+}
+.swatch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+.swatch__chip {
+  flex: none;
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
 }

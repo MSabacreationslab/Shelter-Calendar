@@ -1,36 +1,40 @@
 /* Design tokens (SPEC §7). These are the only colours the app uses.
    tests/test_design_tokens.py checks every text/background pair meets its contrast target. */
 :root {
-  --bg: #FAF7F2;
-  --surface: #FFFFFF;
-  --ink: #1C2126;
-  --ink-soft: #474E57;
+  /* Calm, neutral base: warm ivory, white surfaces, charcoal ink. */
+  --color-background: #F7F4EE;
+  --color-background-deep: #EFEAE1; /* hover on neutral controls, days outside the month */
+  --color-surface: #FFFFFF;
+  --color-text-primary: #1E2A32;
+  --color-text-secondary: #52606D; /* supporting text only, never body paragraphs */
+  --color-border: #CBD4DC; /* cards, dividers, the calendar grid */
+  --color-border-strong: #7D8995; /* form fields: their edges must meet 3:1 */
 
-  --primary: #1B5673;
-  --primary-hover: #123F55;
-  --primary-tint: #DCEAF1;
-  --on-primary: #FFFFFF;
+  /* Main actions are neutral, so blue and red keep their meaning. */
+  --color-action: #1E2A32;
+  --color-action-hover: #34444F;
+  --color-on-action: #FFFFFF;
 
-  --accent: #A8471A;
-  --accent-ink: #8F3A0E;
-  --on-accent: #FFFFFF;
+  /* Role colours: identity and role-specific accents only (blue = staff, red = volunteers). */
+  --color-staff: #245A8D;
+  --color-staff-soft: #E8F1F8;
+  --color-volunteer: #A33A3A;
+  --color-volunteer-soft: #F8EDED;
+  --color-on-role: #FFFFFF;
 
-  --open-dot: #C0302A;
+  /* Status. Danger is a brighter red than the volunteer red, and always comes with an icon
+     and words, so an error never reads as "volunteer". */
+  --color-success: #2E6B4F;
+  --color-success-soft: #EAF3EE;
+  --color-warning: #8A5A00;
+  --color-warning-soft: #FBF2DF;
+  --color-danger: #B42318;
+  --color-danger-soft: #FDECEA;
+  --color-on-danger: #FFFFFF;
 
-  --success: #2D6A3A;
-  --success-tint: #E4F1E6;
-  --warning: #7A4F00;
-  --warning-tint: #FBF0D9;
-  --error: #A4231C;
-  --error-tint: #FBE6E4;
-  --on-error: #FFFFFF;
-
-  --border: #7A828C;
-  --divider: #E3DED6;
-  --focus: #C25E00;
-
-  --disabled-bg: #ECE8E1;
-  --disabled-ink: #474E57;
+  --color-focus: #C25E00;
+  --color-disabled-bg: #ECE8E1;
+  --color-disabled-text: #52606D;
 
   --font-body: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", -apple-system,
     BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -47,6 +51,7 @@
   --tap-primary: 3.5rem; /* 56px primary buttons */
   --radius: 12px;
   --radius-sm: 8px;
+  --radius-pill: 999px;
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -55,4 +60,15 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
   --space-7: 3rem;
+}
+
+/* The signed-in person's role colour, set from <body data-role="...">. The Admin is staff. */
+[data-role="staff"],
+[data-role="admin"] {
+  --color-role: var(--color-staff);
+  --color-role-soft: var(--color-staff-soft);
+}
+[data-role="volunteer"] {
+  --color-role: var(--color-volunteer);
+  --color-role-soft: var(--color-volunteer-soft);
 }

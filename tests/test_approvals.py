@@ -59,7 +59,7 @@ def test_approval_comes_from_the_shift_or_the_person_never_for_staff():
 def test_signing_up_yourself_is_refused_when_approval_is_needed():
     result = booking.sign_up(ready(), ShiftFactory(needs_approval=True))
     assert result.problem == Problem.NEEDS_APPROVAL
-    assert "ask to join" in explain(result)
+    assert "please request it" in explain(result)
     assert booking.sign_up(returning(), ShiftFactory()).problem == Problem.NEEDS_APPROVAL
 
 
@@ -193,19 +193,19 @@ def volunteer_client(client):
 def test_volunteers_ask_in_two_steps_and_can_take_it_back(volunteer_client):
     shift = ShiftFactory(title="Adoption event")
     page = volunteer_client.get(f"/shifts/{shift.pk}/").content.decode()
-    assert "Ask to join this shift" in page and "Sign up for this shift" not in page
+    assert "Request this shift" in page and "Sign up for this shift" not in page
     assert volunteer_client.get(f"/shifts/{shift.pk}/sign-up/")["Location"] == (
         f"/shifts/{shift.pk}/ask/"
     )
     confirm = volunteer_client.get(f"/shifts/{shift.pk}/ask/").content.decode()
-    assert "Ask to join this shift?" in confirm
+    assert "Request this shift?" in confirm
     assert not SignupRequest.objects.exists()
     volunteer_client.post(f"/shifts/{shift.pk}/ask/")
     assert SignupRequest.objects.filter(volunteer=volunteer_client.person).exists()
     page = volunteer_client.get(f"/shifts/{shift.pk}/").content.decode()
-    assert "You&#x27;ve asked to join this shift" in page or "You've asked to join" in page
+    assert "Waiting for approval" in page and "Pending approval" in page
     home = volunteer_client.get("/my-shifts/").content.decode()
-    assert "Waiting for the volunteer team" in home and "Adoption event" in home
+    assert "Waiting for approval" in home and "Adoption event" in home
     volunteer_client.post(f"/shifts/{shift.pk}/take-back/")
     assert SignupRequest.objects.get().status == RequestStatus.WITHDRAWN
 
@@ -215,7 +215,7 @@ def test_day_and_find_pages_say_ask_to_join(volunteer_client):
     find = volunteer_client.get("/shifts/").content.decode()
     assert f"/shifts/{shift.pk}/ask/" in find and f"/shifts/{shift.pk}/sign-up/" not in find
     day = volunteer_client.get(f"/my-shifts/{shift.local_date.isoformat()}/").content.decode()
-    assert "Ask to join" in day
+    assert "Request this shift" in day
 
 
 def test_everyone_else_still_signs_up_directly(client):
@@ -272,7 +272,7 @@ def test_shift_page_shows_who_is_asking_and_minors(staff_client):
     booking.sign_up(ready(first_name="Kid", profile__is_minor=True), shift, by=staff_client.staff)
     booking.ask_to_join(ready(first_name="Asker"), shift)
     page = staff_client.get(f"/schedule/shifts/{shift.pk}/").content.decode()
-    assert "Staff approve each one" in page and "Asking to join" in page
+    assert "Staff approve each one" in page and "Requests to join" in page
     assert "Asker" in page and "Minor" in page
 
 

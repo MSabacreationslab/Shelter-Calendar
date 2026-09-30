@@ -18,8 +18,8 @@
     {% csrf_token %}
     {% if late %}{% include "components/field.html" with field=form.reason %}{% endif %}
     <div class="actions">
-      <button type="submit" class="btn btn--danger">{% if late %}I can't make it{% else %}Yes, cancel my shift{% endif %}</button>
-      <a class="btn btn--secondary" href="{% url 'shifts:shift' shift.pk %}">No, keep it</a>
+      <button type="submit" class="btn btn--danger">{% if late %}Tell the team I can't make it{% else %}Yes, cancel my shift{% endif %}</button>
+      <a class="btn btn--secondary" href="{% url 'shifts:shift' shift.pk %}">No, keep my shift</a>
     </div>
   </form>
 {% endblock %}

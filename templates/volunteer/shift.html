@@ -2,21 +2,24 @@
 {% load formatting %}
 {% block title %}{{ shift.title }}{% endblock %}
 {% block content %}
-  {% include "components/page_header.html" with title=shift.title back_url="/my-shifts/" back_label="My shifts" %}
+  {% include "components/page_header.html" with title=shift.title back_url="/my-shifts/" back_label="Back to my calendar" %}
 
   <div class="card">
     <dl class="summary">
       <dt>When</dt><dd>{% include "volunteer/_shift_when.html" %}</dd>
       {% if shift.kind == "training" %}<dt>What it is</dt><dd>Training: {{ shift.teaches.name }}</dd>{% endif %}
       {% if shift.notes %}<dt>Good to know</dt><dd>{{ shift.notes|linebreaksbr }}</dd>{% endif %}
-      {% if not signup and not closed %}<dt>Spots left</dt><dd>{% if full %}None: it's full{% else %}{{ spots_left }}{% endif %}</dd>{% endif %}
+      {% if not signup and not closed %}<dt>Spots left</dt><dd>{% if full %}0 (the shift is full){% else %}{{ spots_left }}{% endif %}</dd>{% endif %}
+      {% if signup %}<dt>Status</dt><dd>{% include "components/status.html" with kind="confirmed" %}</dd>
+      {% elif asked %}<dt>Status</dt><dd>{% include "components/status.html" with kind="pending" label="Pending approval" %}</dd>
+      {% elif wait %}<dt>Status</dt><dd>{% include "components/status.html" with kind="waitlist" %}</dd>{% endif %}
     </dl>
   </div>
 
   {% if shift.status == "cancelled" %}
     {% include "components/notice.html" with kind="warning" title="This shift was cancelled" message=shift.cancel_reason %}
   {% elif signup %}
-    {% include "components/notice.html" with kind="success" title="You're signed up for this shift" %}
+    {% include "components/notice.html" with kind="success" title="You're signed up for this shift" message="It's confirmed. You don't need to do anything else." %}
     <div class="actions">
       <a class="btn btn--secondary" href="{% url 'shifts:calendar_file' shift.pk %}">Add to my calendar</a>
       {% if not started %}<a class="btn btn--secondary" href="{% url 'shifts:cancel' shift.pk %}">Cancel my shift</a>{% endif %}
@@ -25,13 +28,20 @@
   {% elif closed %}
     <p>This shift has already started.</p>
   {% elif asked %}
-    {% include "components/notice.html" with kind="info" title="You've asked to join this shift" message="The volunteer team will email you when they answer." %}
+    <div class="notice notice--warning" role="status">
+      <span class="notice__icon" aria-hidden="true">!</span>
+      <div>
+        <p class="notice__title">Waiting for approval</p>
+        <p>You've requested this shift. The volunteer team has not approved it yet, so you're not signed up yet.</p>
+        <p>We'll email you when they answer. You don't need to do anything else.</p>
+      </div>
+    </div>
     <form method="post" action="{% url 'shifts:take_back' shift.pk %}">
       {% csrf_token %}
-      <div class="actions"><button type="submit" class="btn btn--secondary">Take back my request</button></div>
+      <div class="actions"><button type="submit" class="btn btn--secondary">Cancel my request</button></div>
     </form>
   {% elif wait %}
-    {% include "components/notice.html" with kind="info" title="You're on the waitlist" message="If a spot opens, the volunteer team will let you know." %}
+    {% include "components/notice.html" with kind="warning" title="You're on the waitlist" message="You're not signed up yet. If a spot opens, the volunteer team will let you know." %}
     <form method="post" action="{% url 'shifts:leave_waitlist' shift.pk %}">
       {% csrf_token %}
       <div class="actions"><button type="submit" class="btn btn--secondary">Take me off the waitlist</button></div>
@@ -45,8 +55,8 @@
       <div class="actions"><button type="submit" class="btn btn--primary">Join the waitlist</button></div>
     </form>
   {% elif ask_first %}
-    <p>The volunteer team approves sign-ups for this shift. Ask to join, and we'll email you when they answer.</p>
-    <div class="actions"><a class="btn btn--primary" href="{% url 'shifts:ask' shift.pk %}">Ask to join this shift</a></div>
+    <p>The volunteer team approves sign-ups for this shift. Request it, and we'll email you when they answer.</p>
+    <div class="actions"><a class="btn btn--primary" href="{% url 'shifts:ask' shift.pk %}">Request this shift</a></div>
   {% else %}
     <div class="actions"><a class="btn btn--primary" href="{% url 'shifts:sign_up' shift.pk %}">Sign up for this shift</a></div>
   {% endif %}

@@ -9,9 +9,10 @@
       <p><strong>{{ shift.title }}</strong><br>{% include "volunteer/_shift_when.html" %}</p>
     </div>
   </div>
-  <p>Thank you for helping. If you can't make it after all, please cancel from your shifts page so someone else can come.</p>
+  <p>{% include "components/status.html" with kind="confirmed" label="Confirmed: you're signed up" %}</p>
+  <p>Thank you for helping! You don't need to do anything else. If you can't make it after all, please cancel from the shift's page so someone else can come.</p>
   <div class="actions">
     <a class="btn btn--secondary" href="{% url 'shifts:calendar_file' shift.pk %}">Add to my calendar</a>
-    <a class="btn btn--primary" href="{% url 'home' %}">Back to home</a>
+    <a class="btn btn--primary" href="{% url 'shifts:home' %}">Back to my calendar</a>
   </div>
 {% endblock %}

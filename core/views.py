@@ -7,6 +7,7 @@ from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
 
+from accounts.models import Role, User
 from accounts.permissions import PUBLIC, SIGNED_IN, has_capability, requires
 from core import errors
 from core.forms import StyleguideForm, post_data
@@ -32,6 +33,24 @@ def healthz(request):
     return JsonResponse({"status": "ok"})
 
 
+SWATCHES = [
+    ("background", "Page background"),
+    ("surface", "Cards and forms"),
+    ("text-primary", "Text and main buttons"),
+    ("text-secondary", "Supporting text"),
+    ("border", "Card edges and dividers"),
+    ("border-strong", "Form field edges"),
+    ("staff", "Staff"),
+    ("staff-soft", "Staff highlight"),
+    ("volunteer", "Volunteers and open shifts"),
+    ("volunteer-soft", "Volunteer highlight"),
+    ("success", "Confirmed and done"),
+    ("warning", "Waiting and needs attention"),
+    ("danger", "Errors and removing things"),
+    ("focus", "Keyboard focus ring"),
+]
+
+
 @requires(PUBLIC)
 def styleguide(request):
     """Every component in one place, for checking the design by eye on the test site."""
@@ -39,7 +58,17 @@ def styleguide(request):
         raise Http404
     form = StyleguideForm(post_data(request))
     submitted = request.method == "POST" and form.is_valid()
-    return render(request, "core/styleguide.html", {"form": form, "submitted": submitted})
+    return render(
+        request,
+        "core/styleguide.html",
+        {
+            "form": form,
+            "submitted": submitted,
+            "swatches": SWATCHES,
+            "sample_staff": User(role=Role.STAFF),
+            "sample_volunteer": User(role=Role.VOLUNTEER),
+        },
+    )
 
 
 def _error_page(request, error: errors.ErrorCode, status: int) -> HttpResponse:

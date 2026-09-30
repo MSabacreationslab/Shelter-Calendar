@@ -74,3 +74,14 @@ def test_the_checker_catches_banned_words():
         "exception",
     ]
     assert banned_words_in(visible_text("{% csrf_token %}<p>All good</p>")) == []
+
+
+def test_template_notes_are_hidden():
+    """Django only hides {# #} notes on one line; a longer note shows up on the page."""
+    broken = [
+        path.name
+        for path in _templates()
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if "{#" in line and "#}" not in line
+    ]
+    assert not broken

@@ -10,7 +10,7 @@
 
   <form method="get" class="inline-form" aria-label="Narrow the list">
     {% for field in filters %}{% include "components/field.html" with field=field %}{% endfor %}
-    <button type="submit" class="btn btn--secondary">Show</button>
+    <button type="submit" class="btn btn--secondary">Update the list</button>
   </form>
 
   <div class="field filter-box" hidden data-filter-box>
@@ -23,6 +23,7 @@
       {% for person in volunteers %}
         <li class="people-list__item" data-filter-item>
           <a class="people-list__name" href="{% url 'people:detail' person.pk %}">{{ person.get_full_name }}</a>
+          {% if person.role != "volunteer" %}{% include "components/role_badge.html" with person=person %}{% endif %}
           <span>{{ person.phone|phone }}</span>
           {% if person.job_title %}<span>{{ person.job_title }}</span>{% endif %}
           <span class="people-list__email">{{ person.email }}</span>

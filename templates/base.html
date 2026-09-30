@@ -7,18 +7,30 @@
   <link rel="stylesheet" href="{% static 'core/css/tokens.css' %}">
   <link rel="stylesheet" href="{% static 'core/css/base.css' %}">
 </head>
-<body>
+<body{% if user.is_authenticated %} data-role="{{ user.role }}"{% endif %}>
   <a class="skip-link" href="#main">Skip to main content</a>
   <header class="site-header">
-    <div class="wrap {% block header_width %}{% endblock %} site-header__inner">
-      <a class="site-name" href="{% url 'home' %}">{{ shelter.name }}</a>
+    <div class="wrap wrap--wide site-header__inner">
+      <div class="site-header__top">
+        <a class="site-name" href="{% url 'home' %}">{{ shelter.name }}</a>
+        {% if user.is_authenticated %}
+          <div class="site-user">
+            <span><span class="visually-hidden">Signed in as </span><span class="site-user__name">{{ user.get_short_name }}</span></span>
+            {% include "components/role_badge.html" with person=user %}
+            <form method="post" action="{% url 'accounts:sign_out' %}" class="sign-out">
+              {% csrf_token %}
+              <button type="submit" class="btn btn--quiet">Sign out</button>
+            </form>
+          </div>
+        {% endif %}
+      </div>
       {% if user.is_authenticated %}
         <nav class="site-nav" aria-label="Main">
           <ul>
             {% block nav_links %}
               {% with here=request.resolver_match %}
-                <li><a href="{% url 'home' %}"{% if here.url_name == 'home' %} aria-current="page"{% endif %}>Home</a></li>
                 {% if user|can:"view_dashboard" %}
+                  <li><a href="{% url 'home' %}"{% if here.url_name == 'home' and not here.namespace %} aria-current="page"{% endif %}>Dashboard</a></li>
                   {% if user|can:"view_full_schedule" %}<li><a href="{% url 'scheduling:week' %}"{% if here.namespace == 'scheduling' and here.url_name != 'approvals' %} aria-current="page"{% endif %}>Schedule</a></li>{% endif %}
                   {% if user|can:"approve_signups" %}<li><a href="{% url 'scheduling:approvals' %}"{% if here.url_name == 'approvals' %} aria-current="page"{% endif %}>Approvals</a></li>{% endif %}
                   {% if user|can:"record_training" %}<li><a href="{% url 'training:overview' %}"{% if here.namespace == 'training' %} aria-current="page"{% endif %}>Training</a></li>{% endif %}
@@ -26,6 +38,7 @@
                   {% if user|can:"view_contacts" %}<li><a href="{% url 'people:list' %}"{% if here.namespace == 'people' and here.url_name != 'profile' %} aria-current="page"{% endif %}>Volunteers</a></li>{% endif %}
                   <li><a href="{% url 'shifts:home' %}"{% if here.namespace == 'shifts' %} aria-current="page"{% endif %}>My shifts</a></li>
                 {% else %}
+                  <li><a href="{% url 'home' %}"{% if here.url_name == 'home' or here.url_name == 'day' %} aria-current="page"{% endif %}>Home</a></li>
                   <li><a href="{% url 'shifts:find' %}"{% if here.url_name == 'find' %} aria-current="page"{% endif %}>Find a shift</a></li>
                 {% endif %}
                 <li><a href="{% url 'people:profile' %}"{% if here.url_name == 'profile' %} aria-current="page"{% endif %}>My profile</a></li>
@@ -35,12 +48,6 @@
               <li><a href="{% url 'dashboard:settings' %}"{% if request.resolver_match.url_name == 'settings' %} aria-current="page"{% endif %}>Settings</a></li>
               <li><a href="{% url 'admin:index' %}">Backend</a></li>
             {% endif %}
-            <li>
-              <form method="post" action="{% url 'accounts:sign_out' %}" class="sign-out">
-                {% csrf_token %}
-                <button type="submit" class="link-button">Sign out</button>
-              </form>
-            </li>
           </ul>
         </nav>
       {% endif %}

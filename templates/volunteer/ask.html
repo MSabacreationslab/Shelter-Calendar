@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load formatting %}
-{% block title %}Ask to join {{ shift.title }}{% endblock %}
+{% block title %}Request {{ shift.title }}{% endblock %}
 {% block content %}
-  {% include "components/page_header.html" with title="Ask to join this shift?" lead="The volunteer team approves sign-ups for this shift. We'll email you when they answer." %}
+  {% include "components/page_header.html" with title="Request this shift?" lead="The volunteer team approves sign-ups for this shift. You won't be signed up until they say yes, and we'll email you when they answer." %}
   <div class="card">
     <dl class="summary">
       <dt>Shift</dt><dd>{{ shift.title }}</dd>
@@ -13,7 +13,7 @@
   <form method="post">
     {% csrf_token %}
     <div class="actions">
-      <button type="submit" class="btn btn--primary">Yes, ask to join</button>
+      <button type="submit" class="btn btn--primary">Yes, request this shift</button>
       <a class="btn btn--secondary" href="{% url 'shifts:shift' shift.pk %}">No, go back</a>
     </div>
   </form>

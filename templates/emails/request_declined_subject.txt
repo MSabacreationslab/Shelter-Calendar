@@ -1,1 +1,1 @@
-{% autoescape off %}About the shift you asked to join: {{ shift }}{% endautoescape %}
+{% autoescape off %}About the shift you requested: {{ shift }}{% endautoescape %}
