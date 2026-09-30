@@ -1,0 +1,12 @@
+{% load formatting %}
+<li class="shift-line{% if shift.status == 'cancelled' %} shift-line--cancelled{% endif %}">
+  <a class="shift-line__title" href="{% url 'scheduling:shift' shift.pk %}">{{ shift.title }}</a>
+  <span>{{ shift.starts_at|clock }} – {{ shift.ends_at|clock }}</span>
+  {% if shift.status == 'cancelled' %}
+    <span class="badge">Cancelled</span>
+  {% else %}
+    <span class="{% if shift.filled < shift.capacity %}fill-open{% endif %}">{{ shift.filled }} of {{ shift.capacity }} filled</span>
+  {% endif %}
+  {% if shift.kind == 'training' %}<span class="badge">Training: {{ shift.teaches.name }}</span>
+  {% elif shift.required_training %}<span class="badge">Needs {{ shift.required_training.name }}</span>{% endif %}
+</li>

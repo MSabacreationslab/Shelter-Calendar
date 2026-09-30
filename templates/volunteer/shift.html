@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}{{ shift.title }}{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title=shift.title back_url="/my-shifts/" back_label="My shifts" %}
+
+  <div class="card">
+    <dl class="summary">
+      <dt>When</dt><dd>{% include "volunteer/_shift_when.html" %}</dd>
+      {% if shift.kind == "training" %}<dt>What it is</dt><dd>Training: {{ shift.teaches.name }}</dd>{% endif %}
+      {% if shift.notes %}<dt>Good to know</dt><dd>{{ shift.notes|linebreaksbr }}</dd>{% endif %}
+      {% if not signup and not closed %}<dt>Spots left</dt><dd>{% if full %}None: it's full{% else %}{{ spots_left }}{% endif %}</dd>{% endif %}
+    </dl>
+  </div>
+
+  {% if shift.status == "cancelled" %}
+    {% include "components/notice.html" with kind="warning" title="This shift was cancelled" message=shift.cancel_reason %}
+  {% elif signup %}
+    {% include "components/notice.html" with kind="success" title="You're signed up for this shift" %}
+    <div class="actions">
+      <a class="btn btn--secondary" href="{% url 'shifts:calendar_file' shift.pk %}">Add to my calendar</a>
+      {% if not started %}<a class="btn btn--secondary" href="{% url 'shifts:cancel' shift.pk %}">Cancel my shift</a>{% endif %}
+    </div>
+    {% if started %}<p>This shift has started. If something's wrong, please call the shelter{% if shelter.phone %} at <a href="tel:{{ shelter.phone_link }}">{{ shelter.phone }}</a>{% endif %}.</p>{% endif %}
+  {% elif closed %}
+    <p>This shift has already started.</p>
+  {% elif wait %}
+    {% include "components/notice.html" with kind="info" title="You're on the waitlist" message="If a spot opens, the volunteer team will let you know." %}
+    <form method="post" action="{% url 'shifts:leave_waitlist' shift.pk %}">
+      {% csrf_token %}
+      <div class="actions"><button type="submit" class="btn btn--secondary">Take me off the waitlist</button></div>
+    </form>
+  {% elif reason %}
+    {% include "components/notice.html" with kind="info" message=reason %}
+  {% elif full %}
+    <p>This shift is full. You can join the waitlist in case a spot opens.</p>
+    <form method="post" action="{% url 'shifts:join_waitlist' shift.pk %}">
+      {% csrf_token %}
+      <div class="actions"><button type="submit" class="btn btn--primary">Join the waitlist</button></div>
+    </form>
+  {% else %}
+    <div class="actions"><a class="btn btn--primary" href="{% url 'shifts:sign_up' shift.pk %}">Sign up for this shift</a></div>
+  {% endif %}
+{% endblock %}

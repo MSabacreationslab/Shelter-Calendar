@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Cancel {{ shift.title }}{% endblock %}
+{% block content %}
+  {% url 'scheduling:shift' shift.pk as back %}
+  {% include "components/page_header.html" with title="Cancel this shift?" back_url=back back_label="Back to the shift" %}
+  <div class="card">
+    <dl class="summary">
+      <dt>Shift</dt><dd>{{ shift.title }}</dd>
+      <dt>When</dt><dd>{{ shift.starts_at|long_date }}, {{ shift.starts_at|clock }} – {{ shift.ends_at|clock }}</dd>
+      <dt>Signed up</dt><dd>{{ people }} {% if people == 1 %}person{% else %}people{% endif %}. Each one gets an email.</dd>
+    </dl>
+  </div>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "components/field.html" with field=form.reason %}
+    <div class="actions">
+      <button type="submit" class="btn btn--danger">Yes, cancel the shift</button>
+      <a class="btn btn--secondary" href="{{ back }}">No, keep it</a>
+    </div>
+  </form>
+{% endblock %}

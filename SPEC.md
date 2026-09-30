@@ -416,6 +416,7 @@ The app doesn't take applications or handle denials (decided, Q16). The waiver s
 **Edit a pattern** (proposed):
 - Changes apply only to future shifts from that pattern that are **unedited and have no signups**.
 - The rest are listed: "3 shifts already have volunteers — review them."
+- A pattern's day and rhythm (every week / every other week) can't be changed. To move it, **stop** it after a chosen day and add a new one. Stopping removes the empty, untouched shifts after that day and lists any with people on them.
 
 **Blackout periods:**
 - The fill skips them.
@@ -676,7 +677,7 @@ Contrast is measured against the background `#FAF7F2` unless stated.
   - Always include the weekday: "Tuesday, October 6".
   - Times are 12-hour with AM/PM: "9:00 AM – 11:00 AM".
   - Use "Today" and "Tomorrow" where true.
-- **Errors are non-technical.** Never say server, database, exception, token, session, CSRF, HTTP, null or invalid.
+- **Errors are non-technical.** Never say server, database, exception, token, cookie, CSRF, HTTP, null or invalid. ("Session" is allowed only as in "training session".)
   - A specific message appears only where the person can fix it themselves ("Please enter a 10-digit phone number").
   - Otherwise: "Something went wrong. Please try again, or call the shelter at {phone}." plus the `SC-###` code and reference.
   - A test checks templates and messages against the banned-word list.

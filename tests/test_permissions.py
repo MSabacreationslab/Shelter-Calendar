@@ -21,7 +21,14 @@ from accounts.templatetags.capabilities import can
 from tests.factories import AdminFactory, StaffFactory, UserFactory
 
 # Stand-in values for URL parameters; the permission check runs before any lookup.
-SAMPLE_ARGS = {"token": "not-a-real-token", "pk": "999999", "date": "2026-10-06"}
+SAMPLE_ARGS = {
+    "token": "not-a-real-token",
+    "pk": "999999",
+    "signup_pk": "999999",
+    "entry_pk": "999999",
+    "date": "2026-10-06",
+    "day": "2026-10-06",
+}
 BACKEND_PREFIX = "django-admin/"
 
 

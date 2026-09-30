@@ -1,0 +1,8 @@
+{% extends "emails/_base.html" %}
+{% block body %}
+  <p style="margin:0 0 16px;">Hello {{ person.get_short_name }},</p>
+  <p style="margin:0 0 16px;">Good news! A spot opened up, and you're now signed up for:</p>
+  <p style="margin:0 0 16px; font-size:21px;"><strong>{{ shift }}</strong></p>
+  <p style="margin:0 0 16px;">If you can't make it after all, please cancel in the app so someone else can come.</p>
+  {% include "emails/_button.html" with href=site_url label="Open the schedule" %}
+{% endblock %}

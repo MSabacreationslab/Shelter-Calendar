@@ -7,16 +7,20 @@ from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
 
-from accounts.permissions import PUBLIC, SIGNED_IN, requires
+from accounts.permissions import PUBLIC, SIGNED_IN, has_capability, requires
 from core import errors
-from core.forms import StyleguideForm
+from core.forms import StyleguideForm, post_data
 
 logger = logging.getLogger(__name__)
 
 
 @requires(SIGNED_IN)
 def home(request):
-    """Each person's starting page. Later phases fill in the schedule and dashboard."""
+    """Volunteers land on their shift calendar; staff on their home page."""
+    if not has_capability(request.user, "view_dashboard"):
+        from scheduling.volunteer_views import my_shifts
+
+        return my_shifts(request)
     return render(request, "core/home.html")
 
 
@@ -31,7 +35,7 @@ def styleguide(request):
     """Every component in one place, for checking the design by eye on the test site."""
     if not (settings.DEBUG or settings.DEMO_MODE):
         raise Http404
-    form = StyleguideForm(request.POST or None)
+    form = StyleguideForm(post_data(request))
     submitted = request.method == "POST" and form.is_valid()
     return render(request, "core/styleguide.html", {"form": form, "submitted": submitted})
 

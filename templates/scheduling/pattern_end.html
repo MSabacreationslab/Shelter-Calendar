@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Stop a repeating shift{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Stop a repeating shift" lead=pattern back_url="/schedule/templates/" back_label="Template weeks" %}
+  {% if to_review %}
+    <div class="notice notice--warning" role="status">
+      <span class="notice__icon" aria-hidden="true">!</span>
+      <div>
+        <p class="notice__title">Stopped, but {{ to_review|length }} later shift{{ to_review|length|pluralize }} still have people on them</p>
+        <p>Cancel or keep each one:</p>
+        <ul>{% for shift in to_review %}<li><a href="{% url 'scheduling:shift' shift.pk %}">{{ shift.starts_at|long_date }}</a></li>{% endfor %}</ul>
+      </div>
+    </div>
+  {% else %}
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% include "components/field.html" with field=form.last_day %}
+      <div class="actions">
+        <button type="submit" class="btn btn--danger">Stop it after this day</button>
+        <a class="btn btn--secondary" href="/schedule/templates/">Cancel</a>
+      </div>
+    </form>
+  {% endif %}
+{% endblock %}

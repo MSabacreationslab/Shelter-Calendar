@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Template weeks{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Template weeks" lead="A template week is your usual schedule. Set it up once, then use Fill the schedule to create the real shifts." back_url="/schedule/" back_label="Schedule" %}
+  {% if weeks %}
+    <ul class="plain-list">
+      {% for week in weeks %}<li class="plain-list__item"><a href="{% url 'scheduling:template' week.pk %}">{{ week.name }}</a></li>{% endfor %}
+    </ul>
+  {% else %}
+    {% include "components/empty_state.html" with title="No template weeks yet" message="Add one below, such as Regular week." %}
+  {% endif %}
+  <h2>Add a template week</h2>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "components/field.html" with field=form.name %}
+    <div class="actions"><button type="submit" class="btn btn--primary">Add</button></div>
+  </form>
+{% endblock %}

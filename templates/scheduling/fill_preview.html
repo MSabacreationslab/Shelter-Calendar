@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Fill the schedule{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Here's what will happen" back_url="/schedule/fill/" back_label="Change the dates" %}
+  <div class="card">
+    <dl class="summary">
+      <dt>Dates</dt><dd>{{ plan.start|long_date }} to {{ plan.end|long_date }}</dd>
+      <dt>New shifts</dt><dd>{{ plan.new|length }}</dd>
+      {% if plan.already_there %}<dt>Already there</dt><dd>{{ plan.already_there }} (left as they are)</dd>{% endif %}
+      {% if plan.blacked_out %}<dt>Closed days</dt><dd>{{ plan.blacked_out|length }} shift{{ plan.blacked_out|length|pluralize }} skipped because the shelter is closed</dd>{% endif %}
+    </dl>
+  </div>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="step" value="confirm">
+    <input type="hidden" name="start" value="{{ plan.start.isoformat }}">
+    <input type="hidden" name="end" value="{{ plan.end.isoformat }}">
+    {% with holiday_days=plan.holiday_days %}
+      {% if holiday_days %}
+        <fieldset class="choices">
+          <legend>These fall on holidays. Tick any day you want to skip.</legend>
+          {% for day, name, count in holiday_days %}
+            <label class="choice" for="skip-{{ forloop.counter }}">
+              <input type="checkbox" id="skip-{{ forloop.counter }}" name="skip" value="{{ day.isoformat }}">
+              <span>Skip {{ name }}, {{ day|long_date }} ({{ count }} shift{{ count|pluralize }})</span>
+            </label>
+          {% endfor %}
+        </fieldset>
+      {% endif %}
+    {% endwith %}
+    <div class="actions">
+      {% if plan.new %}
+        <button type="submit" class="btn btn--primary">Create the shifts</button>
+      {% endif %}
+      <a class="btn btn--secondary" href="{% url 'scheduling:fill' %}">Go back</a>
+    </div>
+    {% if not plan.new %}<p>There's nothing new to add for these dates.</p>{% endif %}
+  </form>
+{% endblock %}

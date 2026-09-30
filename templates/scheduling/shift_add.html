@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Add a shift{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Add a shift" lead="For a one-off shift, or one that repeats weekly for a while. For the regular schedule, use a template week." back_url="/schedule/" back_label="Schedule" %}
+  {% if form.errors %}{% include "components/notice.html" with kind="error" title="Please fix the highlighted boxes" %}{% endif %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "scheduling/_shift_fields.html" %}
+    <div class="actions"><button type="submit" class="btn btn--primary">Add the shift</button></div>
+  </form>
+{% endblock %}

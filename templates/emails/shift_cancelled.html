@@ -1,0 +1,8 @@
+{% extends "emails/_base.html" %}
+{% block body %}
+  <p style="margin:0 0 16px;">Hello {{ person.get_short_name }},</p>
+  <p style="margin:0 0 16px;">We're sorry, but this shift has been cancelled:</p>
+  <p style="margin:0 0 16px; font-size:21px;"><strong>{{ shift }}</strong></p>
+  {% if reason %}<p style="margin:0 0 16px;">Why: {{ reason }}</p>{% endif %}
+  <p style="margin:0 0 16px;">You don't need to do anything. Thank you for signing up!</p>
+{% endblock %}

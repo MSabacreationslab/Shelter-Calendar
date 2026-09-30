@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Thank you{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Thank you for letting us know" %}
+  <p>The volunteer team will call you to find a better time for your orientation.</p>
+  {% if shelter.phone %}<p>You can also call the shelter at <a href="tel:{{ shelter.phone_link }}">{{ shelter.phone }}</a>.</p>{% endif %}
+{% endblock %}

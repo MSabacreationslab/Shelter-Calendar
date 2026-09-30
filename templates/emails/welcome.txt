@@ -1,0 +1,16 @@
+{% autoescape off %}Hello {{ person.get_short_name }},
+
+Welcome to the {{ shelter.name }} volunteer team! Thank you for joining us.
+
+To get started, choose a 6-digit PIN. Open this link within 7 days:
+{{ link }}
+
+After that, you'll sign in with your name and your PIN.
+Your name for signing in: {{ person.login_name }}
+{% if orientation %}
+Your orientation: {{ orientation.when }}
+Can't make that time? Tell us here: {{ orientation.conflict_link }}
+{% endif %}
+{% if shelter.phone %}Questions? Call the shelter at {{ shelter.phone }}.
+{% endif %}
+The volunteer team at {{ shelter.name }}{% endautoescape %}

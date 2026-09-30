@@ -1,0 +1,1 @@
+{% autoescape off %}Welcome to the {{ shelter.name }} volunteer team{% endautoescape %}

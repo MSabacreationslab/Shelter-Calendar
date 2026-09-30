@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Schedule{% endblock %}
+{% block main_width %}wrap--wide{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Schedule" %}
+  {% include "scheduling/_tools.html" %}
+  <div class="week-nav">
+    <a class="btn btn--secondary" href="?week={{ previous.isoformat }}">&larr; Week of {{ previous|long_date }}</a>
+    <h2 class="week-nav__title">Week of {{ monday|long_date }}</h2>
+    <a class="btn btn--secondary" href="?week={{ next.isoformat }}">Week of {{ next|long_date }} &rarr;</a>
+  </div>
+  {% for day in days %}
+    <section class="day{% if day.date == today %} day--today{% endif %}" aria-labelledby="day-{{ forloop.counter }}">
+      <h3 id="day-{{ forloop.counter }}">{{ day.date|long_date }}{% if day.date == today %} (today){% endif %}</h3>
+      {% if day.holiday %}<p class="day__flag">Holiday: {{ day.holiday }}</p>{% endif %}
+      {% if day.closed %}<p class="day__flag">Closed day</p>{% endif %}
+      {% if day.shifts %}
+        <ul class="shift-lines">{% for shift in day.shifts %}{% include "scheduling/_shift_line.html" %}{% endfor %}</ul>
+      {% else %}
+        <p class="muted">No shifts.</p>
+      {% endif %}
+    </section>
+  {% endfor %}
+{% endblock %}

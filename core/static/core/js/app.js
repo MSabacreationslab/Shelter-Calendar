@@ -54,4 +54,23 @@
     });
     row.appendChild(button);
   });
+
+  // "Find a person": filters a list in the browser, so names never go into web addresses.
+  document.querySelectorAll("[data-filter-input]").forEach(function (input) {
+    var name = input.dataset.filterInput;
+    var list = document.querySelector('[data-filter-list="' + name + '"]');
+    var none = document.querySelector('[data-filter-none="' + name + '"]');
+    if (!list) return;
+    input.closest("[data-filter-box]").hidden = false;
+    input.addEventListener("input", function () {
+      var query = input.value.trim().toLowerCase();
+      var shown = 0;
+      list.querySelectorAll("[data-filter-item]").forEach(function (item) {
+        var match = item.textContent.toLowerCase().indexOf(query) !== -1;
+        item.hidden = !match;
+        if (match) shown += 1;
+      });
+      if (none) none.hidden = shown !== 0;
+    });
+  });
 })();

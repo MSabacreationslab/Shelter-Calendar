@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}You're signed up{% endblock %}
+{% block content %}
+  <div class="notice notice--success" role="status">
+    <span class="notice__icon" aria-hidden="true">&#10003;</span>
+    <div>
+      <h1 class="notice__heading">You're signed up!</h1>
+      <p><strong>{{ shift.title }}</strong><br>{% include "volunteer/_shift_when.html" %}</p>
+    </div>
+  </div>
+  <p>Thank you for helping. If you can't make it after all, please cancel from your shifts page so someone else can come.</p>
+  <div class="actions">
+    <a class="btn btn--secondary" href="{% url 'shifts:calendar_file' shift.pk %}">Add to my calendar</a>
+    <a class="btn btn--primary" href="{% url 'home' %}">Back to home</a>
+  </div>
+{% endblock %}

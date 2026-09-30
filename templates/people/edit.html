@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ person.get_full_name }}{% endblock %}
+{% block content %}
+  {% url 'people:detail' person.pk as back %}
+  {% include "components/page_header.html" with title="Edit "|add:person.get_full_name back_url=back back_label=person.get_full_name %}
+  {% if form.errors %}
+    {% include "components/notice.html" with kind="error" title="Please fix the highlighted boxes" %}
+  {% endif %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "people/_details_fields.html" %}
+    <div class="actions">
+      <button type="submit" class="btn btn--primary">Save changes</button>
+      <a class="btn btn--secondary" href="{{ back }}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

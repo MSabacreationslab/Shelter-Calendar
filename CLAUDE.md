@@ -82,7 +82,7 @@ with a clear explanation of what failed and why it doesn't match a known pattern
 
 ## Commands
 
-- Tests: `.venv/Scripts/python -m pytest` (needs Postgres and `.env`; see docs/setup.md)
+- Tests: `DEBUG=1 .venv/Scripts/python -m pytest` (local Postgres + `.env`; see docs/setup.md)
 - Lint/format: `.venv/Scripts/ruff check .` and `.venv/Scripts/ruff format .`
 - Without a local Postgres, set `DATABASE_URL=postgres://u:p@127.0.0.1:5432/x?connect_timeout=2`
   so commands fail fast instead of hanging (Windows waits forever on `localhost`).
@@ -114,3 +114,43 @@ with a clear explanation of what failed and why it doesn't match a known pattern
   a new PIN signs out the person's other devices.
 - `seed_demo` makes people and training types (Q20 default). Shifts join the seed in Phase 3.
 - Tests hash PINs with MD5 for speed; production uses Django's PBKDF2 (slow on Render free).
+
+**Phase 2**
+- Staff screens for people live in `accounts/people*.py` (URL namespace `people`).
+- Emails go through `notifications.email.send()`, after the database commit. Failures never
+  undo the change: they're kept in `EmailLog` and shown on the person's page. Tokens aren't
+  stored, so "try again" means sending a new setup link.
+- Plain-text email templates are wrapped in `{% autoescape off %}` (apostrophes in names).
+- Phones are stored as 10 digits (`core/phones.py`); `formatting` filters show phones, dates
+  ("Tuesday, October 6") and times ("9:00 AM" with a no-break space).
+- The volunteer list is filtered in the browser, so names never go into web addresses.
+- Emergency contact name and phone are required when adding someone (proposed); an edit page
+  shipped with Phase 2 because a mistyped email blocks the welcome.
+- Views read forms with `post_data(request)`, never `request.POST or None` (an empty POST
+  would silently show no errors). Tests that check emails wrap the action in
+  `django_capture_on_commit_callbacks(execute=True)`; emails only send after commit.
+
+**Phase 3**
+- Booking rules live in `scheduling/services.py` and return `Result(ok, problem, …)`;
+  `scheduling/messages.explain()` turns a result into one plain sentence, worded for the
+  volunteer or (with `person=`) for staff. `training/eligibility.why_not()` is the only rule
+  for who can take a shift; `eligible_filter()` must agree with it (tested).
+- Every booking change locks the shift row (`select_for_update`); the database constraints
+  are the backstop. A real two-thread race test runs with `transaction=True`.
+- A repeating shift's day and rhythm can't be edited: stop it and add a new one. Stopping
+  removes future shifts nobody has touched; anything with people is listed for review.
+- "Session" is allowed on screen (training session); the banned word is now "cookie".
+- Holidays are a table filled by `sync_holidays` on every deploy; staff add/hide/remove.
+- Orientation "can't make it" links are signed (60 days), need no sign-in, and set
+  `Signup.conflict_reported_at` once; staff on the notify list are emailed.
+
+**Phase 4**
+- Volunteers' Home (`/`) is their calendar (`/my-shifts/`); staff keep their own home and get
+  "My shifts" in the header. The month is `?month=YYYY-MM`; weeks start on Sunday.
+- Calendar days are links whose spoken label carries the marks ("Tuesday, October 6: your
+  shift, 3 open shifts"), so nothing depends on colour or the tick alone.
+- Signing up and cancelling are always two steps (a page that restates the shift, then the
+  button). The success page offers an `.ics` file for the person's own shifts only.
+- Volunteers edit only their phone and emergency contact on My profile.
+- One query counting two related tables needs `Count(..., distinct=True)`.
+- Local `.env`: special characters in the database password must be URL-encoded (`#` → `%23`).

@@ -1,0 +1,5 @@
+{% load formatting %}{% autoescape off %}{{ person.get_full_name }} says this orientation time doesn't work for them:
+
+{{ shift }}
+
+They're still signed up for it. Please call them to find a better time: {{ person.phone|phone }}{% endautoescape %}
