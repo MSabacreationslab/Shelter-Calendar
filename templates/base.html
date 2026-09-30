@@ -1,4 +1,4 @@
-{% load static %}<!doctype html>
+{% load static capabilities %}<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -12,10 +12,28 @@
   <header class="site-header">
     <div class="wrap {% block header_width %}{% endblock %} site-header__inner">
       <a class="site-name" href="{% url 'home' %}">{{ shelter.name }}</a>
-      {% block nav %}{% endblock %}
+      {% if user.is_authenticated %}
+        <nav class="site-nav" aria-label="Main">
+          <ul>
+            {% block nav_links %}
+              <li><a href="{% url 'home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>Home</a></li>
+            {% endblock %}
+            {% if user|can:"edit_settings" %}<li><a href="{% url 'admin:index' %}">Backend</a></li>{% endif %}
+            <li>
+              <form method="post" action="{% url 'accounts:sign_out' %}" class="sign-out">
+                {% csrf_token %}
+                <button type="submit" class="link-button">Sign out</button>
+              </form>
+            </li>
+          </ul>
+        </nav>
+      {% endif %}
     </div>
   </header>
   <main id="main" class="wrap {% block main_width %}{% endblock %}" tabindex="-1">
+    {% for message in messages %}
+      {% include "components/notice.html" with kind=message.tags message=message.message %}
+    {% endfor %}
     {% block content %}{% endblock %}
   </main>
   <footer class="site-footer">

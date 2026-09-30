@@ -1,20 +1,39 @@
 """Template context shared by every page."""
 
+import logging
 import re
 
 from django.conf import settings
+from django.db import DatabaseError
+
+logger = logging.getLogger(__name__)
+
+
+def _shelter_details(request) -> dict:
+    """Name and contact details from the settings row, or env defaults if the database is down."""
+    cached = getattr(request, "_shelter_details", None)
+    if cached is not None:
+        return cached
+    from core.models import ShelterSettings
+
+    try:
+        row = ShelterSettings.load()
+        name, phone, email = row.shelter_name, row.shelter_phone, row.shelter_email
+    except DatabaseError:
+        # Error pages must still render when the database is the problem.
+        logger.warning("Shelter settings unavailable; using environment defaults")
+        name, phone, email = settings.SHELTER_NAME, settings.SHELTER_PHONE, settings.SHELTER_EMAIL
+    details = {
+        "name": name,
+        "phone": phone,
+        # tel: links need digits only, or phones won't dial them.
+        "phone_link": re.sub(r"[^\d+]", "", phone),
+        "email": email,
+    }
+    request._shelter_details = details
+    return details
 
 
 def shelter(request):
     """The shelter's name and contact details, shown in the header and footer."""
-    phone = settings.SHELTER_PHONE
-    return {
-        "shelter": {
-            "name": settings.SHELTER_NAME,
-            "phone": phone,
-            # tel: links need digits only, or phones won't dial them.
-            "phone_link": re.sub(r"[^\d+]", "", phone),
-            "email": settings.SHELTER_EMAIL,
-        },
-        "demo_mode": settings.DEMO_MODE,
-    }
+    return {"shelter": _shelter_details(request), "demo_mode": settings.DEMO_MODE}

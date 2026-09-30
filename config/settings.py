@@ -36,7 +36,8 @@ if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
+    # The backend: only reachable through the app's own sign-in (config/admin.py).
+    "config.apps.ShelterAdminConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -98,6 +99,13 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 # PIN rules are enforced by the accounts app, not Django's password validators.
 AUTH_PASSWORD_VALIDATORS = []
+LOGIN_URL = "accounts:sign_in"
+LOGIN_REDIRECT_URL = "home"
+# Each visit restarts the sign-in clock (30 days for volunteers, 12 hours for staff).
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30
+# How many proxies in front of the app append to X-Forwarded-For (0 = use REMOTE_ADDR).
+TRUSTED_PROXY_COUNT = int(os.environ.get("TRUSTED_PROXY_COUNT", "0"))
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "America/New_York"
@@ -139,11 +147,15 @@ EMAIL_BACKEND = os.environ.get(
 )
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "webmaster@localhost")
 
-# Shown on every page. Placeholders until the shelter provides them (SPEC Q19);
-# Phase 1 moves these into the ShelterSettings model.
+# Starting values for the ShelterSettings row (SPEC Q19); after that the Admin edits them.
 SHELTER_NAME = os.environ.get("SHELTER_NAME", "Humane Society of Madison County")
 SHELTER_PHONE = os.environ.get("SHELTER_PHONE", "")
 SHELTER_EMAIL = os.environ.get("SHELTER_EMAIL", "")
+
+# The public address, for links in emails and printed setup links.
+SITE_URL = os.environ.get("SITE_URL") or (
+    f"https://{RENDER_EXTERNAL_HOSTNAME}" if RENDER_EXTERNAL_HOSTNAME else "http://localhost:8000"
+)
 
 LOGGING = {
     "version": 1,

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ error.title }}{% endblock %}
+{% block content %}
+  <h1>{{ error.title }}</h1>
+  <p>{{ error.message }}</p>
+  {% if shelter.phone %}
+    <p>Call the shelter at <a href="tel:{{ shelter.phone_link }}">{{ shelter.phone }}</a>.</p>
+  {% endif %}
+  <div class="actions">
+    <a class="btn btn--secondary" href="{% url 'accounts:sign_in' %}">Go to sign in</a>
+  </div>
+  <p class="error-code">Code <strong>{{ error.code }}</strong>, reference <strong>{{ request.ref }}</strong>.</p>
+{% endblock %}

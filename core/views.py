@@ -7,22 +7,26 @@ from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
 
+from accounts.permissions import PUBLIC, SIGNED_IN, requires
 from core import errors
 from core.forms import StyleguideForm
 
 logger = logging.getLogger(__name__)
 
 
+@requires(SIGNED_IN)
 def home(request):
-    """The landing page."""
+    """Each person's starting page. Later phases fill in the schedule and dashboard."""
     return render(request, "core/home.html")
 
 
+@requires(PUBLIC)
 def healthz(request):
     """Tell the host the app is running. Deliberately skips the database."""
     return JsonResponse({"status": "ok"})
 
 
+@requires(PUBLIC)
 def styleguide(request):
     """Every component in one place, for checking the design by eye on the test site."""
     if not (settings.DEBUG or settings.DEMO_MODE):

@@ -33,4 +33,25 @@
       delete btn.dataset.autoDisabled;
     });
   });
+
+  // "Show PIN" button next to each PIN box, because typing blind is hard.
+  document.querySelectorAll('input[data-show-pin="true"]').forEach(function (input) {
+    var row = document.createElement("div");
+    row.className = "pin-row";
+    input.parentNode.insertBefore(row, input);
+    row.appendChild(input);
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn btn--secondary";
+    button.textContent = "Show PIN";
+    button.setAttribute("aria-pressed", "false");
+    button.setAttribute("aria-controls", input.id);
+    button.addEventListener("click", function () {
+      var showing = input.type === "text";
+      input.type = showing ? "password" : "text";
+      button.textContent = showing ? "Show PIN" : "Hide PIN";
+      button.setAttribute("aria-pressed", showing ? "false" : "true");
+    });
+    row.appendChild(button);
+  });
 })();

@@ -323,7 +323,7 @@ When Mike asks for a run of phases, **stack** them: each phase branch starts fro
 - **Rules:** every rule in §4, plus the capability map, decorator/mixin, template tag, friendly denied page and change-log entries for every change (all §3).
 - **Management commands:**
   - `create_admin "First Last" email@example.com` prints a setup link. This bootstraps the first Admin.
-  - `seed_demo` creates obviously fake demo data: the three staff accounts (Shelter Lead, Volunteer Lead, Volunteer Lead's Assistant), 10 volunteers, training types, a template week and a month of shifts.
+  - `seed_demo` creates obviously fake demo data: the three staff accounts (Shelter Lead, Volunteer Lead, Volunteer Lead's Assistant), 10 volunteers and training types. Phase 3 adds a template week and a month of shifts.
     - Only when `DEMO_MODE=1`. Never on the pilot.
     - Demo accounts get the PIN in the `DEMO_PIN` env var.
 - **Tests:**

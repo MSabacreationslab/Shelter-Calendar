@@ -47,4 +47,11 @@ FORM_EXPIRED = ErrorCode(
     "Please go back, refresh the page, and try again.",
 )
 
-ALL_ERRORS = [BAD_REQUEST, NOT_ALLOWED, PAGE_NOT_FOUND, SERVER_ERROR, FORM_EXPIRED]
+LINK_EXPIRED = ErrorCode(
+    "SC-201",
+    "This link has expired",
+    "Links for choosing a PIN work once and last 7 days. Please ask the volunteer team "
+    "to send you a new one.",
+)
+
+ALL_ERRORS = [BAD_REQUEST, NOT_ALLOWED, PAGE_NOT_FOUND, SERVER_ERROR, FORM_EXPIRED, LINK_EXPIRED]

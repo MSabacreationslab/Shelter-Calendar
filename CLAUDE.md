@@ -100,3 +100,17 @@ with a clear explanation of what failed and why it doesn't match a known pattern
 - Fonts: system stack for now. Self-hosting Atkinson Hyperlegible Next is waiting on Mike's
   OK to download the font files.
 - Tests guard the design rules: token contrast pairs, banned technical words in templates.
+
+**Phase 1**
+- Every view uses `@requires(PUBLIC | SIGNED_IN | "<capability>")` from `accounts/permissions.py`;
+  `tests/test_permissions.py` fails if a URL lacks one and checks every URL × role.
+- The Django admin is reachable only through the app's sign-in (lockouts apply) and only for
+  role=admin (`config/admin.py`). Admins are created only by `manage.py create_admin`.
+- Lockout counts come from `LoginAttempt`; lockouts are counted from the change log.
+  Unknown names "lock" too, so lockouts don't reveal who has an account. Blocked tries
+  (device or account locked) aren't recorded.
+- `TRUSTED_PROXY_COUNT=1` on Render is a guess: check sign-in attempt IPs in the backend.
+- Opening a setup link never uses it; submitting a PIN does. A new link voids older ones;
+  a new PIN signs out the person's other devices.
+- `seed_demo` makes people and training types (Q20 default). Shifts join the seed in Phase 3.
+- Tests hash PINs with MD5 for speed; production uses Django's PBKDF2 (slow on Render free).
