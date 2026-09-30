@@ -9,7 +9,7 @@
       <dt>When</dt><dd>{% include "volunteer/_shift_when.html" %}</dd>
       {% if shift.kind == "training" %}<dt>What it is</dt><dd>Training: {{ shift.teaches.name }}</dd>{% endif %}
       {% if shift.notes %}<dt>Good to know</dt><dd>{{ shift.notes|linebreaksbr }}</dd>{% endif %}
-      {% if not signup and not closed %}<dt>Spots left</dt><dd>{% if full %}None: it's full{% else %}{{ spots_left }}{% endif %}</dd>{% endif %}
+      {% if not signup and not closed %}<dt>Spots left</dt><dd>{% if full %}0 (the shift is full){% else %}{{ spots_left }}{% endif %}</dd>{% endif %}
       {% if signup %}<dt>Status</dt><dd>{% include "components/status.html" with kind="confirmed" %}</dd>
       {% elif asked %}<dt>Status</dt><dd>{% include "components/status.html" with kind="pending" label="Pending approval" %}</dd>
       {% elif wait %}<dt>Status</dt><dd>{% include "components/status.html" with kind="waitlist" %}</dd>{% endif %}
