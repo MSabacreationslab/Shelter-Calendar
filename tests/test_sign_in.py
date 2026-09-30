@@ -2,7 +2,6 @@ from datetime import timedelta
 
 import pytest
 from django.utils import timezone
-from django.utils.html import escape
 
 from accounts import services
 from accounts.models import Status
@@ -30,7 +29,8 @@ def test_right_name_and_pin_signs_in_ignoring_capitals_and_spaces(client, volunt
 def test_wrong_pin_and_unknown_name_look_exactly_the_same(client, volunteer):
     wrong_pin = client.post("/sign-in/", {"name": volunteer.login_name, "pin": WRONG_PIN})
     unknown = client.post("/sign-in/", {"name": "Nobody Here", "pin": WRONG_PIN})
-    message = escape("That name and PIN don't match")
+    # Written in the template itself, so it isn't HTML-escaped.
+    message = "That name and PIN don't match"
     assert message in wrong_pin.content.decode()
     assert message in unknown.content.decode()
     assert "_auth_user_id" not in client.session
