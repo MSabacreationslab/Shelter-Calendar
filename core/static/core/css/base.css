@@ -593,7 +593,7 @@ main:focus {
   border-radius: var(--radius-sm);
   vertical-align: top;
 }
-.calendar__day a {
+.calendar__day .calendar__cell {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -604,7 +604,7 @@ main:focus {
   text-decoration: none;
   border-radius: var(--radius-sm);
 }
-.calendar__day a:hover {
+.calendar__day a.calendar__cell:hover {
   background: var(--bg);
 }
 .calendar__num {
@@ -633,7 +633,7 @@ main:focus {
   background: var(--primary-tint);
   border-color: var(--primary);
 }
-.calendar__day.is-mine a:hover {
+.calendar__day.is-mine a.calendar__cell:hover {
   background: var(--primary-tint);
 }
 .calendar__day.is-today {
@@ -745,6 +745,50 @@ main:focus {
   color: var(--on-primary);
   font-size: var(--text-h3);
   font-weight: 700;
+}
+
+/* Dashboard */
+
+.attention {
+  margin-bottom: var(--space-5);
+}
+.attention h3 {
+  margin-top: 0;
+}
+.quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+.shift-card__people {
+  flex: 1 1 100%;
+  color: var(--ink-soft);
+}
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+.change__when {
+  flex: 0 0 auto;
+  color: var(--ink-soft);
+  min-width: 14rem;
+}
+.change__what {
+  flex: 1 1 16rem;
+}
+.change__who {
+  flex: 1 1 100%;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+.viewing-banner {
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 
 /* Notices */

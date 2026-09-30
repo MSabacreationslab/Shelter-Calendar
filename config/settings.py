@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "training",
     "scheduling",
     "notifications",
+    "dashboard",
 ]
 
 MIDDLEWARE = [

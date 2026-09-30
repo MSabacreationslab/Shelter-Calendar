@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Staff{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Staff" lead="All staff can do the same things; the job title is just a label." back_url="/" back_label="Dashboard" %}
+  <div class="actions actions--top"><a class="btn btn--primary" href="{% url 'dashboard:add_staff' %}">Add a staff member</a></div>
+  {% if staff %}
+    <ul class="people-list">
+      {% for person in staff %}
+        <li class="people-list__item">
+          <a class="people-list__name" href="{% url 'people:detail' person.pk %}">{{ person.get_full_name }}</a>
+          <span>{{ person.job_title }}</span>
+          <span>{{ person.phone|phone }}</span>
+          {% if not person.has_usable_password %}<span class="badge">Hasn't chosen a PIN yet</span>{% endif %}
+          {% if person.status != "active" %}<span class="badge">Turned off</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {% include "components/empty_state.html" with title="No staff yet" message="Add the Shelter Lead, the Volunteer Lead and their assistant here." %}
+  {% endif %}
+{% endblock %}

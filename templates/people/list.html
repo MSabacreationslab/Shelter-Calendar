@@ -8,6 +8,11 @@
     {% if user|can:"edit_volunteers" %}<a class="btn btn--secondary" href="{% url 'people:skills' %}">Skills list</a>{% endif %}
   </div>
 
+  <form method="get" class="inline-form" aria-label="Narrow the list">
+    {% for field in filters %}{% include "components/field.html" with field=field %}{% endfor %}
+    <button type="submit" class="btn btn--secondary">Show</button>
+  </form>
+
   <div class="field filter-box" hidden data-filter-box>
     <label for="find-person">Find a person</label>
     <input type="text" id="find-person" data-filter-input="people" autocomplete="off">
@@ -19,6 +24,7 @@
         <li class="people-list__item" data-filter-item>
           <a class="people-list__name" href="{% url 'people:detail' person.pk %}">{{ person.get_full_name }}</a>
           <span>{{ person.phone|phone }}</span>
+          {% if person.job_title %}<span>{{ person.job_title }}</span>{% endif %}
           <span class="people-list__email">{{ person.email }}</span>
           {% if not person.has_usable_password %}<span class="badge">Hasn't chosen a PIN yet</span>{% endif %}
           {% if person.status != "active" %}<span class="badge">Turned off</span>{% endif %}
@@ -30,8 +36,4 @@
     {% include "components/empty_state.html" with title="No volunteers yet" message="When you add a volunteer, they'll appear here." %}
   {% endif %}
 
-  <p>
-    {% if show_inactive %}<a href="{% url 'people:list' %}">Show only active volunteers</a>
-    {% else %}<a href="{% url 'people:list' %}?show=all">Also show volunteers who are turned off</a>{% endif %}
-  </p>
 {% endblock %}

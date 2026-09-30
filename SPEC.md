@@ -244,7 +244,7 @@ All datetimes are timezone-aware. People and history are never hard-deleted in t
   - `shift`, `volunteer`, `status` (`confirmed` | `cancelled`)
   - `period` (`DateTimeRangeField`, copied from the shift and kept in sync)
   - `created_by` (self or staff), `created_at`
-  - cancellation: `cancelled_at`, `cancelled_by`, `cancel_reason`, `is_late_cancel`
+  - cancellation: `cancelled_at`, `cancelled_by`, `cancel_reason`, `is_late_cancel`, `was_urgent` (decided when it happens, so changing the threshold later doesn't rewrite history)
   - Constraints:
     - unique `(shift, volunteer)` where `confirmed`, so a double tap can't sign someone up twice
     - **exclusion constraint:** `(volunteer WITH =, period WITH &&)` where `confirmed`. No one can hold two overlapping shifts, even under a race. Needs the `btree_gist` extension, added in a migration.
@@ -557,6 +557,10 @@ One dashboard, shared by all staff and the Admin.
 **Change log:** every change, newest first, filterable by person and date (§3).
 
 **Staff management:** add a staff member (sends a setup link), change a job title, deactivate, send a new PIN link. The Admin account isn't listed here.
+
+**Turning someone off** (as built): a confirm page lists the future shifts they'll be taken off. They're taken off those shifts and any waitlists (as a staff removal, so no urgent emails), unused setup links stop working, and they can't sign in. Turning them back on restores sign-in with their old PIN, not their shifts.
+
+**Directory filters:** show volunteers, staff or everyone; active only or including turned off; has done or still needs a training. Filters go in the web address as ids only; the name box still filters in the browser.
 
 **Settings (Admin):** the fields of `ShelterSettings`.
 

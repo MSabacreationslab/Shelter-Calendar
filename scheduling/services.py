@@ -145,6 +145,16 @@ def is_late(shift, now=None) -> bool:
     return shift.starts_at - now < window
 
 
+def is_urgent(shift, now=None) -> bool:
+    """A cancellation this close to the shift is urgent: staff are emailed straight away.
+
+    The threshold is a setting (24 or 48 hours) so the pilot can try both (SPEC §6).
+    """
+    now = now or timezone.now()
+    window = timedelta(hours=ShelterSettings.load().urgent_threshold_hours)
+    return shift.starts_at - now < window
+
+
 @transaction.atomic
 def cancel_signup(signup, *, by, reason="", now=None) -> Result:
     """A volunteer cancels (late if inside the window), or staff take someone off a shift."""
@@ -158,11 +168,13 @@ def cancel_signup(signup, *, by, reason="", now=None) -> Result:
         return Result.fail(Problem.STARTED)
 
     late = by_volunteer and is_late(shift, now)
+    urgent = by_volunteer and is_urgent(shift, now)
     signup.status = SignupStatus.CANCELLED
     signup.cancelled_at = now
     signup.cancelled_by = by
     signup.cancel_reason = reason[:200]
     signup.is_late_cancel = late
+    signup.was_urgent = urgent
     signup.save()
     audit.record(
         "shift.cancelled" if by_volunteer else "shift.removed_by_staff",
@@ -171,9 +183,10 @@ def cancel_signup(signup, *, by, reason="", now=None) -> Result:
         target_repr=str(shift),
         shift=shift.pk,
         late=late,
+        urgent=urgent,
         at=now,
     )
-    if late:
+    if urgent:
         from scheduling import notices
 
         _notify_after_commit(notices.late_cancellation, signup)

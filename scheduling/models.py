@@ -195,6 +195,8 @@ class Signup(models.Model):
     )
     cancel_reason = models.CharField(max_length=200, blank=True)
     is_late_cancel = models.BooleanField(default=False)
+    # Decided when it happened, so changing the threshold later doesn't rewrite history.
+    was_urgent = models.BooleanField(default=False)
     # Set from the welcome email's "this orientation time doesn't work" link.
     conflict_reported_at = models.DateTimeField(null=True, blank=True)
 

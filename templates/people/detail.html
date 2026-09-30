@@ -3,6 +3,9 @@
 {% block title %}{{ person.get_full_name }}{% endblock %}
 {% block content %}
   {% include "components/page_header.html" with title=person.get_full_name back_url="/volunteers/" back_label="Volunteers" %}
+  {% if person.status != "active" %}
+    {% include "components/notice.html" with kind="warning" title="Turned off" message="They can't sign in and aren't on any lists. Turn them back on at the bottom of this page." %}
+  {% endif %}
 
   {% if last_setup_email and last_setup_email.failed %}
     <div class="notice notice--error" role="alert">
@@ -85,6 +88,19 @@
     {% endif %}
   </div>
 
+  <h2>Shifts</h2>
+  <div class="card">
+    <h3 class="card__title">Coming up</h3>
+    {% if upcoming %}
+      <ul>{% for signup in upcoming %}<li><a href="{% url 'scheduling:shift' signup.shift.pk %}">{{ signup.shift.title }}</a>, {{ signup.shift.starts_at|friendly_date }} at {{ signup.shift.starts_at|clock }}</li>{% endfor %}</ul>
+    {% else %}<p>No shifts coming up.</p>{% endif %}
+    <h3 class="card__title">Recent</h3>
+    {% if history %}
+      <ul>{% for signup in history %}<li>{{ signup.shift.title }}, {{ signup.shift.starts_at|long_date }}{% if signup.status == "cancelled" %} (cancelled{% if signup.was_urgent %}, urgent{% endif %}){% endif %}</li>{% endfor %}</ul>
+    {% else %}<p>No past shifts yet.</p>{% endif %}
+    {% if can_view_as %}<p><a class="btn btn--secondary" href="{% url 'people:view_as' person.pk %}">See the app as {{ person.get_short_name }} sees it</a></p>{% endif %}
+  </div>
+
   <h2>Signing in</h2>
   <div class="card">
     <p>{% if has_pin %}{{ person.get_short_name }} has chosen a PIN.{% else %}{{ person.get_short_name }} hasn't chosen a PIN yet.{% endif %}</p>
@@ -100,9 +116,33 @@
     {% endif %}
   </div>
 
-  {% if can_edit %}
-    <div class="actions">
-      <a class="btn btn--primary" href="{% url 'people:edit' person.pk %}">Edit details</a>
-    </div>
+  {% if job_title_form %}
+    <h2>Job title</h2>
+    <form method="post" action="{% url 'people:job_title' person.pk %}" class="inline-form">
+      {% csrf_token %}
+      {% include "components/field.html" with field=job_title_form.job_title %}
+      <button type="submit" class="btn btn--secondary">Save job title</button>
+    </form>
   {% endif %}
+
+  {% if changes %}
+    <h2>Recent changes</h2>
+    <ul class="plain-list">
+      {% for event, description in changes %}
+        <li class="plain-list__item"><span>{{ event.created_at|long_date }}: {{ description }}</span><span>by {% if event.actor %}{{ event.actor.get_full_name }}{% else %}the app{% endif %}</span></li>
+      {% endfor %}
+    </ul>
+    <p><a href="{% url 'dashboard:change_log' %}?person={{ person.pk }}">See all changes about {{ person.get_short_name }}</a></p>
+  {% endif %}
+
+  <div class="actions">
+    {% if can_edit and person.role == "volunteer" %}<a class="btn btn--primary" href="{% url 'people:edit' person.pk %}">Edit details</a>{% endif %}
+    {% if can_manage %}
+      {% if person.status == "active" %}
+        <a class="btn btn--danger" href="{% url 'people:deactivate' person.pk %}">Turn off {{ person.get_short_name }}</a>
+      {% else %}
+        <form method="post" action="{% url 'people:reactivate' person.pk %}">{% csrf_token %}<button type="submit" class="btn btn--secondary">Turn {{ person.get_short_name }} back on</button></form>
+      {% endif %}
+    {% endif %}
+  </div>
 {% endblock %}

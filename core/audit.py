@@ -47,6 +47,11 @@ ACTIONS = {
     "training_type.turned_off": "Training taken off the list",
     "training_type.turned_on": "Training put back on the list",
     "volunteer.no_training_changed": "Changed whether they can take no-training shifts",
+    "account.deactivated": "Account turned off",
+    "account.reactivated": "Account turned back on",
+    "staff.job_title_changed": "Job title changed",
+    "volunteer.viewed_as": "Staff viewed the app as them",
+    "settings.changed": "Shelter settings changed",
 }
 
 

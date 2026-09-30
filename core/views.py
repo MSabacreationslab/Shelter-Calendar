@@ -17,11 +17,13 @@ logger = logging.getLogger(__name__)
 @requires(SIGNED_IN)
 def home(request):
     """Volunteers land on their shift calendar; staff on their home page."""
-    if not has_capability(request.user, "view_dashboard"):
-        from scheduling.volunteer_views import my_shifts
+    if has_capability(request.user, "view_dashboard"):
+        from dashboard.views import dashboard
 
-        return my_shifts(request)
-    return render(request, "core/home.html")
+        return dashboard(request)
+    from scheduling.volunteer_views import my_shifts
+
+    return my_shifts(request)
 
 
 @requires(PUBLIC)

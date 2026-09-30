@@ -36,27 +36,30 @@ def _my_wait(user, shift):
     ).first()
 
 
+def home_context(person, month=None) -> dict:
+    """Everything a volunteer's home page shows, for them or for staff viewing as them."""
+    first = cal.month_start(month)
+    upcoming = list(cal.my_signups(person)[:20])
+    return {
+        "person": person,
+        "greeting": cal.greeting(),
+        "next_signup": upcoming[0] if upcoming else None,
+        "upcoming": upcoming,
+        "weeks": cal.month_grid(person, first),
+        "month": cal.month_label(first),
+        "previous": cal.shift_month(first, -1),
+        "next": cal.shift_month(first, 1),
+        "previous_label": cal.month_label(cal.shift_month(first, -1)),
+        "next_label": cal.month_label(cal.shift_month(first, 1)),
+        "day_names": cal.DAY_NAMES,
+    }
+
+
 @requires("view_own_schedule")
 def my_shifts(request):
     """A volunteer's home: next shift, the month calendar, and upcoming shifts."""
-    first = cal.month_start(request.GET.get("month"))
-    upcoming = list(cal.my_signups(request.user)[:20])
-    return render(
-        request,
-        "volunteer/home.html",
-        {
-            "greeting": cal.greeting(),
-            "next_signup": upcoming[0] if upcoming else None,
-            "upcoming": upcoming,
-            "weeks": cal.month_grid(request.user, first),
-            "month": cal.month_label(first),
-            "previous": cal.shift_month(first, -1),
-            "next": cal.shift_month(first, 1),
-            "previous_label": cal.month_label(cal.shift_month(first, -1)),
-            "next_label": cal.month_label(cal.shift_month(first, 1)),
-            "day_names": cal.DAY_NAMES,
-        },
-    )
+    context = home_context(request.user, request.GET.get("month"))
+    return render(request, "volunteer/home.html", context)
 
 
 @requires("view_own_schedule")

@@ -165,3 +165,13 @@ with a clear explanation of what failed and why it doesn't match a known pattern
   training; anyone else goes in "Someone else who came".
 - Render's free plan has no Shell: `create_admin`/`seed_demo` run from Mike's PC against
   Supabase (docs/setup.md, "Running commands against the test site").
+
+**Phase 6**
+- Staff land on the dashboard (`dashboard/`): its sections are functions in
+  `dashboard/queries.py`. Volunteers still land on their calendar.
+- A volunteer's cancellation is *urgent* when it's inside `urgent_threshold_hours`; that's
+  what emails the notify list now (not "late"). `Signup.was_urgent` stores the decision.
+- View-as renders `volunteer/home.html` with `readonly` for the target person: no action
+  links at all, so there's nothing to submit. Every view is logged.
+- `people.can_manage()` decides who may turn someone off: volunteers need
+  `edit_volunteers`, staff need `manage_staff`, the Admin never appears.

@@ -2,7 +2,16 @@
 {% load formatting %}
 {% block title %}My shifts{% endblock %}
 {% block content %}
-  <h1>{{ greeting }}, {{ user.get_short_name }}</h1>
+  {% if readonly %}
+    <div class="notice notice--warning viewing-banner" role="status">
+      <span class="notice__icon" aria-hidden="true">!</span>
+      <div>
+        <p class="notice__title">Viewing as {{ person.get_full_name }}: read only</p>
+        <p>This is what {{ person.get_short_name }} sees. Nothing here can be changed. <a href="{% url 'people:detail' person.pk %}">Stop viewing</a></p>
+      </div>
+    </div>
+  {% endif %}
+  <h1>{{ greeting }}, {{ person.get_short_name }}</h1>
 
   {% if next_signup %}
     {% with shift=next_signup.shift %}
@@ -10,14 +19,14 @@
         <p class="card__eyebrow" id="next-shift">Your next shift</p>
         <p class="card__title">{{ shift.title }}</p>
         <p class="card__when">{% include "volunteer/_shift_when.html" %}</p>
-        <a class="btn btn--secondary" href="{% url 'shifts:shift' shift.pk %}">See details</a>
+        {% if not readonly %}<a class="btn btn--secondary" href="{% url 'shifts:shift' shift.pk %}">See details</a>{% endif %}
       </section>
     {% endwith %}
   {% else %}
     <section class="card">
       <p class="card__title">You don't have any shifts coming up</p>
       <p>Find one that suits you. Thank you for helping!</p>
-      <a class="btn btn--primary" href="{% url 'shifts:find' %}">Find a shift</a>
+      {% if not readonly %}<a class="btn btn--primary" href="{% url 'shifts:find' %}">Find a shift</a>{% endif %}
     </section>
   {% endif %}
 
@@ -30,7 +39,7 @@
       {% for signup in upcoming %}
         {% with shift=signup.shift %}
           <li class="shift-card">
-            <a class="shift-card__title" href="{% url 'shifts:shift' shift.pk %}">{{ shift.title }}</a>
+            {% if readonly %}<span class="shift-card__title">{{ shift.title }}</span>{% else %}<a class="shift-card__title" href="{% url 'shifts:shift' shift.pk %}">{{ shift.title }}</a>{% endif %}
             <span>{% include "volunteer/_shift_when.html" %}</span>
           </li>
         {% endwith %}
@@ -39,5 +48,5 @@
   {% else %}
     {% include "components/empty_state.html" with title="No shifts yet" message="When you sign up for a shift, it will show here." %}
   {% endif %}
-  <p><a href="{% url 'shifts:find' %}">Find a shift</a></p>
+  {% if not readonly %}<p><a href="{% url 'shifts:find' %}">Find a shift</a></p>{% endif %}
 {% endblock %}
