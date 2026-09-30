@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Sign in" lead="Use your name and your 6-digit PIN." %}
+
+  {% if problem == "wrong" %}
+    {% include "components/notice.html" with kind="error" title="That name and PIN don't match" message="Please check them and try again." %}
+    {% if show_forgot_hint %}
+      <p>Forgot your PIN? {% if shelter.phone %}Call the shelter at <a href="tel:{{ shelter.phone_link }}">{{ shelter.phone }}</a>{% else %}Ask a member of the volunteer team{% endif %} and we'll send you a link to choose a new one.</p>
+    {% endif %}
+  {% elif problem == "locked" %}
+    {% include "components/notice.html" with kind="warning" title="Too many tries" message="For your safety, please wait 15 minutes and try again." %}
+    {% if shelter.phone %}<p>Or call the shelter at <a href="tel:{{ shelter.phone_link }}">{{ shelter.phone }}</a>.</p>{% endif %}
+  {% elif problem == "needs_new_link" %}
+    {% include "components/notice.html" with kind="warning" title="Your account is locked for your safety" message="There were too many wrong PINs today. The volunteer team can send you a link to choose a new PIN." %}
+    {% if shelter.phone %}<p>Call the shelter at <a href="tel:{{ shelter.phone_link }}">{{ shelter.phone }}</a>.</p>{% endif %}
+  {% elif problem == "device_blocked" %}
+    {% include "components/notice.html" with kind="warning" title="Too many tries from this device" message="Please wait 15 minutes and try again." %}
+  {% elif problem == "turned_off" %}
+    {% include "components/notice.html" with kind="warning" title="Your account is turned off" message="If you'd like to volunteer again, please contact the volunteer team." %}
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    {% include "components/field.html" with field=form.name %}
+    {% include "components/field.html" with field=form.pin %}
+    <div class="actions">
+      <button type="submit" class="btn btn--primary">Sign in</button>
+    </div>
+  </form>
+{% endblock %}

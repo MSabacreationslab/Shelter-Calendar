@@ -5,27 +5,44 @@ from django.test import Client
 from django.utils.html import escape
 
 from core import errors
+from core.models import ShelterSettings
+
+pytestmark = pytest.mark.django_db
 
 
-def test_home_page_renders_with_shelter_name_and_one_heading(client):
+def test_home_needs_signing_in(client):
     response = client.get("/")
-    html = response.content.decode()
-    assert response.status_code == 200
+    assert response.status_code == 302
+    assert response["Location"] == "/sign-in/?next=/"
+
+
+def test_home_greets_the_person_with_one_heading(client, volunteer):
+    client.force_login(volunteer)
+    html = client.get("/").content.decode()
+    # Volunteers land on their calendar with a time-of-day greeting.
+    assert re.search(rf"Good (morning|afternoon|evening), {volunteer.first_name}<", html)
     assert "Humane Society of Madison County" in html
     assert len(re.findall(r"<h1[ >]", html)) == 1
     assert 'href="#main"' in html
 
 
-def test_footer_shows_phone_as_a_dialable_link_when_set(client, settings):
-    settings.SHELTER_PHONE = "(740) 555-0100"
-    html = client.get("/").content.decode()
+def test_staff_home_differs_from_volunteer_home(client, staff):
+    client.force_login(staff)
+    assert "Staff tools" in client.get("/").content.decode()
+
+
+def test_footer_shows_phone_as_a_dialable_link_when_set(client):
+    ShelterSettings.objects.create(
+        pk=1, shelter_name="Test Shelter", shelter_phone="(740) 555-0100"
+    )
+    html = client.get("/sign-in/").content.decode()
     assert 'href="tel:7405550100"' in html
     assert "(740) 555-0100" in html
 
 
-def test_footer_without_phone_points_to_volunteer_team(client, settings):
-    settings.SHELTER_PHONE = ""
-    html = client.get("/").content.decode()
+def test_footer_without_phone_points_to_volunteer_team(client):
+    ShelterSettings.objects.create(pk=1, shelter_name="Test Shelter", shelter_phone="")
+    html = client.get("/sign-in/").content.decode()
     assert "tel:" not in html
     assert "volunteer team" in html
 
@@ -35,11 +52,11 @@ def test_healthz_is_ok_and_skips_https_redirect(client, settings):
     response = client.get("/healthz")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
-    assert client.get("/").status_code == 301
+    assert client.get("/sign-in/").status_code == 301
 
 
 def test_every_response_carries_a_request_reference(client):
-    ref = client.get("/").headers["X-Request-Ref"]
+    ref = client.get("/sign-in/").headers["X-Request-Ref"]
     assert re.fullmatch(r"[A-Z2-9]{6}", ref)
 
 

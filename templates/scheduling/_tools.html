@@ -1,0 +1,11 @@
+{% load capabilities %}
+{% if user|can:"manage_shifts" %}
+<nav class="tools" aria-label="Schedule tools">
+  <a href="{% url 'scheduling:week' %}">This week</a>
+  <a href="{% url 'scheduling:add_shift' %}">Add a shift</a>
+  <a href="{% url 'scheduling:templates' %}">Template weeks</a>
+  <a href="{% url 'scheduling:fill' %}">Fill the schedule</a>
+  <a href="{% url 'scheduling:closed_days' %}">Closed days</a>
+  <a href="{% url 'scheduling:holidays' %}">Holidays</a>
+</nav>
+{% endif %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Choose your PIN{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Choose your PIN" %}
+  <p>Welcome, {{ person.get_short_name }}! You'll sign in with your name, <strong>{{ person.login_name }}</strong>, and a 6-digit PIN you choose now.</p>
+
+  {% if form.errors %}
+    {% include "components/notice.html" with kind="error" title="Please fix the highlighted boxes" %}
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "components/field.html" with field=form.pin %}
+    {% include "components/field.html" with field=form.pin_again %}
+    <div class="actions">
+      <button type="submit" class="btn btn--primary">Save my PIN</button>
+    </div>
+  </form>
+{% endblock %}

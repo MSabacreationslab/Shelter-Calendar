@@ -1,0 +1,7 @@
+{% extends "emails/_base.html" %}
+{% load formatting %}
+{% block body %}
+  <p style="margin:0 0 16px;"><strong>{{ person.get_full_name }}</strong> says this orientation time doesn't work for them:</p>
+  <p style="margin:0 0 16px; font-size:21px;"><strong>{{ shift }}</strong></p>
+  <p style="margin:0 0 16px;">They're still signed up for it. Please call them to find a better time: {{ person.phone|phone }}</p>
+{% endblock %}

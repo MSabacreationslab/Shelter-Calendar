@@ -1,0 +1,8 @@
+{% extends "emails/_base.html" %}
+{% block body %}
+  <p style="margin:0 0 16px;">Hello {{ person.get_short_name }},</p>
+  <p style="margin:0 0 16px;">Here's your link to choose a new 6-digit PIN. It works once, for 7 days.</p>
+  {% include "emails/_button.html" with href=link label="Choose a new PIN" %}
+  <p style="margin:0 0 16px;">Your name for signing in: <strong>{{ person.login_name }}</strong></p>
+  <p style="margin:0 0 16px;">Didn't ask for this? Please call the shelter so we can check.</p>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% autoescape off %}Hello {{ person.get_short_name }},
+
+Here's your link to choose a new 6-digit PIN. It works once, for 7 days:
+{{ link }}
+
+Your name for signing in: {{ person.login_name }}
+
+Didn't ask for this? Please call the shelter so we can check.
+{% if shelter.phone %}
+Questions? Call the shelter at {{ shelter.phone }}.
+{% endif %}
+The volunteer team at {{ shelter.name }}{% endautoescape %}

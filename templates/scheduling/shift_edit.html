@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Change {{ shift.title }}{% endblock %}
+{% block content %}
+  {% url 'scheduling:shift' shift.pk as back %}
+  {% include "components/page_header.html" with title="Change this shift" lead=shift.title back_url=back back_label="Back to the shift" %}
+  <p>{{ shift.starts_at|long_date }}. Only this one shift changes.</p>
+  {% if form.errors %}{% include "components/notice.html" with kind="error" title="Please fix the highlighted boxes" %}{% endif %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "components/field.html" with field=form.title %}
+    <div class="inline-fields">
+      {% include "components/field.html" with field=form.start_time %}
+      {% include "components/field.html" with field=form.end_time %}
+    </div>
+    {% include "components/field.html" with field=form.capacity %}
+    {% if form.required_training %}{% include "components/field.html" with field=form.required_training %}{% endif %}
+    {% include "components/field.html" with field=form.notes %}
+    <div class="actions">
+      <button type="submit" class="btn btn--primary">Save</button>
+      <a class="btn btn--secondary" href="{{ back }}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Closed days{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Closed days" lead="Days the shelter is closed. Filling the schedule skips them." back_url="/schedule/" back_label="Schedule" %}
+  {% if affected %}
+    <div class="notice notice--warning" role="status">
+      <span class="notice__icon" aria-hidden="true">!</span>
+      <div>
+        <p class="notice__title">Added. {{ affected|length }} shift{{ affected|length|pluralize }} already fall on those days</p>
+        <p>They weren't cancelled. Open each one to cancel it if the shelter is closed:</p>
+        <ul>{% for shift in affected %}<li><a href="{% url 'scheduling:shift' shift.pk %}">{{ shift.title }}, {{ shift.starts_at|long_date }}</a></li>{% endfor %}</ul>
+      </div>
+    </div>
+  {% endif %}
+  {% if blackouts %}
+    <ul class="plain-list">
+      {% for blackout in blackouts %}
+        <li class="plain-list__item">
+          <span><strong>{{ blackout.reason }}</strong>: {{ blackout.start_date|long_date }}{% if blackout.end_date != blackout.start_date %} to {{ blackout.end_date|long_date }}{% endif %}</span>
+          <form method="post" action="{% url 'scheduling:remove_closed_days' blackout.pk %}">{% csrf_token %}<button type="submit" class="link-button">Open again<span class="visually-hidden">: {{ blackout.reason }}</span></button></form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No closed days coming up.</p>
+  {% endif %}
+  <h2>Add closed days</h2>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="inline-fields">
+      {% include "components/field.html" with field=form.start_date %}
+      {% include "components/field.html" with field=form.end_date %}
+    </div>
+    {% include "components/field.html" with field=form.reason %}
+    <div class="actions"><button type="submit" class="btn btn--primary">Add</button></div>
+  </form>
+{% endblock %}

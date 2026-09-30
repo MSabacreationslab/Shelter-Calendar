@@ -9,7 +9,7 @@ services:
     autoDeployTrigger: checksPass
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
     # Free instances have no pre-deploy step, so migrations run just before the server starts.
-    startCommand: python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    startCommand: python manage.py migrate --noinput && python manage.py sync_holidays && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60
     healthCheckPath: /healthz
     envVars:
       - key: SECRET_KEY
@@ -19,6 +19,9 @@ services:
       - key: DATABASE_SSL_REQUIRE
         value: "1"
       - key: DEMO_MODE
+        value: "1"
+      # Check on the test site that sign-in attempts record visitors' real addresses.
+      - key: TRUSTED_PROXY_COUNT
         value: "1"
       - key: EMAIL_HOST_USER
         sync: false

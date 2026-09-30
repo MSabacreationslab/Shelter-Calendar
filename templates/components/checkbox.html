@@ -1,0 +1,6 @@
+{# One yes/no box: include "components/checkbox.html" with field=form.no_training_eligible #}
+<div class="field{% if field.errors %} field--error{% endif %}">
+  {% if field.errors %}<p class="field__error"><span aria-hidden="true">&#9888;</span> {{ field.errors.0 }}</p>{% endif %}
+  <label class="choice" for="{{ field.id_for_label }}">{{ field }} <span>{{ field.label }}</span></label>
+  {% if field.help_text %}<p class="field__hint">{{ field.help_text }}</p>{% endif %}
+</div>

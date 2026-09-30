@@ -3,10 +3,21 @@
 import re
 from pathlib import Path
 
-from core import errors
+from core import audit, errors
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-BANNED = ["server", "database", "exception", "token", "session", "csrf", "http", "null", "invalid"]
+# "session" isn't here: "training session" is the plain phrase staff use.
+BANNED = [
+    "server",
+    "database",
+    "exception",
+    "token",
+    "cookie",
+    "csrf",
+    "http",
+    "null",
+    "invalid",
+]
 
 HIDDEN = [
     re.compile(r"\{#.*?#\}", re.S),
@@ -50,6 +61,11 @@ def test_templates_use_plain_words():
 def test_error_messages_use_plain_words():
     problems = {e.code: banned_words_in(f"{e.title} {e.message}") for e in errors.ALL_ERRORS}
     assert not {code: hits for code, hits in problems.items() if hits}
+
+
+def test_change_log_descriptions_use_plain_words():
+    problems = {key: banned_words_in(text) for key, text in audit.ACTIONS.items()}
+    assert not {key: hits for key, hits in problems.items() if hits}
 
 
 def test_the_checker_catches_banned_words():

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Cancel {{ shift.title }}{% endblock %}
+{% block content %}
+  {% if late %}
+    {% include "components/page_header.html" with title="Can't make it?" %}
+    <p>This shift starts soon, so we'll let the volunteer team know right away.</p>
+  {% else %}
+    {% include "components/page_header.html" with title="Cancel this shift?" %}
+  {% endif %}
+  <div class="card">
+    <dl class="summary">
+      <dt>Shift</dt><dd>{{ shift.title }}</dd>
+      <dt>When</dt><dd>{% include "volunteer/_shift_when.html" %}</dd>
+    </dl>
+  </div>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if late %}{% include "components/field.html" with field=form.reason %}{% endif %}
+    <div class="actions">
+      <button type="submit" class="btn btn--danger">{% if late %}I can't make it{% else %}Yes, cancel my shift{% endif %}</button>
+      <a class="btn btn--secondary" href="{% url 'shifts:shift' shift.pk %}">No, keep it</a>
+    </div>
+  </form>
+{% endblock %}

@@ -21,3 +21,9 @@ Codes live in `core/errors.py`. Never renumber or reuse a code. Add new ones at 
 | SC-103 | We can't find that page | No such page (HTTP 404). | The link they followed; an old email link to something that was removed. |
 | SC-104 | Something went wrong | An unexpected error (HTTP 500). | The traceback in the logs next to `ref=`. |
 | SC-105 | This page was open too long | The form's security check failed (CSRF), usually because the page was left open, cookies were cleared, or the form was sent twice from an old tab. | Logs show the reason. If it's frequent for one person, check their browser blocks cookies. |
+
+## SC-2xx: Sign-in and accounts
+
+| Code | Shown as | What happened | What to check |
+|---|---|---|---|
+| SC-201 | This link has expired | A setup link was opened after 7 days, after it was used, after a newer link replaced it, or for a turned-off account. | The person's setup links in the backend. Send a new one. |

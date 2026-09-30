@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}{{ person.get_full_name }}{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title=person.get_full_name back_url="/volunteers/" back_label="Volunteers" %}
+
+  {% if last_setup_email and last_setup_email.failed %}
+    <div class="notice notice--error" role="alert">
+      <span class="notice__icon" aria-hidden="true">&#9888;</span>
+      <div>
+        <p class="notice__title">The last email to {{ person.get_short_name }} didn't go through</p>
+        <p>Check the email address below is right, then send a new link.</p>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="card">
+    <dl class="summary">
+      <dt>Signs in as</dt><dd>{{ person.login_name }}</dd>
+      {% if person.job_title %}<dt>Job</dt><dd>{{ person.job_title }}</dd>{% endif %}
+      <dt>Email</dt><dd>{{ person.email }}</dd>
+      <dt>Phone</dt><dd><a href="tel:{{ person.phone|tel }}">{{ person.phone|phone }}</a></dd>
+      <dt>Emergency contact</dt>
+      <dd>
+        {% if profile.emergency_contact_name %}
+          {{ profile.emergency_contact_name }}{% if profile.emergency_contact_relationship %} ({{ profile.emergency_contact_relationship }}){% endif %},
+          <a href="tel:{{ profile.emergency_contact_phone|tel }}">{{ profile.emergency_contact_phone|phone }}</a>
+        {% else %}Not recorded{% endif %}
+      </dd>
+      <dt>Birthday</dt><dd>{% if profile.birthday_month %}{{ profile.birthday_month|month_name }} {{ profile.birthday_day }}{% else %}Not given{% endif %}</dd>
+      <dt>Skills</dt><dd>{% for skill in profile.skills.all %}{{ skill.name }}{% if not forloop.last %}, {% endif %}{% empty %}None chosen{% endfor %}</dd>
+      <dt>No-training shifts</dt><dd>{% if profile.no_training_eligible %}Yes, can sign up{% else %}Not yet{% endif %}</dd>
+      {% if profile.staff_notes %}<dt>Notes for staff</dt><dd>{{ profile.staff_notes|linebreaksbr }}</dd>{% endif %}
+    </dl>
+  </div>
+
+  <h2>Training</h2>
+  <div class="card">
+    <dl class="summary">
+      <dt>Completed</dt><dd>{% for record in records %}{{ record.training_type.name }}{% if not forloop.last %}, {% endif %}{% empty %}None yet{% endfor %}</dd>
+      <dt>Still needs</dt><dd>{% for need in open_needs %}{{ need.training_type.name }}{% if not forloop.last %}, {% endif %}{% empty %}Nothing{% endfor %}</dd>
+    </dl>
+  </div>
+
+  <h2>Signing in</h2>
+  <div class="card">
+    <p>{% if has_pin %}{{ person.get_short_name }} has chosen a PIN.{% else %}{{ person.get_short_name }} hasn't chosen a PIN yet.{% endif %}</p>
+    {% if last_setup_email %}
+      <p>Last link emailed {{ last_setup_email.created_at|long_date }} at {{ last_setup_email.created_at|clock }}{% if last_setup_email.failed %}, but it didn't go through{% endif %}.</p>
+    {% endif %}
+    {% if can_send_link %}
+      <form method="post" action="{% url 'people:send_link' person.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn--secondary">{% if has_pin %}Email a link to choose a new PIN{% else %}Email a new welcome link{% endif %}</button>
+      </form>
+      <p class="field__hint">Any older link stops working.</p>
+    {% endif %}
+  </div>
+
+  {% if can_edit %}
+    <div class="actions">
+      <a class="btn btn--primary" href="{% url 'people:edit' person.pk %}">Edit details</a>
+    </div>
+  {% endif %}
+{% endblock %}

@@ -3,6 +3,12 @@
 from django import forms
 
 
+def post_data(request):
+    """The submitted data on a POST, else None. Unlike `request.POST or None`, an empty
+    POST still counts as submitted, so its errors are shown."""
+    return request.POST if request.method == "POST" else None
+
+
 class AccessibleFormMixin:
     """Link each input to its hint and error text so screen readers announce them."""
 

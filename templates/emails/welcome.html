@@ -1,0 +1,13 @@
+{% extends "emails/_base.html" %}
+{% block body %}
+  <p style="margin:0 0 16px;">Hello {{ person.get_short_name }},</p>
+  <p style="margin:0 0 16px;">Welcome to the {{ shelter.name }} volunteer team! Thank you for joining us.</p>
+  <p style="margin:0 0 16px;">To get started, choose a 6-digit PIN. This link works for 7 days.</p>
+  {% include "emails/_button.html" with href=link label="Choose my PIN" %}
+  <p style="margin:0 0 16px;">After that, you'll sign in with your name and your PIN.<br>
+    Your name for signing in: <strong>{{ person.login_name }}</strong></p>
+  {% if orientation %}
+    <p style="margin:0 0 16px;">Your orientation: <strong>{{ orientation.when }}</strong><br>
+      Can't make that time? <a href="{{ orientation.conflict_link }}" style="color:#1B5673;">Let us know</a>.</p>
+  {% endif %}
+{% endblock %}
