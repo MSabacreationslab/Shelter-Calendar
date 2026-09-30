@@ -9,6 +9,7 @@ from accounts import people
 from accounts.models import Role, Skill, Status, User
 from accounts.people_forms import AddVolunteerForm, SkillForm, VolunteerDetailsForm, details_initial
 from accounts.permissions import has_capability, requires
+from core.forms import post_data
 from training.models import TrainingNeed, TrainingRecord
 
 SETUP_TEMPLATES = ["welcome", "new_pin"]
@@ -39,7 +40,7 @@ def volunteer_list(request):
 @requires("add_volunteers")
 def add_volunteer(request):
     """One page, one Save: details, sign-in name, training, then the welcome email."""
-    form = AddVolunteerForm(request.POST or None)
+    form = AddVolunteerForm(post_data(request))
     duplicates = []
     if request.method == "POST" and form.is_valid():
         duplicates = form.possible_duplicates()
@@ -85,9 +86,7 @@ def person_detail(request, pk):
 def edit_person(request, pk):
     """Change someone's details. Only the fields that changed go in the change log."""
     person = _person_or_404(pk)
-    form = VolunteerDetailsForm(
-        request.POST or None, initial=details_initial(person), person=person
-    )
+    form = VolunteerDetailsForm(post_data(request), initial=details_initial(person), person=person)
     if request.method == "POST" and form.is_valid():
         changed = people.update_volunteer(person, form.cleaned_data, by=request.user)
         messages.success(request, "Changes saved." if changed else "Nothing needed changing.")
@@ -110,7 +109,7 @@ def send_link(request, pk):
 @requires("edit_volunteers")
 def skills(request):
     """The skills list: add new ones, rename, or take them off the list."""
-    form = SkillForm(request.POST or None)
+    form = SkillForm(post_data(request))
     if request.method == "POST" and form.is_valid():
         people.add_skill(form.cleaned_data["name"], by=request.user)
         messages.success(request, f"“{form.cleaned_data['name']}” is on the list.")
@@ -124,7 +123,7 @@ def skills(request):
 def edit_skill(request, pk):
     """Rename one skill."""
     skill = get_object_or_404(Skill, pk=pk)
-    form = SkillForm(request.POST or None, initial={"name": skill.name}, skill=skill)
+    form = SkillForm(post_data(request), initial={"name": skill.name}, skill=skill)
     if request.method == "POST" and form.is_valid():
         people.rename_skill(skill, form.cleaned_data["name"], by=request.user)
         messages.success(request, "Skill renamed.")
