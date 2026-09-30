@@ -221,3 +221,8 @@ __marimo__/
 staticfiles/
 test-results.xml
 .claude/launch.json
+
+# Volunteer spreadsheets hold personal details: never commit them.
+*.csv
+*.xlsx
+*.xls

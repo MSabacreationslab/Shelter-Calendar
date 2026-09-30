@@ -1,0 +1,10 @@
+{% extends "emails/_base.html" %}
+{% block body %}
+  <p style="margin:0 0 16px;">Hello {{ person.get_short_name }},</p>
+  <p style="margin:0 0 16px;">Thank you for offering to help with:</p>
+  <p style="margin:0 0 16px; font-size:21px;"><strong>{{ shift }}</strong></p>
+  <p style="margin:0 0 16px;">The volunteer team wasn't able to say yes this time.</p>
+  {% if note %}<p style="margin:0 0 16px;">A note from the team: {{ note }}</p>{% endif %}
+  {% if shelter.phone %}<p style="margin:0 0 16px;">If you have questions, please call the shelter at {{ shelter.phone }}.</p>{% endif %}
+  {% with find_url=site_url|add:"/shifts/" %}{% include "emails/_button.html" with href=find_url label="Find another shift" %}{% endwith %}
+{% endblock %}

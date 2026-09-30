@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from django.contrib import messages
 from django.core import signing
 from django.db import transaction
+from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -18,6 +19,7 @@ from scheduling.forms import (
     WEEKDAYS,
     AssignForm,
     BlackoutForm,
+    DeclineForm,
     EditShiftForm,
     EndPatternForm,
     FillForm,
@@ -33,15 +35,19 @@ from scheduling.models import (
     BlackoutPeriod,
     Holiday,
     HolidaySource,
+    RequestStatus,
     Shift,
     ShiftPattern,
     ShiftStatus,
     Signup,
+    SignupRequest,
     SignupStatus,
     TemplateWeek,
     WaitlistEntry,
     WaitlistStatus,
 )
+
+ANSWERED_DAYS = 14
 
 
 def _parse_day(value, default):
@@ -103,7 +109,11 @@ def shift_detail(request, pk):
     """Who's on a shift and who's waiting, with the staff actions for it."""
     shift = _shift_or_404(pk)
     signups = shift.signups.filter(status=SignupStatus.CONFIRMED).select_related("volunteer")
+    signups = signups.select_related("volunteer__profile")
     waiting = shift.waitlist.filter(status=WaitlistStatus.WAITING).select_related("volunteer")
+    asking = shift.requests.filter(status=RequestStatus.WAITING).select_related(
+        "volunteer", "volunteer__profile"
+    )
     on_shift = {s.volunteer_id for s in signups}
     candidates = (
         User.objects.filter(status=Status.ACTIVE, role__in=[Role.VOLUNTEER, Role.STAFF])
@@ -117,11 +127,13 @@ def shift_detail(request, pk):
             "shift": shift,
             "signups": signups,
             "waiting": waiting,
+            "asking": asking,
             "spots_left": max(shift.capacity - len(signups), 0),
             "assign_form": AssignForm(people=candidates),
             "can_assign": has_capability(request.user, "assign_volunteers"),
             "can_manage": has_capability(request.user, "manage_shifts"),
             "can_waitlist": has_capability(request.user, "manage_waitlist"),
+            "can_approve": has_capability(request.user, "approve_signups"),
             "can_record": has_capability(request.user, "record_training"),
             "upcoming": shift.status == ShiftStatus.SCHEDULED and shift.starts_at > timezone.now(),
         },
@@ -199,6 +211,103 @@ def unwait(request, pk, entry_pk):
     return redirect("scheduling:shift", pk=pk)
 
 
+@requires("approve_signups")
+def approvals(request):
+    """Shift approvals: everyone asking to join a shift, grouped by shift, soonest first."""
+    now = timezone.now()
+    waiting = list(services.waiting_requests(now))
+    filled = dict(
+        Signup.objects.filter(
+            shift_id__in={r.shift_id for r in waiting}, status=SignupStatus.CONFIRMED
+        )
+        .values("shift_id")
+        .annotate(n=Count("pk"))
+        .values_list("shift_id", "n")
+    )
+    groups = []
+    for signup_request in waiting:
+        shift = signup_request.shift
+        if not groups or groups[-1]["shift"].pk != shift.pk:
+            shift.spots_left = max(shift.capacity - filled.get(shift.pk, 0), 0)
+            groups.append({"shift": shift, "requests": []})
+        groups[-1]["requests"].append(signup_request)
+    answered = (
+        SignupRequest.objects.filter(
+            status__in=[RequestStatus.APPROVED, RequestStatus.DECLINED],
+            resolved_at__gte=now - timedelta(days=ANSWERED_DAYS),
+        )
+        .select_related("shift", "volunteer", "resolved_by")
+        .order_by("-resolved_at")[:20]
+    )
+    return render(
+        request,
+        "scheduling/approvals.html",
+        {
+            "groups": groups,
+            "count": len(waiting),
+            "answered": answered,
+            "answered_days": ANSWERED_DAYS,
+        },
+    )
+
+
+def _request_or_404(pk):
+    return get_object_or_404(SignupRequest.objects.select_related("shift", "volunteer"), pk=pk)
+
+
+def _after_answer(request, signup_request):
+    """Back to wherever staff answered from: the shift's page or Shift approvals."""
+    if request.POST.get("back") == "shift" or request.GET.get("back") == "shift":
+        return redirect("scheduling:shift", pk=signup_request.shift_id)
+    return redirect("scheduling:approvals")
+
+
+@requires("approve_signups")
+@require_POST
+def approve(request, pk):
+    """Say yes: the person is booked on the shift and emailed."""
+    signup_request = _request_or_404(pk)
+    person, shift = signup_request.volunteer, signup_request.shift
+    result = services.approve_request(signup_request, by=request.user)
+    if result.ok:
+        told = (
+            "We've emailed them."
+            if person.email
+            else "They have no email address, so please let them know."
+        )
+        messages.success(request, f"{person.get_full_name()} is on {shift.title}. {told}")
+    else:
+        messages.error(request, explain(result, shift=shift, person=person))
+    return _after_answer(request, signup_request)
+
+
+@requires("approve_signups")
+def decline(request, pk):
+    """Say no, with an optional note for the email, after a confirmation step."""
+    signup_request = _request_or_404(pk)
+    person, shift = signup_request.volunteer, signup_request.shift
+    if signup_request.status != RequestStatus.WAITING:
+        messages.info(request, "Someone has already answered this request.")
+        return _after_answer(request, signup_request)
+    form = DeclineForm(post_data(request))
+    if request.method == "POST" and form.is_valid():
+        services.decline_request(signup_request, by=request.user, note=form.cleaned_data["note"])
+        told = "We've emailed them." if person.email else "They have no email address."
+        messages.success(request, f"{person.get_full_name()} won't be on {shift.title}. {told}")
+        return _after_answer(request, signup_request)
+    return render(
+        request,
+        "scheduling/request_decline.html",
+        {
+            "form": form,
+            "signup_request": signup_request,
+            "person": person,
+            "shift": shift,
+            "back": request.GET.get("back") or request.POST.get("back") or "",
+        },
+    )
+
+
 @requires("manage_shifts")
 def edit_shift(request, pk):
     """Change one shift. Refused, with names, if it would squeeze out signed-up people."""
@@ -210,6 +319,7 @@ def edit_shift(request, pk):
         "end_time": local_end.time(),
         "capacity": shift.capacity,
         "required_training": shift.required_training,
+        "needs_approval": shift.needs_approval,
         "notes": shift.notes,
     }
     form = EditShiftForm(post_data(request), initial=initial, shift=shift)
@@ -325,6 +435,7 @@ def edit_pattern(request, pk):
         "kind",
         "required_training",
         "teaches",
+        "needs_approval",
         "notes",
     ]
     form = PatternForm(

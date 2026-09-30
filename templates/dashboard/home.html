@@ -31,7 +31,7 @@
             <span class="badge">Cancelled</span>
           {% else %}
             <span class="{% if shift.open_spots %}fill-open{% endif %}">{{ shift.filled }} of {{ shift.capacity }} filled{% if shift.open_spots %}, {{ shift.open_spots }} open{% endif %}</span>
-            <span class="shift-card__people">{% for person in shift.people %}{{ person.get_full_name }}{% if not forloop.last %}, {% endif %}{% empty %}Nobody yet{% endfor %}</span>
+            <span class="shift-card__people">{% for person in shift.people %}{{ person.get_full_name }}{% if person.profile.is_minor %} (minor){% endif %}{% if not forloop.last %}, {% endif %}{% empty %}Nobody yet{% endfor %}</span>
           {% endif %}
         </li>
       {% endfor %}
@@ -43,6 +43,18 @@
   <h2>Needs attention</h2>
   {% if all_clear %}
     {% include "components/notice.html" with kind="success" title="All clear" message="Nothing needs attention right now." %}
+  {% endif %}
+
+  {% if approvals %}
+    <section class="attention" aria-labelledby="approvals-heading">
+      <h3 id="approvals-heading">Waiting for your approval ({{ approvals_count }})</h3>
+      <ul class="plain-list">
+        {% for signup_request in approvals %}
+          <li class="plain-list__item"><span>{{ signup_request.volunteer.get_full_name }}: {{ signup_request.shift.title }}, {{ signup_request.shift.starts_at|friendly_date }}</span></li>
+        {% endfor %}
+      </ul>
+      <p><a href="{% url 'scheduling:approvals' %}">Open Shift approvals</a></p>
+    </section>
   {% endif %}
 
   {% if short_list %}

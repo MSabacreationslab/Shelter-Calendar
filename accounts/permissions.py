@@ -28,6 +28,7 @@ STAFF = VOLUNTEER | {
     "manage_shifts",
     "assign_volunteers",
     "manage_waitlist",
+    "approve_signups",
     "record_training",
     "manage_trainings",
     "add_volunteers",

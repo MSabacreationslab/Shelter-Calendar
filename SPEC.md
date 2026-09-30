@@ -103,7 +103,7 @@ Code checks **capabilities**, never role names. Role names appear in exactly one
 |---|:-:|:-:|:-:|
 | `view_own_schedule`, `edit_own_contact`, `sign_up_self`, `cancel_own_signup` | ✓ | ✓¹ | ✓¹ |
 | `view_dashboard`, `view_full_schedule`, `view_contacts`, `view_as_volunteer`, `view_change_log` | – | ✓ | ✓ |
-| `manage_shifts`, `assign_volunteers`, `manage_waitlist`, `record_training`, `manage_trainings` | – | ✓ | ✓ |
+| `manage_shifts`, `assign_volunteers`, `manage_waitlist`, `approve_signups`, `record_training`, `manage_trainings` | – | ✓ | ✓ |
 | `add_volunteers`, `edit_volunteers`, `reset_volunteer_pin`, `view_reports` | – | ✓ | ✓ |
 | `manage_staff`: add staff, change job titles, deactivate staff, send a staff member a new PIN link (never an Admin account) | – | ✓ | ✓ |
 | `edit_settings`, Django admin | – | – | ✓ |
@@ -200,6 +200,8 @@ All datetimes are timezone-aware. People and history are never hard-deleted in t
   - `skills` (M2M `Skill`)
   - `birthday_month`, `birthday_day` (optional; no year, proposed)
   - `no_training_eligible` (bool: may take shifts that need no training)
+  - `is_minor` (bool: under 18; shown to staff on shift lists, changes nothing about eligibility; Phase 9)
+  - `needs_approval` (bool: the shelter's "not active" volunteers. They can sign in, but staff approve each shift they ask for; Phase 9)
   - `staff_notes` (staff-only)
   - `added_by` (the staff member who added them)
 - **`Skill`**: `name`, `active`. Staff tick skills when adding a volunteer. They're **informational only, never used for eligibility**. Starting list (decided, Q7): Dog walking, Cat enrichment, Dog kennel cleaning, Cat cage cleaning, Special events. Staff can add, rename and deactivate skills.
@@ -230,10 +232,11 @@ All datetimes are timezone-aware. People and history are never hard-deleted in t
 - **`ShiftPattern`** (the recurrence rule):
   - `template_week` (nullable, so a pattern can stand alone), `title`, `weekday` (0–6), `start_time`, `end_time`
   - `capacity` (≥ 1), `kind` (`regular` | `training`), `required_training` (nullable), `teaches` (TrainingType, required when kind is training)
+  - `needs_approval` (bool: staff approve each sign-up, for example large events; copied to its shifts; Phase 9)
   - `every_n_weeks` (1 or 2), `anchor_date`, `active_from`, `active_until` (nullable), `notes`
 - **`Shift`** (an independent, editable instance):
   - `pattern` (nullable, `SET_NULL`), `title`, `kind`, `teaches`, `required_training`
-  - `starts_at`, `ends_at` (aware), `local_date` (set from `starts_at`, for calendar queries), `capacity`, `notes`
+  - `starts_at`, `ends_at` (aware), `local_date` (set from `starts_at`, for calendar queries), `capacity`, `needs_approval`, `notes`
   - `status` (`scheduled` | `cancelled`), `cancel_reason`, `holiday_name` (blank if none), `edited_by_hand` (bool)
   - `created_by`, `created_at`
   - Constraints:
@@ -253,6 +256,12 @@ All datetimes are timezone-aware. People and history are never hard-deleted in t
   - `shift`, `volunteer`, `status` (`waiting` | `promoted` | `left` | `removed` | `expired`), `created_at`, `resolved_at`, `resolved_by`
   - Unique `(shift, volunteer)` while waiting.
   - At most **10** waiting per shift, checked under the shift lock. Order is by `created_at`.
+- **`SignupRequest`** (Phase 9): someone asking to join a shift that needs approval.
+  - `shift`, `volunteer`, `status` (`waiting` | `approved` | `declined` | `withdrawn` | `closed`), `created_at`, `resolved_at`, `resolved_by`, `note` (staff's words for the "no" email)
+  - Unique `(shift, volunteer)` while waiting. A request holds no spot.
+  - **Who needs approval:** a volunteer on a shift with `needs_approval`, or a volunteer whose profile has `needs_approval`. Staff never do. Staff adding someone, or moving them off the waitlist, counts as approval.
+  - Asking runs the same checks as signing up (eligibility, room, no overlap). Approving books them through `sign_up()` as staff, so it's refused (and stays waiting) if the shift has filled.
+  - Cancelling the shift closes its requests and emails the people who asked; requests still waiting when the shift starts are closed by the daily `expire_waitlists` command; turning someone off closes theirs.
 - **`BlackoutPeriod`**: `start_date`, `end_date`, `reason`, `created_by`.
 - **`Holiday`**: `date`, `name`, `source` (`federal` | `shelter`), `hidden` (bool). Unique on `(date, name)`.
   - US federal holidays for this year and next are filled in from the `holidays` package by an idempotent command that also runs on deploy.
@@ -592,6 +601,27 @@ One dashboard, shared by all staff and the Admin.
 - **Turning reminders off:** a tick box on My profile ("Email me a reminder before my shifts"), on by default; staff see whether it's on from the person's page. Birthday emails don't depend on it.
 
 ### Phase 9 — Pilot prep & polish
+Split into two PRs because the shelter's spreadsheet added features (decided 2026-09-30).
+
+**Part 1: approvals, Minor, and loading the volunteer spreadsheet**
+- **Shift approvals (Q21, Q22):**
+  - A **"Staff approve each sign-up"** tick box on shifts and repeating shifts, for large events.
+  - Volunteers the shelter lists as not ACTIVE get **"Needs approval for every shift"** on their profile. They can still sign in.
+  - Either way the volunteer sees **Ask to join this shift** (two steps, like signing up), and it shows on their home page under "Waiting for the volunteer team" until answered. They can take it back.
+  - Staff answer on **Shift approvals** (`/approvals/`, in the staff menu): requests grouped by shift, soonest first, with spots left. **Approve** books them and emails them; **Say no** asks for confirmation and an optional note, then sends a kind email. The last 14 days of answers are listed below.
+  - The dashboard shows "Waiting for your approval" first under Needs attention. The shift's own page lists who is asking, with the same buttons.
+  - No email to staff per request (large events could send dozens); the dashboard and the menu are the signal.
+- **Minor (Q23):** a "Minor (under 18)" tick box on each volunteer. Staff see a Minor badge on shift lists, Shift approvals and the dashboard. It changes nothing about eligibility.
+- **Data load (Q17, Q24):** `manage.py import_volunteers file.csv` (preview), then `--save`. Run from Mike's PC like the other commands (docs/setup.md).
+  - The file is the shelter's spreadsheet saved from Excel as **CSV UTF-8** (the older Windows CSV works too). Headings are matched ignoring case and punctuation; the heading row can be below a title.
+  - Kept: first and last name, email, phone (10 digits), birthday (month and day only), Minor, ACTIVE (not active → needs approval; anything unclear → needs approval, flagged).
+  - **Job columns** (Dog Walking … Surgical Packs): a mark adds that job to the person's skills (the list gains any new ones). They're assignments, not training. A cell with words instead of a mark (e.g. "summer only") goes into staff notes.
+  - Not kept: Test, Address, City, State, Zip Code.
+  - Skipped, with the row number and reason: rows without both names, names already in the app, and names that appear twice. A shared email isn't a reason (couples share one); it's flagged instead. Missing emails are allowed but flagged: they can't get a welcome link until staff add one (Q4 still holds for people added on screen).
+  - Nothing is emailed and no links are made. **Training isn't in the spreadsheet**: staff record it in the app, then send each person's welcome link from their page ("Email a new welcome link").
+  - All-or-nothing; each person gets "Added from the volunteer spreadsheet" in the change log.
+
+**Part 2: accessibility, security, hosting, guides**
 - **Accessibility pass:**
   - **Automated HTML checks in pytest across every page:**
     - every input has a label
@@ -605,7 +635,6 @@ One dashboard, shared by all staff and the Admin.
 - **Security and privacy:**
   - `check --deploy` is clean, with security headers and a CSP
   - no personal data in URLs or logs
-- **Data load:** a CSV import command for existing volunteers and their trainings (decided, Q17).
 - **Hosting move:** to Railway, with Railway Postgres and daily backups (Q15). Backups are verified by a test restore.
 - **Guides:** a one-page printable **staff guide** and **volunteer guide** in large type with screenshots.
 - **Pilot launch:** 10 volunteers and 4 staff.
@@ -689,6 +718,7 @@ Contrast is measured against the background `#FAF7F2` unless stated.
   - A specific message appears only where the person can fix it themselves ("Please enter a 10-digit phone number").
   - Otherwise: "Something went wrong. Please try again, or call the shelter at {phone}." plus the `SC-###` code and reference.
   - A test checks templates and messages against the banned-word list.
+- **Approvals:** volunteers "ask to join" a shift; staff "approve" or "say no" on **Shift approvals**.
 
 ### Navigation
 - **Volunteers:** header links **Home · Find a shift · My profile**, plus **Sign out**.
@@ -788,7 +818,11 @@ Each question names the phase that needs the answer and the default Claude will 
 | Q14 | Phase 8 | SMS | ✅ **Decided:** email only until an SMS provider is chosen |
 | Q15 | Phase 9 | Pilot database | ✅ **Decided:** Railway Postgres with daily backups |
 | Q16 | — | Applications and denials | ✅ **Decided:** not in the app for now (possible future feature; denied details anonymized after 12 months) |
-| Q17 | Phase 9 | Loading existing data | ✅ **Decided:** CSV import |
+| Q17 | Phase 9 | Loading existing data | ✅ **Decided:** CSV import of the volunteer spreadsheet (saved from Excel as CSV UTF-8). Training is in a separate sheet and staff record it in the app instead. |
 | Q18 | Phase 0 | Logo and colours | ✅ **Decided:** neutral palette; the shelter's name in text |
 | Q19 | Phase 0 | Shelter phone and email | ✅ **Decided:** placeholder in settings until provided |
 | Q20 | Phase 3 | Which activities need training before someone can sign up? | ✅ **Decided:** it's set **per shift** with a "This shift needs training" tick box and a choice of which training, so some special events can need it and others not. Staff keep the list of trainings. The demo starts with Orientation, Dog walking, Cat enrichment, Dog kennel cleaning and Cat cage cleaning. |
+| Q21 | Phase 9 | The spreadsheet's inactive volunteers | ✅ **Decided:** they can still sign in, but need approval from staff to take a shift |
+| Q22 | Phase 9 | How approval works | ✅ **Decided:** a Shift approvals section for staff; large events can need approval for everyone |
+| Q23 | Phase 9 | The spreadsheet's Minor column | ✅ **Decided:** a Minor flag staff can see; it doesn't change who can sign up |
+| Q24 | Phase 9 | The spreadsheet's job columns and Test column | ✅ **Decided:** jobs are assignments, brought in as skills (not training); Test isn't needed |

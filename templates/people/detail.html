@@ -33,6 +33,10 @@
       <dt>Birthday</dt><dd>{% if profile.birthday_month %}{{ profile.birthday_month|month_name }} {{ profile.birthday_day }}{% else %}Not given{% endif %}</dd>
       <dt>Skills</dt><dd>{% for skill in profile.skills.all %}{{ skill.name }}{% if not forloop.last %}, {% endif %}{% empty %}None chosen{% endfor %}</dd>
       <dt>Shift reminders</dt><dd>{% if profile.wants_reminders %}On{% else %}Turned off{% endif %}</dd>
+      {% if person.role == "volunteer" %}
+        <dt>Minor</dt><dd>{% if profile.is_minor %}Yes, under 18{% else %}No{% endif %}</dd>
+        <dt>Taking shifts</dt><dd>{% if profile.needs_approval %}Needs approval for every shift{% else %}Signs up on their own{% endif %}</dd>
+      {% endif %}
       <dt>No-training shifts</dt><dd>{% if profile.no_training_eligible %}Yes, can sign up{% else %}Not yet{% endif %}</dd>
       {% if profile.staff_notes %}<dt>Notes for staff</dt><dd>{{ profile.staff_notes|linebreaksbr }}</dd>{% endif %}
     </dl>

@@ -17,4 +17,9 @@
   {% include "components/field.html" with field=form.emergency_contact_relationship %}
 </fieldset>
 {% include "components/choices.html" with field=form.skills %}
+<fieldset class="form-section">
+  <legend>Taking shifts</legend>
+  {% include "components/checkbox.html" with field=form.is_minor %}
+  {% include "components/checkbox.html" with field=form.needs_approval %}
+</fieldset>
 {% include "components/field.html" with field=form.staff_notes %}

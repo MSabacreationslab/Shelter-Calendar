@@ -96,6 +96,15 @@ Then, in the same window:
   .venv\Scripts\python manage.py send_birthday_emails
   ```
   `send_reminders` emails everyone about tomorrow's shifts; on a Sunday it first sends next week's list to anyone with 4 or more shifts. Both take `--date` too.
+- Load the shelter's volunteer spreadsheet (from Phase 9). In Excel choose **File → Save As → CSV UTF-8**, and save it **outside the project folder** (it has people's details; git ignores spreadsheets anyway). First a preview, which changes nothing:
+  ```powershell
+  .venv\Scripts\python manage.py import_volunteers "C:\Users\you\Documents\volunteers.csv"
+  ```
+  It lists how many people it would add, who needs approval, the minors, the jobs it found, and every row it would skip or that's worth a look (with row numbers). Fix anything in the spreadsheet, save as CSV again, and repeat. When it looks right, add `--save`:
+  ```powershell
+  .venv\Scripts\python manage.py import_volunteers "C:\Users\you\Documents\volunteers.csv" --save
+  ```
+  Nobody is emailed. Record each person's training in the app (Training, or their page), then use **Email a new welcome link** on their page when they're ready to start. Running it again skips anyone already added, so it's safe to repeat with new rows.
 
 Close the window when you're done, so the settings don't linger. `DEBUG` here only affects the command on your computer, not the site.
 

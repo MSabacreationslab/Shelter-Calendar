@@ -1,7 +1,7 @@
 """Fill the test site with fake people, training and a month of shifts (DEMO_MODE only)."""
 
 import os
-from datetime import time, timedelta
+from datetime import datetime, time, timedelta
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
@@ -81,6 +81,7 @@ class Command(BaseCommand):
         self._training(volunteers, types, lead)
         shifts = self._schedule(types, lead)
         signups = self._signups(volunteers)
+        self._approval_examples(volunteers, lead)
         self.stdout.write(
             f"Created {created} demo people and {shifts} shifts, with {signups} sign-ups. "
             "Everyone's PIN is DEMO_PIN."
@@ -163,3 +164,31 @@ class Command(BaseCommand):
                         count += not result.already
                         break
         return count
+
+    def _approval_examples(self, volunteers, lead):
+        """A large event that needs approval, someone asking to join it, a volunteer who
+        needs approval for every shift, and a minor (Phase 9)."""
+        ready = [p for p in volunteers if eligibility.may_take_untrained_shifts(p)]
+        asker, returning = ready[0], ready[-1]
+        minor = volunteers[0].profile
+        minor.is_minor = True
+        minor.save(update_fields=["is_minor"])
+        returning.profile.needs_approval = True
+        returning.profile.save(update_fields=["needs_approval"])
+        today = timezone.localdate()
+        saturday = today + timedelta(days=(5 - today.weekday()) % 7 or 7)
+        event = Shift.objects.filter(title="Adoption event", local_date=saturday).first()
+        if event is None:
+            event = planning.create_shift(
+                {
+                    "title": "Adoption event",
+                    "kind": ShiftKind.REGULAR,
+                    "starts_at": timezone.make_aware(datetime.combine(saturday, time(11))),
+                    "ends_at": timezone.make_aware(datetime.combine(saturday, time(15))),
+                    "capacity": 10,
+                    "needs_approval": True,
+                    "notes": "Meet at the front desk.",
+                },
+                by=lead,
+            )
+        booking.ask_to_join(asker, event)

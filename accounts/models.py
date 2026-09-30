@@ -162,6 +162,13 @@ class VolunteerProfile(models.Model):
     wants_reminders = models.BooleanField(
         default=True, help_text="Email reminders before their shifts (they can turn these off)."
     )
+    is_minor = models.BooleanField(
+        default=False, help_text="Under 18. Staff see it; it doesn't change what they can take."
+    )
+    needs_approval = models.BooleanField(
+        default=False,
+        help_text="Staff approve each shift they ask for. They can still sign in.",
+    )
     added_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,

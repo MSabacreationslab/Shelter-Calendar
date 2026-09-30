@@ -24,6 +24,7 @@ PATTERN_COPY_FIELDS = [
     "kind",
     "teaches",
     "required_training",
+    "needs_approval",
     "notes",
 ]
 

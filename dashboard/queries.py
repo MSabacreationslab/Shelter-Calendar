@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from accounts.models import SetupLink, Status, User
 from scheduling.models import Shift, ShiftStatus, Signup, SignupStatus, WaitlistStatus
+from scheduling.services import waiting_requests
 
 RECENT = timedelta(days=7)
 SOON = timedelta(days=7)
@@ -31,7 +32,7 @@ def today(now=None):
     people = {}
     for signup in Signup.objects.filter(
         shift__in=shifts, status=SignupStatus.CONFIRMED
-    ).select_related("volunteer"):
+    ).select_related("volunteer", "volunteer__profile"):
         people.setdefault(signup.shift_id, []).append(signup.volunteer)
     for shift in shifts:
         shift.people = sorted(people.get(shift.pk, []), key=lambda p: p.get_full_name())
@@ -53,6 +54,12 @@ def cancellations(now=None):
         .select_related("shift", "volunteer")
         .order_by("-was_urgent", "shift__starts_at")
     )
+
+
+def waiting_approvals(now=None):
+    """How many people are asking to join shifts that need approval, and the first few."""
+    waiting = waiting_requests(now)
+    return waiting.count(), list(waiting[:LIST_LIMIT])
 
 
 def short_shifts(now=None):

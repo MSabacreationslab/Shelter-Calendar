@@ -19,7 +19,8 @@
               {% with here=request.resolver_match %}
                 <li><a href="{% url 'home' %}"{% if here.url_name == 'home' %} aria-current="page"{% endif %}>Home</a></li>
                 {% if user|can:"view_dashboard" %}
-                  {% if user|can:"view_full_schedule" %}<li><a href="{% url 'scheduling:week' %}"{% if here.namespace == 'scheduling' %} aria-current="page"{% endif %}>Schedule</a></li>{% endif %}
+                  {% if user|can:"view_full_schedule" %}<li><a href="{% url 'scheduling:week' %}"{% if here.namespace == 'scheduling' and here.url_name != 'approvals' %} aria-current="page"{% endif %}>Schedule</a></li>{% endif %}
+                  {% if user|can:"approve_signups" %}<li><a href="{% url 'scheduling:approvals' %}"{% if here.url_name == 'approvals' %} aria-current="page"{% endif %}>Approvals</a></li>{% endif %}
                   {% if user|can:"record_training" %}<li><a href="{% url 'training:overview' %}"{% if here.namespace == 'training' %} aria-current="page"{% endif %}>Training</a></li>{% endif %}
                   {% if user|can:"view_reports" %}<li><a href="{% url 'reports:report' %}"{% if here.namespace == 'reports' %} aria-current="page"{% endif %}>Reports</a></li>{% endif %}
                   {% if user|can:"view_contacts" %}<li><a href="{% url 'people:list' %}"{% if here.namespace == 'people' and here.url_name != 'profile' %} aria-current="page"{% endif %}>Volunteers</a></li>{% endif %}

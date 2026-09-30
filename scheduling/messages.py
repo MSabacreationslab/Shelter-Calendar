@@ -45,6 +45,12 @@ def explain(result: Result, *, shift=None, person=None) -> str:
         return f"The new time would overlap other shifts for: {_names(result.people)}."
     if problem == Problem.MISSING_TRAINING:
         return f"These people don't have that training yet: {_names(result.people)}."
+    if problem == Problem.NEEDS_APPROVAL:
+        return "The volunteer team approves sign-ups for this shift, so please ask to join it."
+    if problem == Problem.NO_APPROVAL_NEEDED:
+        return "You can sign up for this shift yourself."
+    if problem == Problem.ALREADY_ANSWERED:
+        return "Someone has already answered this request."
     if problem == Problem.NOT_ELIGIBLE:
         return _ineligible(result.reason, shift, who, person is not None)
     return "Something went wrong. Please try again."

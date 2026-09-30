@@ -30,6 +30,21 @@
     </section>
   {% endif %}
 
+  {% if asked %}
+    <h2>Waiting for the volunteer team</h2>
+    <p>You've asked to join these shifts. We'll email you when the team answers.</p>
+    <ul class="shift-cards">
+      {% for signup_request in asked %}
+        {% with shift=signup_request.shift %}
+          <li class="shift-card">
+            {% if readonly %}<span class="shift-card__title">{{ shift.title }}</span>{% else %}<a class="shift-card__title" href="{% url 'shifts:shift' shift.pk %}">{{ shift.title }}</a>{% endif %}
+            <span>{% include "volunteer/_shift_when.html" %}</span>
+          </li>
+        {% endwith %}
+      {% endfor %}
+    </ul>
+  {% endif %}
+
   <h2>{{ month }}</h2>
   {% include "volunteer/_calendar.html" %}
 

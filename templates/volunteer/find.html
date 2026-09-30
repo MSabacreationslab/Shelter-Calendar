@@ -13,7 +13,11 @@
             <span>{{ shift.starts_at|clock }} – {{ shift.ends_at|clock }}</span>
             <span>{{ shift.spots }} spot{{ shift.spots|pluralize }} left</span>
             <span class="shift-card__actions">
-              <a class="btn btn--primary" href="{% url 'shifts:sign_up' shift.pk %}">Sign up<span class="visually-hidden"> for {{ shift.title }}, {{ day|long_date }}</span></a>
+              {% if shift.ask_first %}
+                <a class="btn btn--primary" href="{% url 'shifts:ask' shift.pk %}">Ask to join<span class="visually-hidden"> {{ shift.title }}, {{ day|long_date }}</span></a>
+              {% else %}
+                <a class="btn btn--primary" href="{% url 'shifts:sign_up' shift.pk %}">Sign up<span class="visually-hidden"> for {{ shift.title }}, {{ day|long_date }}</span></a>
+              {% endif %}
               <a class="btn btn--secondary" href="{% url 'shifts:shift' shift.pk %}">See details<span class="visually-hidden">: {{ shift.title }}, {{ day|long_date }}</span></a>
             </span>
           </li>

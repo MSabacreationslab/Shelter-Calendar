@@ -85,6 +85,17 @@ class VolunteerDetailsForm(AccessibleFormMixin, forms.Form):
         help_text="Only staff see these.",
         widget=forms.Textarea(attrs={"rows": 3}),
     )
+    is_minor = forms.BooleanField(
+        label="Minor (under 18)",
+        required=False,
+        help_text="Staff see this on shift lists. It doesn't change what they can sign up for.",
+    )
+    needs_approval = forms.BooleanField(
+        label="Needs approval for every shift",
+        required=False,
+        help_text="For someone who hasn't volunteered lately. They can still sign in, and each "
+        "shift they ask for waits on Shift approvals.",
+    )
 
     def __init__(self, *args, person=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -188,6 +199,8 @@ def details_initial(person) -> dict:
         "birthday_day": profile.birthday_day or "",
         "skills": list(profile.skills.all()),
         "staff_notes": profile.staff_notes,
+        "is_minor": profile.is_minor,
+        "needs_approval": profile.needs_approval,
     }
 
 

@@ -13,6 +13,7 @@
       <dt>When</dt><dd>{{ shift.starts_at|long_date }}, {{ shift.starts_at|clock }} – {{ shift.ends_at|clock }}</dd>
       {% if shift.holiday_name %}<dt>Holiday</dt><dd>{{ shift.holiday_name }}</dd>{% endif %}
       <dt>People</dt><dd>{{ signups|length }} of {{ shift.capacity }}{% if spots_left %} ({{ spots_left }} open){% endif %}</dd>
+      {% if shift.needs_approval %}<dt>Sign-ups</dt><dd>Staff approve each one</dd>{% endif %}
       <dt>Training</dt><dd>{% if shift.kind == "training" %}This session teaches {{ shift.teaches.name }}{% elif shift.required_training %}Needs {{ shift.required_training.name }}{% else %}None needed{% endif %}</dd>
       {% if shift.notes %}<dt>Notes</dt><dd>{{ shift.notes|linebreaksbr }}</dd>{% endif %}
     </dl>
@@ -23,7 +24,7 @@
     <ul class="plain-list">
       {% for signup in signups %}
         <li class="plain-list__item">
-          <span><a href="{% url 'people:detail' signup.volunteer.pk %}">{{ signup.volunteer.get_full_name }}</a>, <a href="tel:{{ signup.volunteer.phone|tel }}">{{ signup.volunteer.phone|phone }}</a>{% if signup.conflict_reported_at %} <span class="badge">Says this time doesn't work</span>{% endif %}</span>
+          <span><a href="{% url 'people:detail' signup.volunteer.pk %}">{{ signup.volunteer.get_full_name }}</a>{% if signup.volunteer.profile.is_minor %} <span class="badge">Minor</span>{% endif %}, <a href="tel:{{ signup.volunteer.phone|tel }}">{{ signup.volunteer.phone|phone }}</a>{% if signup.conflict_reported_at %} <span class="badge">Says this time doesn't work</span>{% endif %}</span>
           {% if can_assign and upcoming %}<span class="plain-list__actions"><a href="{% url 'scheduling:remove' shift.pk signup.pk %}">Take off<span class="visually-hidden"> {{ signup.volunteer.get_full_name }}</span></a></span>{% endif %}
         </li>
       {% endfor %}
@@ -58,6 +59,29 @@
     {% if spots_left and can_waitlist %}<p class="field__hint">There's a spot open. Moving someone on emails them the good news.</p>{% endif %}
   {% else %}
     <p>Nobody is waiting.</p>
+  {% endif %}
+
+  {% if asking or shift.needs_approval %}
+    <h2>Asking to join</h2>
+    {% if asking %}
+      <ul class="plain-list">
+        {% for signup_request in asking %}
+          {% with person=signup_request.volunteer %}
+            <li class="plain-list__item">
+              <span><a href="{% url 'people:detail' person.pk %}">{{ person.get_full_name }}</a>{% if person.profile.is_minor %} <span class="badge">Minor</span>{% endif %}, asked on {{ signup_request.created_at|long_date }}</span>
+              {% if can_approve and upcoming %}
+                <span class="plain-list__actions">
+                  <form method="post" action="{% url 'scheduling:approve' signup_request.pk %}">{% csrf_token %}<input type="hidden" name="back" value="shift"><button type="submit" class="link-button">Approve<span class="visually-hidden"> {{ person.get_full_name }}</span></button></form>
+                  <a href="{% url 'scheduling:decline' signup_request.pk %}?back=shift">Say no<span class="visually-hidden"> to {{ person.get_full_name }}</span></a>
+                </span>
+              {% endif %}
+            </li>
+          {% endwith %}
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Nobody is waiting for approval.</p>
+    {% endif %}
   {% endif %}
 
   {% if shift.kind == "training" and can_record %}
