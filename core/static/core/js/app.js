@@ -73,4 +73,15 @@
       if (none) none.hidden = shown !== 0;
     });
   });
+
+  // A field that only matters when a box is ticked (e.g. "Which training?") hides otherwise.
+  document.querySelectorAll("[data-shown-by]").forEach(function (block) {
+    var box = document.getElementById(block.dataset.shownBy);
+    if (!box) return;
+    var sync = function () {
+      block.hidden = !box.checked;
+    };
+    box.addEventListener("change", sync);
+    sync();
+  });
 })();

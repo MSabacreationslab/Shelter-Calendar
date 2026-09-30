@@ -11,6 +11,9 @@
 {% if form.repeat_until %}{% include "components/field.html" with field=form.repeat_until %}{% endif %}
 {% include "components/field.html" with field=form.capacity %}
 {% include "components/choices.html" with field=form.kind %}
-{% include "components/field.html" with field=form.required_training %}
+{% include "components/checkbox.html" with field=form.needs_training %}
+<div data-shown-by="{{ form.needs_training.id_for_label }}">
+  {% include "components/field.html" with field=form.required_training %}
+</div>
 {% include "components/field.html" with field=form.teaches %}
 {% include "components/field.html" with field=form.notes %}

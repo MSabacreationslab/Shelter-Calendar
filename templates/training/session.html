@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Record {{ shift.teaches.name }}{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Record who came" lead=shift.teaches.name back_url="/training/" back_label="Training" %}
+  <p>{{ shift.starts_at|long_date }}, {{ shift.starts_at|clock }} – {{ shift.ends_at|clock }}</p>
+  {% if not_started %}
+    {% include "components/notice.html" with kind="warning" message="This session hasn't happened yet. Only record it once people have finished it." %}
+  {% endif %}
+  {% if recorded %}
+    <p>Already recorded: {% for person in recorded %}{{ person.get_full_name }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+  {% endif %}
+  {% if form.errors %}{% include "components/notice.html" with kind="error" title="Please fix the highlighted boxes" message=form.non_field_errors.0 %}{% endif %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "components/choices.html" with field=form.attended %}
+    {% include "components/field.html" with field=form.also_came %}
+    <div class="inline-fields">
+      {% include "components/field.html" with field=form.completed_on %}
+      {% include "components/field.html" with field=form.trainer %}
+    </div>
+    {% include "components/field.html" with field=form.notes %}
+    <div class="actions">
+      <button type="submit" class="btn btn--primary">Save: they've done {{ shift.teaches.name }}</button>
+      <a class="btn btn--secondary" href="{% url 'training:overview' %}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

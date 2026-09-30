@@ -34,7 +34,7 @@ VOLUNTEERS = [
     ("Indigo", "Example"),
     ("Jordan", "Example"),
 ]
-# SPEC Q20's proposed default until the shelter confirms the list.
+# A starting list for the test site; staff can add, rename or turn off trainings (Q20).
 TRAINING_TYPES = [
     ("Orientation", True),
     ("Dog walking", False),

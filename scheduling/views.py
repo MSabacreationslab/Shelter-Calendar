@@ -122,6 +122,7 @@ def shift_detail(request, pk):
             "can_assign": has_capability(request.user, "assign_volunteers"),
             "can_manage": has_capability(request.user, "manage_shifts"),
             "can_waitlist": has_capability(request.user, "manage_waitlist"),
+            "can_record": has_capability(request.user, "record_training"),
             "upcoming": shift.status == ShiftStatus.SCHEDULED and shift.starts_at > timezone.now(),
         },
     )
@@ -298,7 +299,7 @@ def add_pattern(request, pk):
     week_obj = get_object_or_404(TemplateWeek, pk=pk)
     form = PatternForm(post_data(request), initial={"weekday": request.GET.get("day", 0)})
     if request.method == "POST" and form.is_valid():
-        planning.add_pattern({**form.cleaned_data, "template_week": week_obj}, by=request.user)
+        planning.add_pattern({**form.model_data(), "template_week": week_obj}, by=request.user)
         messages.success(
             request, "Repeating shift added. Use Fill the schedule to create the shifts."
         )
@@ -331,7 +332,7 @@ def edit_pattern(request, pk):
     )
     to_review = None
     if request.method == "POST" and form.is_valid():
-        to_review = planning.update_pattern(pattern, form.cleaned_data, by=request.user)
+        to_review = planning.update_pattern(pattern, form.model_data(), by=request.user)
         if not to_review:
             messages.success(request, "Saved. Future shifts from it are updated.")
             return _back_to(pattern)

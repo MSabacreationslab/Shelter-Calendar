@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Recorded by mistake?{% endblock %}
+{% block content %}
+  {% url 'people:detail' record.volunteer_id as back %}
+  {% include "components/page_header.html" with title="Recorded by mistake?" back_url=back back_label=record.volunteer.get_full_name %}
+  <div class="card">
+    <dl class="summary">
+      <dt>Person</dt><dd>{{ record.volunteer.get_full_name }}</dd>
+      <dt>Training</dt><dd>{{ record.training_type.name }}</dd>
+      <dt>Date</dt><dd>{{ record.completed_on|long_date }}, {{ record.completed_on.year }}</dd>
+    </dl>
+  </div>
+  <p>It won't be deleted. It'll be marked as a mistake and kept in the history, and it will stop counting for shifts that need this training.</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "components/field.html" with field=form.reason %}
+    <div class="actions">
+      <button type="submit" class="btn btn--danger">Mark it as a mistake</button>
+      <a class="btn btn--secondary" href="{{ back }}">No, keep it</a>
+    </div>
+  </form>
+{% endblock %}

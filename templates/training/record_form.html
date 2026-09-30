@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Add training someone has done{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Add training someone has done" lead="For training done outside a session in the app, such as before the app existed." back_url="/training/" back_label="Training" %}
+  {% if form.errors %}{% include "components/notice.html" with kind="error" title="Please fix the highlighted boxes" %}{% endif %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "components/field.html" with field=form.person %}
+    {% include "components/field.html" with field=form.training_type %}
+    <div class="inline-fields">
+      {% include "components/field.html" with field=form.completed_on %}
+      {% include "components/field.html" with field=form.trainer %}
+    </div>
+    {% include "components/field.html" with field=form.notes %}
+    <div class="actions"><button type="submit" class="btn btn--primary">Save</button></div>
+  </form>
+{% endblock %}

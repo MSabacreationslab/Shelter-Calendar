@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Training{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Training" %}
+  <div class="actions actions--top">
+    <a class="btn btn--secondary" href="{% url 'training:add_record' %}">Add training someone has done</a>
+    <a class="btn btn--secondary" href="{% url 'scheduling:add_shift' %}">Add a training session</a>
+  </div>
+
+  <h2>Sessions to record</h2>
+  {% if past %}
+    <ul class="plain-list">
+      {% for s in past %}
+        <li class="plain-list__item">
+          <span><strong>{{ s.teaches.name }}</strong>, {{ s.starts_at|long_date }}: {{ s.people }} signed up, {{ s.recorded }} recorded</span>
+          <span class="plain-list__actions"><a href="{% url 'training:session' s.pk %}">Record who came<span class="visually-hidden">: {{ s.teaches.name }}, {{ s.starts_at|long_date }}</span></a></span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No sessions in the last 30 days.</p>
+  {% endif %}
+
+  <h2>Coming up</h2>
+  {% if upcoming %}
+    <ul class="plain-list">
+      {% for s in upcoming %}
+        <li class="plain-list__item">
+          <span><strong>{{ s.teaches.name }}</strong>, {{ s.starts_at|long_date }} at {{ s.starts_at|clock }}: {{ s.people }} of {{ s.capacity }} signed up</span>
+          <span class="plain-list__actions"><a href="{% url 'scheduling:shift' s.pk %}">See the session<span class="visually-hidden">: {{ s.teaches.name }}, {{ s.starts_at|long_date }}</span></a></span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No sessions in the next two months. Add one with <strong>Add a training session</strong> and choose "Training session".</p>
+  {% endif %}
+
+  <h2>Trainings</h2>
+  <ul class="plain-list">
+    {% for row in types %}
+      <li class="plain-list__item">
+        <span><strong>{{ row.type.name }}</strong>{% if row.type.is_orientation %} (orientation){% endif %}{% if not row.type.active %} <span class="badge">Off the list</span>{% endif %}: {{ row.trained }} done, {{ row.waiting }} still need it</span>
+        {% if can_manage %}
+          <span class="plain-list__actions">
+            <a href="{% url 'training:rename_type' row.type.pk %}">Rename<span class="visually-hidden"> {{ row.type.name }}</span></a>
+            <form method="post" action="{% url 'training:toggle_type' row.type.pk %}">{% csrf_token %}<button type="submit" class="link-button">{% if row.type.active %}Take off the list{% else %}Put back on the list{% endif %}<span class="visually-hidden"> {{ row.type.name }}</span></button></form>
+          </span>
+        {% endif %}
+      </li>
+    {% empty %}
+      <li class="plain-list__item">No trainings yet.</li>
+    {% endfor %}
+  </ul>
+  {% if can_manage %}
+    <h2>Add a training</h2>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% include "components/field.html" with field=form.name %}
+      {% if form.is_orientation %}{% include "components/checkbox.html" with field=form.is_orientation %}{% endif %}
+      <div class="actions"><button type="submit" class="btn btn--primary">Add to the list</button></div>
+    </form>
+  {% endif %}
+{% endblock %}

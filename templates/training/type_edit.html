@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Rename {{ training_type.name }}{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Rename a training" lead="Everyone's records and every shift that needs it keep pointing at it." back_url="/training/" back_label="Training" %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "components/field.html" with field=form.name %}
+    <div class="actions">
+      <button type="submit" class="btn btn--primary">Save</button>
+      <a class="btn btn--secondary" href="{% url 'training:overview' %}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

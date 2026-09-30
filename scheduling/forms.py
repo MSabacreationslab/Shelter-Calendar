@@ -30,6 +30,21 @@ def _date_input():
     return forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")
 
 
+def _tick_if_training_needed(form):
+    """When editing, the box starts ticked if the shift already needs a training."""
+    if "needs_training" not in form.initial:
+        form.initial["needs_training"] = bool(form.initial.get("required_training"))
+
+
+def _clean_training_choice(form, data):
+    """Ticked needs a training chosen; unticked means no training, whatever the list says."""
+    if data.get("needs_training"):
+        if not data.get("required_training"):
+            form.add_error("required_training", "Please choose which training this shift needs.")
+    else:
+        data["required_training"] = None
+
+
 class ShiftFieldsForm(AccessibleFormMixin, forms.Form):
     """What every shift has: title, times, capacity, and its training rules."""
 
@@ -59,11 +74,16 @@ class ShiftFieldsForm(AccessibleFormMixin, forms.Form):
     kind = forms.ChoiceField(
         label="Type", choices=ShiftKind.choices, initial=ShiftKind.REGULAR, widget=forms.RadioSelect
     )
+    needs_training = forms.BooleanField(
+        label="This shift needs training",
+        required=False,
+        help_text="Leave it unticked if anyone who has done orientation can sign up.",
+    )
     required_training = forms.ModelChoiceField(
-        label="Training needed to sign up",
+        label="Which training?",
         queryset=TrainingType.objects.none(),
         required=False,
-        empty_label="None: anyone who's done orientation",
+        empty_label="Choose a training",
     )
     teaches = forms.ModelChoiceField(
         label="For a training session: what it teaches",
@@ -82,6 +102,7 @@ class ShiftFieldsForm(AccessibleFormMixin, forms.Form):
         active = TrainingType.objects.filter(active=True)
         self.fields["required_training"].queryset = active
         self.fields["teaches"].queryset = active
+        _tick_if_training_needed(self)
 
     def clean(self):
         """End after start; training sessions say what they teach."""
@@ -93,9 +114,15 @@ class ShiftFieldsForm(AccessibleFormMixin, forms.Form):
             if not data.get("teaches"):
                 self.add_error("teaches", "Please choose what this session teaches.")
             data["required_training"] = None
+            data["needs_training"] = False
         else:
             data["teaches"] = None
+            _clean_training_choice(self, data)
         return data
+
+    def model_data(self) -> dict:
+        """The cleaned fields a shift or pattern stores (the tick box only guides the form)."""
+        return {k: v for k, v in self.cleaned_data.items() if k != "needs_training"}
 
 
 class PatternForm(ShiftFieldsForm):
@@ -191,11 +218,16 @@ class EditShiftForm(AccessibleFormMixin, forms.Form):
     start_time = forms.TimeField(label="Starts", widget=_time_input())
     end_time = forms.TimeField(label="Ends", widget=_time_input())
     capacity = forms.IntegerField(label="How many people", min_value=1, max_value=50)
+    needs_training = forms.BooleanField(
+        label="This shift needs training",
+        required=False,
+        help_text="Leave it unticked if anyone who has done orientation can sign up.",
+    )
     required_training = forms.ModelChoiceField(
-        label="Training needed to sign up",
+        label="Which training?",
         queryset=TrainingType.objects.filter(active=True),
         required=False,
-        empty_label="None: anyone who's done orientation",
+        empty_label="Choose a training",
     )
     notes = forms.CharField(
         label="Notes for volunteers", required=False, widget=forms.Textarea(attrs={"rows": 2})
@@ -206,6 +238,9 @@ class EditShiftForm(AccessibleFormMixin, forms.Form):
         self.shift = shift
         if shift and shift.kind == ShiftKind.TRAINING:
             del self.fields["required_training"]
+            del self.fields["needs_training"]
+        else:
+            _tick_if_training_needed(self)
 
     def clean(self):
         """End after start."""
@@ -216,6 +251,8 @@ class EditShiftForm(AccessibleFormMixin, forms.Form):
             and data["end_time"] <= data["start_time"]
         ):
             self.add_error("end_time", "The end time needs to be after the start time.")
+        if "needs_training" in self.fields:
+            _clean_training_choice(self, data)
         return data
 
     def changes(self) -> dict:
