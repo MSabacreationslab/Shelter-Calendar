@@ -43,7 +43,11 @@ class SettingsForm(AccessibleFormMixin, forms.Form):
     urgent_threshold_hours = forms.TypedChoiceField(
         label="A cancellation is urgent when it's less than",
         coerce=int,
-        choices=[(24, "24 hours before the shift"), (48, "48 hours before the shift")],
+        choices=[
+            (24, "24 hours before the shift"),
+            (48, "48 hours before the shift"),
+            (72, "72 hours before the shift"),
+        ],
         help_text="Urgent cancellations email the notify list straight away.",
     )
     notify_emails = forms.CharField(

@@ -14,9 +14,10 @@ class ShelterSettings(models.Model):
     self_cancel_hours = models.PositiveSmallIntegerField(
         default=24, help_text="Volunteers can cancel on their own until this many hours before."
     )
+    # 72 hours during testing, at the shelter's request, so staff get more notice.
     urgent_threshold_hours = models.PositiveSmallIntegerField(
-        default=24,
-        choices=[(24, "24 hours"), (48, "48 hours")],
+        default=72,
+        choices=[(24, "24 hours"), (48, "48 hours"), (72, "72 hours")],
         help_text="A cancellation this close to the shift is urgent.",
     )
     notify_emails = models.TextField(
