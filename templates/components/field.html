@@ -1,0 +1,7 @@
+{# Usage: include "components/field.html" with field=form.name. Forms should use core.forms.AccessibleFormMixin. #}
+<div class="field{% if field.errors %} field--error{% endif %}">
+  <label for="{{ field.id_for_label }}">{{ field.label }}{% if not field.field.required %} <span class="field__optional">(optional)</span>{% endif %}</label>
+  {% if field.help_text %}<p class="field__hint" id="{{ field.auto_id }}_hint">{{ field.help_text }}</p>{% endif %}
+  {% if field.errors %}<p class="field__error" id="{{ field.auto_id }}_error"><span aria-hidden="true">&#9888;</span> {{ field.errors.0 }}</p>{% endif %}
+  {{ field }}
+</div>

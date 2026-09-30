@@ -1,0 +1,8 @@
+{# Usage: include "components/notice.html" with kind="success|warning|error|info" title="..." message="..." #}
+<div class="notice notice--{{ kind|default:'info' }}" role="{% if kind == 'error' %}alert{% else %}status{% endif %}">
+  <span class="notice__icon" aria-hidden="true">{% if kind == 'success' %}&#10003;{% elif kind == 'warning' %}!{% elif kind == 'error' %}&#9888;{% else %}i{% endif %}</span>
+  <div>
+    {% if title %}<p class="notice__title">{{ title }}</p>{% endif %}
+    {% if message %}<p>{{ message }}</p>{% endif %}
+  </div>
+</div>

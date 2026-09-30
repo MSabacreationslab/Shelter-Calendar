@@ -1,0 +1,6 @@
+{# Usage: include "components/page_header.html" with title="..." lead="..." back_url=... back_label="..." #}
+<div class="page-header">
+  {% if back_url %}<a class="page-header__back" href="{{ back_url }}">&larr; {{ back_label|default:"Back" }}</a>{% endif %}
+  <h1>{{ title }}</h1>
+  {% if lead %}<p class="page-header__lead">{{ lead }}</p>{% endif %}
+</div>

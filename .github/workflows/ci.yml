@@ -1,58 +1,68 @@
-# Basic CI workflow for this repo.
-# Learning reference: this file defines a GitHub Actions workflow, which
-# runs automated jobs in response to repo events (like pushes or PRs).
-
 name: CI
 
-# "on" defines the events that trigger this workflow.
+# Any PR (so stacked phase PRs are checked too) and every push to main.
 on:
-  # Run on every push, to any branch.
-  push:
-  # Also run on every pull request that targets the main branch.
   pull_request:
-    branches:
-      - main
+  push:
+    branches: [main]
 
-# "jobs" defines the units of work the workflow performs.
-# Each job runs in its own fresh virtual machine.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # The job id must stay "build": the protect-main ruleset requires a check with that name.
   build:
-    # The type of virtual machine to run the job on.
     runs-on: ubuntu-latest
-
-    # "steps" are the sequence of tasks executed within the job.
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: shelter
+          POSTGRES_PASSWORD: shelter
+          POSTGRES_DB: shelter
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U shelter"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DJANGO_IGNORE_DOTENV: "1"
+      DATABASE_URL: postgres://shelter:shelter@localhost:5432/shelter
+      SECRET_KEY: ci-only-not-a-real-secret
     steps:
-      # Checks out this repository's code so later steps can access it.
-      - name: Check out repository code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      # Installs and configures Python 3.13 on the runner.
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements*.txt
 
-      # Installs the project's Python dependencies listed in requirements.txt.
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: Install
+        run: pip install -r requirements-dev.txt
 
-      # Compiles every .py file in the repo to catch basic syntax errors,
-      # without actually running the code.
-      - name: Run basic Python syntax check
-        run: python -m py_compile $(find . -name "*.py")
+      - name: Lint
+        run: ruff check .
 
-      # Runs the test suite with pytest, writing results to a JUnit XML
-      # report instead of just printing pass/fail to the console. JUnit XML
-      # is a standard format that other tools (dashboards, PR annotations,
-      # the artifact we upload below) can parse.
-      - name: Run tests with structured output
+      - name: Format
+        run: ruff format --check .
+
+      - name: Django checks
+        run: python manage.py check
+
+      - name: Migrations match models
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Tests
         run: pytest --junitxml=test-results.xml
 
-      # Uploads the JUnit XML report as a workflow artifact so it can be
-      # downloaded/inspected after the run, even from a failed build.
-      # "if: always()" makes this step run regardless of whether earlier
-      # steps (like the test run) failed. Without it, a test failure would
-      # skip this step and we'd lose the very report that explains why.
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()

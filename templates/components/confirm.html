@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{# A confirmation step before anything that changes a schedule.
+   Context: title, lead, summary (list of (label, value) pairs), confirm_label, cancel_url, cancel_label, danger (bool). #}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title=title lead=lead %}
+  {% if summary %}
+    <div class="card">
+      <dl class="summary">
+        {% for label, value in summary %}<dt>{{ label }}</dt><dd>{{ value }}</dd>{% endfor %}
+      </dl>
+    </div>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+    {% block hidden_fields %}{% endblock %}
+    <div class="actions">
+      <button type="submit" class="btn {% if danger %}btn--danger{% else %}btn--primary{% endif %}">{{ confirm_label }}</button>
+      <a class="btn btn--secondary" href="{{ cancel_url }}">{{ cancel_label|default:"No, go back" }}</a>
+    </div>
+  </form>
+{% endblock %}

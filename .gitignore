@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project
+staticfiles/
+test-results.xml
+.claude/launch.json

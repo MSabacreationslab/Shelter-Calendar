@@ -80,6 +80,23 @@ with a clear explanation of what failed and why it doesn't match a known pattern
 - Comments explain *why*, briefly. No tutorial-style or "learning reference"
   annotations in code or workflow files.
 
+## Commands
+
+- Tests: `.venv/Scripts/python -m pytest` (needs Postgres and `.env`; see docs/setup.md)
+- Lint/format: `.venv/Scripts/ruff check .` and `.venv/Scripts/ruff format .`
+- Without a local Postgres, set `DATABASE_URL=postgres://u:p@127.0.0.1:5432/x?connect_timeout=2`
+  so commands fail fast instead of hanging (Windows waits forever on `localhost`).
+
 ## Phase Decisions
 
-(None yet. Add a "Phase N decisions" list here as each phase is built.)
+**Phase 0**
+- One `config/settings.py`, all from env. `.env` is read unless `DJANGO_IGNORE_DOTENV=1`
+  (CI and the settings tests set it). DEBUG is off unless set.
+- Shelter name/phone/email come from env (`SHELTER_*`) until Phase 1's `ShelterSettings`.
+  With no phone set, pages say "ask a member of the volunteer team" (no fake number).
+- Every request gets a 6-character reference (`X-Request-Ref`, error pages, `ref=` in logs).
+  Error codes live in `core/errors.py` and must be documented in docs/error-codes.md.
+- `/styleguide/` shows every component; only with DEBUG or DEMO_MODE.
+- Fonts: system stack for now. Self-hosting Atkinson Hyperlegible Next is waiting on Mike's
+  OK to download the font files.
+- Tests guard the design rules: token contrast pairs, banned technical words in templates.
