@@ -1,13 +1,12 @@
 """The morning birthday run (Railway cron runs it daily at 8 AM on the pilot)."""
 
-from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from core.commands import parse_date_option
+from core.commands import ReportedCommand, parse_date_option
 from notifications.reminders import send_birthdays
 
 
-class Command(BaseCommand):
+class Command(ReportedCommand):
     help = "Email a happy-birthday thank-you to everyone whose birthday is today."
 
     def add_arguments(self, parser):

@@ -3,7 +3,7 @@
 {% block title %}Change log{% endblock %}
 {% block main_width %}wrap--wide{% endblock %}
 {% block content %}
-  {% include "components/page_header.html" with title="Change log" lead="Every change anyone made, newest first. Nothing here can be edited or deleted." back_url="/" back_label="Dashboard" %}
+  {% include "components/page_header.html" with title="Change log" lead="Every change anyone made, newest first. Nothing here can be edited or deleted." back_url="/admin/" back_label="Admin" %}
   <form method="get" class="inline-form" novalidate>
     {% include "components/field.html" with field=form.person %}
     {% include "components/field.html" with field=form.start %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Hotspots{% endblock %}
+{% block main_width %}wrap--wide{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Hotspots" lead="What people do most, the paths they repeat, and where they get stuck: places a shortcut or a clearer screen would help. Only you can see this page." back_url="/admin/" back_label="Admin" %}
+  {% include "insights/_period.html" %}
+
+  <section class="section" aria-labelledby="hot-pages">
+    <h2 id="hot-pages">Most opened pages</h2>
+    <p class="muted">The pages people use most. These are worth making fastest and simplest.</p>
+    {% if pages %}
+      <table class="bars">
+        <thead><tr><th scope="col">Page</th><th scope="col">Times opened (people)</th></tr></thead>
+        <tbody>{% for row in pages %}<tr><th scope="row">{{ row.name }}</th><td><span class="bar" style="width: {{ row.bar }}%"></span> {{ row.visits }} ({{ row.people }})</td></tr>{% endfor %}</tbody>
+      </table>
+    {% else %}<p class="muted">Nothing recorded yet.</p>{% endif %}
+  </section>
+
+  <section class="section" aria-labelledby="hot-actions">
+    <h2 id="hot-actions">Most common actions</h2>
+    <p class="muted">From the change log. Something done very often may deserve a shortcut on the dashboard or home page.</p>
+    {% if actions %}
+      <table class="bars">
+        <thead><tr><th scope="col">Action</th><th scope="col">Times</th></tr></thead>
+        <tbody>{% for row in actions %}<tr><th scope="row">{{ row.name }}</th><td><span class="bar" style="width: {{ row.bar }}%"></span> {{ row.n }}</td></tr>{% endfor %}</tbody>
+      </table>
+    {% else %}<p class="muted">Nothing recorded yet.</p>{% endif %}
+  </section>
+
+  <section class="section" aria-labelledby="hot-paths">
+    <h2 id="hot-paths">Common next steps</h2>
+    <p class="muted">Where people go from each page. A path taken again and again could become a direct link or button.</p>
+    {% if paths %}
+      <ul class="plain-list">{% for row in paths %}<li class="plain-list__item"><span>{{ row.from_name }} <span aria-hidden="true">&rarr;</span><span class="visually-hidden"> then </span> {{ row.to_name }}</span><span>{{ row.n }} time{{ row.n|pluralize }}</span></li>{% endfor %}</ul>
+    {% else %}<p class="muted">Nothing recorded yet.</p>{% endif %}
+  </section>
+
+  <section class="section" aria-labelledby="hot-forms">
+    <h2 id="hot-forms">Forms people had trouble with</h2>
+    <p class="muted">Forms that came back with something to fix. A high share means the form or its words could be clearer.</p>
+    {% if forms %}
+      <ul class="plain-list">{% for row in forms %}<li class="plain-list__item"><span>{{ row.name }}</span><span>{{ row.problems }} of {{ row.sent }} tries ({{ row.rate }}%)</span></li>{% endfor %}</ul>
+    {% else %}<p class="muted">No forms have come back with a problem.</p>{% endif %}
+  </section>
+
+  <section class="section" aria-labelledby="hot-repeats">
+    <h2 id="hot-repeats">Going back and forth</h2>
+    <p class="muted">Pages someone opened 3 or more times within 10 minutes. Often a sign they were looking for something they couldn't find.</p>
+    {% if repeats %}
+      <ul class="plain-list">{% for row in repeats %}<li class="plain-list__item"><span>{{ row.name }}</span><span>{{ row.times }} time{{ row.times|pluralize }}, {{ row.people }} {% if row.people == 1 %}person{% else %}people{% endif %}</span></li>{% endfor %}</ul>
+    {% else %}<p class="muted">Nobody has gone back and forth.</p>{% endif %}
+  </section>
+
+  <section class="section" aria-labelledby="hot-slow">
+    <h2 id="hot-slow">Slowest pages</h2>
+    <p class="muted">Average and worst time to load, for pages opened at least 5 times. The test site sleeps when nobody's using it, so the first page after a quiet spell is always slow.</p>
+    {% if slow %}
+      <ul class="plain-list">{% for row in slow %}<li class="plain-list__item"><span>{{ row.name }}</span><span>{{ row.average|floatformat:0 }} ms on average, {{ row.worst }} ms at worst</span></li>{% endfor %}</ul>
+    {% else %}<p class="muted">Not enough visits yet.</p>{% endif %}
+  </section>
+{% endblock %}

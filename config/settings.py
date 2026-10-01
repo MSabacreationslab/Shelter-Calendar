@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "notifications",
     "dashboard",
     "reports",
+    "insights",
 ]
 
 MIDDLEWARE = [
@@ -63,6 +64,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # After sign-in, so each visit knows the person's role.
+    "insights.middleware.UsageMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -156,6 +159,9 @@ DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "we
 SHELTER_NAME = os.environ.get("SHELTER_NAME", "Humane Society of Madison County")
 SHELTER_PHONE = os.environ.get("SHELTER_PHONE", "")
 SHELTER_EMAIL = os.environ.get("SHELTER_EMAIL", "")
+
+# Who gets problem alerts (insights/problems.py). Empty means every active Admin's email.
+PROBLEM_EMAILS = env_list("PROBLEM_EMAILS", [])
 
 # The public address, for links in emails and printed setup links.
 SITE_URL = os.environ.get("SITE_URL") or (

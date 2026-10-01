@@ -9,6 +9,7 @@
   <h1>{{ error.title }}</h1>
   <p>{{ error.message }}</p>
   <p><a href="/">Go to the home page</a></p>
-  <p>If this keeps happening, tell the volunteer team code <strong>{{ error.code }}</strong>, reference <strong>{{ ref }}</strong>.</p>
+  {% if admin_told %}<p>We've let the admin know automatically, so you don't need to report it.</p>{% endif %}
+  <p>Reference: {{ ref }}</p>
 </body>
 </html>

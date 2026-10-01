@@ -106,6 +106,12 @@ Then, in the same window:
   ```
   Nobody is emailed. Record each person's training in the app (Training, or their page), then use **Email a new welcome link** on their page when they're ready to start. Running it again skips anyone already added, so it's safe to repeat with new rows.
 
+- Problem alerts (from Phase 9): they go to your Admin account's email. To send them somewhere else, set `PROBLEM_EMAILS` in Render (comma-separated). Check they arrive with **Admin → Problems → Send me a test alert**.
+- Clean up old page visits and problems (the pilot runs this daily):
+  ```powershell
+  .venv\Scripts\python manage.py prune_usage
+  ```
+
 Close the window when you're done, so the settings don't linger. `DEBUG` here only affects the command on your computer, not the site.
 
 ## 4. Gmail (sends the app's emails)

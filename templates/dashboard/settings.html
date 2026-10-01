@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Settings{% endblock %}
 {% block content %}
-  {% include "components/page_header.html" with title="Shelter settings" lead="Only the Admin can change these. Every change goes in the change log." back_url="/" back_label="Dashboard" %}
+  {% include "components/page_header.html" with title="Shelter settings" lead="Only the Admin can change these. Every change goes in the change log." back_url="/admin/" back_label="Admin" %}
   {% if form.errors %}{% include "components/notice.html" with kind="error" title="Please fix the highlighted boxes" %}{% endif %}
   <form method="post" novalidate>
     {% csrf_token %}

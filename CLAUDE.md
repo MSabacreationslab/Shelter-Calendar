@@ -212,3 +212,11 @@ with a clear explanation of what failed and why it doesn't match a known pattern
 - `{# #}` notes must fit on one line (Django prints longer ones); use `{% comment %}` otherwise.
   A test checks every template.
 
+**Phase 9, part 1b (Admin area, usage, problem alerts)**
+- Staff areas live on `/admin/` (`dashboard.views.ADMIN_SECTIONS`); the menu marks "Admin" for the
+  namespaces in `core.context_processors.ADMIN_AREAS`. New staff pages go in a section there.
+- `insights.middleware.UsageMiddleware` records page *names* only; it must never break a page.
+- Errors go through `core.views._error_page` → `insights.problems.report()`, which never raises.
+  Scheduled commands subclass `core.commands.ReportedCommand` so crashes alert the Admin.
+- Error pages show no SC codes; every code needs `admin_note` and a row in docs/error-codes.md.
+

@@ -2,15 +2,15 @@
 
 from datetime import timedelta
 
-from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from accounts.models import LoginAttempt
+from core.commands import ReportedCommand
 
 KEEP_FOR = timedelta(days=90)
 
 
-class Command(BaseCommand):
+class Command(ReportedCommand):
     help = "Delete sign-in attempts older than 90 days."
 
     def handle(self, *args, **options):

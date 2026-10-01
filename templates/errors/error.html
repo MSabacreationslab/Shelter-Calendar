@@ -3,11 +3,9 @@
 {% block content %}
   <h1>{{ error.title }}</h1>
   <p>{{ error.message }}</p>
+  {% if admin_told %}<p>We've let the admin know automatically, so you don't need to report it.</p>{% endif %}
   <div class="actions">
     <a class="btn btn--primary" href="{% url 'home' %}">Go to the home page</a>
   </div>
-  <p class="error-code">
-    {% if shelter.phone %}If this keeps happening, call the shelter at <a href="tel:{{ shelter.phone_link }}">{{ shelter.phone }}</a> and mention{% else %}If this keeps happening, tell the volunteer team{% endif %}
-    code <strong>{{ error.code }}</strong>, reference <strong>{{ ref }}</strong>.
-  </p>
+  <p class="error-code">{% if shelter.phone %}Need help now? Call the shelter at <a href="tel:{{ shelter.phone_link }}">{{ shelter.phone }}</a>. {% endif %}Reference: {{ ref }}</p>
 {% endblock %}

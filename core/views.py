@@ -71,10 +71,16 @@ def styleguide(request):
     )
 
 
-def _error_page(request, error: errors.ErrorCode, status: int) -> HttpResponse:
-    """Render the friendly error page, falling back to plain HTML if even that fails."""
+def _error_page(request, error: errors.ErrorCode, status: int, summary="") -> HttpResponse:
+    """Record the problem (and alert the Admin), then show a short, friendly page.
+
+    Falls back to plain HTML if even the page fails.
+    """
+    from insights import problems
+
+    told = problems.report(error, request=request, status=status, summary=summary)
     ref = getattr(request, "ref", "-")
-    context = {"error": error, "ref": ref}
+    context = {"error": error, "ref": ref, "admin_told": told}
     try:
         return render(request, "errors/error.html", context, status=status)
     except Exception:
@@ -86,7 +92,7 @@ def _error_page(request, error: errors.ErrorCode, status: int) -> HttpResponse:
 
 def bad_request(request, exception=None):
     """400: the request didn't make sense."""
-    return _error_page(request, errors.BAD_REQUEST, 400)
+    return _error_page(request, errors.BAD_REQUEST, 400, summary=str(exception or "")[:300])
 
 
 def permission_denied(request, exception=None):
@@ -96,7 +102,7 @@ def permission_denied(request, exception=None):
 
 def page_not_found(request, exception=None):
     """404: no such page."""
-    return _error_page(request, errors.PAGE_NOT_FOUND, 404)
+    return _error_page(request, errors.PAGE_NOT_FOUND, 404, summary=f"Nothing at {request.path}")
 
 
 def server_error(request):
@@ -107,4 +113,4 @@ def server_error(request):
 def csrf_failure(request, reason=""):
     """403 from a stale or missing form token, usually a page left open too long."""
     logger.warning("Form check failed: %s", reason)
-    return _error_page(request, errors.FORM_EXPIRED, 403)
+    return _error_page(request, errors.FORM_EXPIRED, 403, summary=reason)

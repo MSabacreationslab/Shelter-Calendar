@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block main_width %}wrap--wide{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Admin" lead="Everything for running the schedule, in one place." %}
+  <div class="hub">
+    {% for section in sections %}
+      <section class="hub__section" aria-labelledby="hub-{{ forloop.counter }}">
+        <h2 class="hub__title" id="hub-{{ forloop.counter }}">{{ section.title }}</h2>
+        <p class="muted">{{ section.about }}</p>
+        <ul class="hub__links">
+          {% for link in section.links %}
+            <li><a href="{{ link.url }}">{{ link.label }}</a>{% if link.note %} {% include "components/status.html" with kind="pending" label=link.note %}{% endif %}</li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endfor %}
+  </div>
+{% endblock %}

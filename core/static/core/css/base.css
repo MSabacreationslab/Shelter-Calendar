@@ -1153,3 +1153,115 @@ main:focus {
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
 }
+
+/* Admin page: one card per area */
+
+.hub {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: var(--space-4);
+}
+.hub__section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4) var(--space-5);
+}
+.hub__title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-h3);
+}
+.hub__links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.hub__links li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tap);
+  border-top: 1px solid var(--color-border);
+}
+.hub__links a {
+  font-weight: 700;
+}
+
+/* Usage, Hotspots and Problems */
+
+.period {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+.period a[aria-current="true"] {
+  background: var(--color-role-soft, var(--color-background-deep));
+  border-color: var(--color-role, var(--color-text-primary));
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0 0 var(--space-5);
+  padding: 0;
+}
+.stat {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+.stat__number {
+  display: block;
+  font-size: var(--text-h1);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.bars {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--space-5);
+}
+.bars th,
+.bars td {
+  padding: var(--space-1) var(--space-3) var(--space-1) 0;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: middle;
+}
+.bars thead th {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+.bars tbody th {
+  font-weight: 400;
+  width: 40%;
+}
+/* The bar is decoration; the number beside it carries the meaning. */
+.bar {
+  display: inline-block;
+  height: 0.75rem;
+  max-width: 70%;
+  margin-right: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-text-secondary);
+  vertical-align: middle;
+}
+.problem__details {
+  flex: 1 1 100%;
+}
+.problem__details pre {
+  overflow-x: auto;
+  max-height: 20rem;
+  padding: var(--space-3);
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

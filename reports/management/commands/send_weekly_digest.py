@@ -1,12 +1,10 @@
 """Email next week's schedule to staff (Railway cron runs it Sundays at 6 PM on the pilot)."""
 
-from django.core.management.base import BaseCommand
-
-from core.commands import parse_date_option
+from core.commands import ReportedCommand, parse_date_option
 from reports.senders import send_weekly_digest
 
 
-class Command(BaseCommand):
+class Command(ReportedCommand):
     help = "Email the Sunday digest (next week's schedule) to the notify list."
 
     def add_arguments(self, parser):

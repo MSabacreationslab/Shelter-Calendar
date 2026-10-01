@@ -8,6 +8,10 @@ from django.db import DatabaseError
 
 logger = logging.getLogger(__name__)
 
+# Pages under these URL namespaces sit behind the Admin menu item (people too, except
+# My profile, which the menu handles itself).
+ADMIN_AREAS = ("scheduling", "training", "reports", "dashboard", "insights")
+
 
 def shelter_details() -> dict:
     """Name and contact details from the settings row, or env defaults if the database is down."""
@@ -34,4 +38,4 @@ def shelter(request):
     details = getattr(request, "_shelter_details", None)
     if details is None:
         details = request._shelter_details = shelter_details()
-    return {"shelter": details, "demo_mode": settings.DEMO_MODE}
+    return {"shelter": details, "demo_mode": settings.DEMO_MODE, "admin_areas": ADMIN_AREAS}
