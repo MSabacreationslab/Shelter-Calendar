@@ -6,11 +6,21 @@ import re
 from django.conf import settings
 from django.db import DatabaseError
 
+from core.phones import format_phone, normalize_phone
+
 logger = logging.getLogger(__name__)
 
 # Pages under these URL namespaces sit behind the Admin menu item (people too, except
 # My profile, which the menu handles itself).
 ADMIN_AREAS = ("scheduling", "training", "reports", "dashboard", "insights")
+
+
+def _shown(phone: str) -> str:
+    """Settings keep the number as typed; show "(614) 555-0100" however it was entered."""
+    try:
+        return format_phone(normalize_phone(phone))
+    except ValueError:
+        return phone
 
 
 def shelter_details() -> dict:
@@ -26,7 +36,7 @@ def shelter_details() -> dict:
         name, phone, email = settings.SHELTER_NAME, settings.SHELTER_PHONE, settings.SHELTER_EMAIL
     return {
         "name": name,
-        "phone": phone,
+        "phone": _shown(phone),
         # tel: links need digits only, or phones won't dial them.
         "phone_link": re.sub(r"[^\d+]", "", phone),
         "email": email,

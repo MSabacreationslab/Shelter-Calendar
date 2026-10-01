@@ -41,6 +41,18 @@ def test_footer_shows_phone_as_a_dialable_link_when_set(client):
     assert "(740) 555-0100" in html
 
 
+@pytest.mark.parametrize("typed", ["6148798368", "614.879.8368", "1-614-879-8368"])
+def test_footer_phone_is_shown_the_same_way_however_it_was_typed(client, typed):
+    ShelterSettings.objects.create(pk=1, shelter_name="Test Shelter", shelter_phone=typed)
+    html = client.get("/sign-in/").content.decode()
+    assert "(614) 879-8368" in html
+
+
+def test_footer_keeps_a_number_it_cannot_tidy(client):
+    ShelterSettings.objects.create(pk=1, shelter_name="Test Shelter", shelter_phone="ext. 12")
+    assert "ext. 12" in client.get("/sign-in/").content.decode()
+
+
 def test_footer_without_phone_points_to_volunteer_team(client):
     ShelterSettings.objects.create(pk=1, shelter_name="Test Shelter", shelter_phone="")
     html = client.get("/sign-in/").content.decode()
