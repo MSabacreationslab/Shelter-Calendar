@@ -42,6 +42,14 @@ def send(template_key: str, *, to: str, context: dict, related_user=None) -> Ema
         )
         log.error = f"{type(exc).__name__}: {exc}"[:300]
         log.save(update_fields=["error"])
+        from core import errors
+        from insights import problems
+
+        problems.report(
+            errors.EMAIL_FAILED,
+            route=f"email: {template_key}",
+            summary=f"To user {getattr(related_user, 'pk', '-')}: {log.error}",
+        )
         return log
     log.sent_at = timezone.now()
     log.save(update_fields=["sent_at"])

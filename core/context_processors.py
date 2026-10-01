@@ -10,6 +10,10 @@ from core.phones import format_phone, normalize_phone
 
 logger = logging.getLogger(__name__)
 
+# Pages under these URL namespaces sit behind the Admin menu item (people too, except
+# My profile, which the menu handles itself).
+ADMIN_AREAS = ("scheduling", "training", "reports", "dashboard", "insights")
+
 
 def _shown(phone: str) -> str:
     """Settings keep the number as typed; show "(614) 555-0100" however it was entered."""
@@ -44,4 +48,4 @@ def shelter(request):
     details = getattr(request, "_shelter_details", None)
     if details is None:
         details = request._shelter_details = shelter_details()
-    return {"shelter": details, "demo_mode": settings.DEMO_MODE}
+    return {"shelter": details, "demo_mode": settings.DEMO_MODE, "admin_areas": ADMIN_AREAS}

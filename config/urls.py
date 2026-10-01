@@ -16,6 +16,7 @@ urlpatterns = [
     path("", include("training.urls")),
     path("", include("dashboard.urls")),
     path("", include("reports.urls")),
+    path("", include("insights.urls")),
     # Emergency backend for the Admin only; never part of a staff workflow.
     path("django-admin/", admin.site.urls),
 ]

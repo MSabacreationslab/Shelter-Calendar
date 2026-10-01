@@ -2,7 +2,7 @@
 {% load formatting %}
 {% block title %}Staff{% endblock %}
 {% block content %}
-  {% include "components/page_header.html" with title="Staff" lead="All staff can do the same things; the job title is just a label." back_url="/" back_label="Dashboard" %}
+  {% include "components/page_header.html" with title="Staff" lead="All staff can do the same things; the job title is just a label." back_url="/admin/" back_label="Admin" %}
   <div class="actions actions--top"><a class="btn btn--primary" href="{% url 'dashboard:add_staff' %}">Add a staff member</a></div>
   {% if staff %}
     <ul class="people-list">

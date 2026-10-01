@@ -106,7 +106,7 @@ Code checks **capabilities**, never role names. Role names appear in exactly one
 | `manage_shifts`, `assign_volunteers`, `manage_waitlist`, `approve_signups`, `record_training`, `manage_trainings` | – | ✓ | ✓ |
 | `add_volunteers`, `edit_volunteers`, `reset_volunteer_pin`, `view_reports` | – | ✓ | ✓ |
 | `manage_staff`: add staff, change job titles, deactivate staff, send a staff member a new PIN link (never an Admin account) | – | ✓ | ✓ |
-| `edit_settings`, Django admin | – | – | ✓ |
+| `edit_settings`, `view_usage` (Usage, Hotspots, Problems), Django admin | – | – | ✓ |
 
 ¹ Staff and the Admin can sign up for shifts they're trained for, under the same eligibility rules as volunteers (decided, Q3).
 
@@ -621,6 +621,24 @@ Split into two PRs because the shelter's spreadsheet added features (decided 202
   - Nothing is emailed and no links are made. **Training isn't in the spreadsheet**: staff record it in the app, then send each person's welcome link from their page ("Email a new welcome link").
   - All-or-nothing; each person gets "Added from the volunteer spreadsheet" in the change log.
 
+**Part 1b: the Admin area, usage and problem alerts** (decided 2026-09-30)
+- **One Admin page for staff areas:** the staff menu is just **Dashboard · Admin · My shifts · My profile**. `/admin/` has a card per area (Shift approvals with its waiting count, Schedule, Volunteers, Training, Reports and history, Staff), each link shown by capability. The Admin's own card ("Admin only") holds Shelter settings, Usage, Hotspots, Problems and the Backend.
+- **Usage** (Admin only): people active today, this week and in the period (by role); pages opened; sign-ins and wrong PINs; sign-ups and cancellations; phones vs computers; busiest hours; day by day. 7, 30 or 90 days.
+- **Hotspots** (Admin only), for finding what to simplify:
+  - the most opened pages, and the most common actions (from the change log)
+  - common next steps (page → page)
+  - forms that came back with something to fix, and how often
+  - pages someone reopened 3+ times within 10 minutes (going back and forth)
+  - the slowest pages
+- **Page visits** (`insights.PageView`) store the page's *name* (like `shifts:shift`), the role, the device type, the previous page's name, timing, and whether a form came back with a problem. They never store addresses, ids or form contents. They're kept 90 days.
+- **Problems and alerts** (`insights.Problem`, `insights/problems.py`; codes in docs/error-codes.md):
+  - Every error page, failed email (SC-501) and crashed scheduled task (SC-106) is recorded.
+  - The Admin is emailed about anything that happened to a signed-in person, every server error, and every failed task or email. At most one email an hour goes out for the same code on the same page.
+  - Signed-out 400/403/404s are only recorded, because of bot noise.
+  - Alerts go to `PROBLEM_EMAILS`, or else every active Admin's email. Problems are kept a year.
+- **What people see on an error:** a plain title and sentence, "We've let the admin know automatically" when they did, a phone number, and a short reference. No SC codes.
+- `prune_usage` runs daily with the other clean-ups.
+
 **Part 2: accessibility, security, hosting, guides**
 - **Accessibility pass:**
   - **Automated HTML checks in pytest across every page:**
@@ -726,7 +744,7 @@ All colours live in `core/static/core/css/tokens.css` as `--color-*` tokens; not
 ### Navigation
 - **Header:** the shelter's name, then who is signed in with their role badge and a separate **Sign out** button, then the menu. Menu items look like buttons; the current page is tinted in the person's role colour.
 - **Volunteers:** **Home · Find a shift · My profile**.
-- **Staff:** **Dashboard · Schedule · Approvals · Training · Reports · Volunteers**, shown by capability, plus **My shifts · My profile**.
+- **Staff:** **Dashboard · Admin · My shifts · My profile**. Everything else is on the Admin page, in headed cards.
 - **No hamburger menus.** Links wrap onto a second line on small screens.
 - Every page has one clear **h1** and at most one primary button.
 

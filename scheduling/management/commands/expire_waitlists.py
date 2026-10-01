@@ -1,11 +1,10 @@
 """Close waitlist entries and unanswered requests for shifts that have started (daily)."""
 
-from django.core.management.base import BaseCommand
-
+from core.commands import ReportedCommand
 from scheduling.services import close_past_requests, expire_past_waitlists
 
 
-class Command(BaseCommand):
+class Command(ReportedCommand):
     help = "Close waitlist entries and unanswered requests for shifts that have started."
 
     def handle(self, *args, **options):

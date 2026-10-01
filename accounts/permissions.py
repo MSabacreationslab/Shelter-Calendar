@@ -37,7 +37,8 @@ STAFF = VOLUNTEER | {
     "view_reports",
     "manage_staff",
 }
-ADMIN = STAFF | {"edit_settings"}
+# The Admin's own tools: shelter settings, and the Usage, Hotspots and Problems pages.
+ADMIN = STAFF | {"edit_settings", "view_usage"}
 
 ROLE_CAPABILITIES = {
     Role.VOLUNTEER: VOLUNTEER,

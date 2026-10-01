@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Usage{% endblock %}
+{% block main_width %}wrap--wide{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Usage" lead="How much the app is being used, and when. Only you can see this page." back_url="/admin/" back_label="Admin" %}
+  {% include "insights/_period.html" %}
+
+  <ul class="stats">
+    <li class="stat"><span class="stat__number">{{ people_today }}</span> people used it today</li>
+    <li class="stat"><span class="stat__number">{{ people_week }}</span> people in the last 7 days</li>
+    <li class="stat"><span class="stat__number">{{ people }}</span> people in the last {{ days }} days: {{ volunteers }} volunteer{{ volunteers|pluralize }}, {{ staff }} staff</li>
+    <li class="stat"><span class="stat__number">{{ pages }}</span> pages opened</li>
+    <li class="stat"><span class="stat__number">{{ sign_ins }}</span> sign-ins{% if wrong_pins %}, {{ wrong_pins }} wrong PIN{{ wrong_pins|pluralize }}{% endif %}</li>
+    <li class="stat"><span class="stat__number">{{ signed_up }}</span> shift sign-ups, {{ cancelled }} cancelled by volunteers</li>
+  </ul>
+
+  <h2>Phones and computers</h2>
+  {% if devices %}
+    <ul class="plain-list">
+      {% for row in devices %}<li class="plain-list__item"><span>{{ row.device|capfirst }}</span><span>{{ row.share }}% ({{ row.n }} pages)</span></li>{% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">Nothing recorded yet.</p>
+  {% endif %}
+
+  <h2>Busiest times of day</h2>
+  <p class="muted">Pages opened in each hour, 6 AM to 10 PM.</p>
+  <table class="bars">
+    <caption class="visually-hidden">Pages opened by hour of the day</caption>
+    <thead><tr><th scope="col">Hour</th><th scope="col">Pages</th></tr></thead>
+    <tbody>
+      {% for row in hours %}
+        <tr><th scope="row">{% if row.hour == 0 %}12 AM{% elif row.hour < 12 %}{{ row.hour }} AM{% elif row.hour == 12 %}12 PM{% else %}{{ row.hour|add:"-12" }} PM{% endif %}</th>
+          <td><span class="bar" style="width: {{ row.bar }}%"></span> {{ row.n }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Day by day</h2>
+  <table class="data-table">
+    <caption class="visually-hidden">Use of the app on each day</caption>
+    <thead><tr><th scope="col">Day</th><th scope="col">People</th><th scope="col">Pages opened</th><th scope="col">Sign-ups</th><th scope="col">Cancellations</th></tr></thead>
+    <tbody>
+      {% for row in daily %}
+        <tr>
+          <th scope="row" data-label="Day">{{ row.day|friendly_date }}</th>
+          <td data-label="People">{{ row.people }}</td>
+          <td data-label="Pages opened"><span class="bar" style="width: {{ row.bar }}%"></span> {{ row.pages }}</td>
+          <td data-label="Sign-ups">{{ row.signed_up }}</td>
+          <td data-label="Cancellations">{{ row.cancelled }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Problems{% endblock %}
+{% block main_width %}wrap--wide{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Problems" lead="Every error the app has recorded. You're emailed about anything that happened to a signed-in person, every server error, and every failed email or task, at most once an hour for the same problem on the same page." back_url="/admin/" back_label="Admin" %}
+
+  <div class="card">
+    <p>{% if recipients %}Alerts go to: {{ recipients|join:", " }}.{% else %}<strong>Alerts can't be sent:</strong> no Admin has an email address and PROBLEM_EMAILS isn't set.{% endif %}</p>
+    <form method="post" action="{% url 'insights:test_alert' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn--secondary">Send me a test alert</button>
+    </form>
+  </div>
+
+  {% include "insights/_period.html" %}
+
+  {% if by_code %}
+    <h2>By code</h2>
+    <ul class="plain-list">
+      {% for row in by_code %}
+        <li class="plain-list__item"><span><strong>{{ row.code }}</strong> {{ row.title }}</span><span>{{ row.n }} time{{ row.n|pluralize }}</span></li>
+      {% endfor %}
+    </ul>
+
+    <h2>Latest</h2>
+    <ul class="plain-list">
+      {% for problem in latest %}
+        <li class="plain-list__item problem">
+          <span>
+            <strong>{{ problem.code }}</strong> {{ problem.route|default:"(no page)" }}{% if problem.emailed %} {% include "components/status.html" with kind="confirmed" label="Emailed" %}{% endif %}<br>
+            <span class="muted">{{ problem.at|friendly_date }}, {{ problem.at|clock }}{% if problem.user %} · {{ problem.user.get_full_name }} ({{ problem.user.get_role_display }}){% elif problem.method %} · not signed in{% endif %}{% if problem.ref %} · ref {{ problem.ref }}{% endif %}</span>
+            {% if problem.summary %}<br>{{ problem.summary }}{% endif %}
+          </span>
+          {% if problem.details %}
+            <details class="problem__details"><summary>Details</summary><pre>{{ problem.details }}</pre></details>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    {% if total > latest|length %}<p class="muted">Showing the latest {{ latest|length }} of {{ total }}.</p>{% endif %}
+  {% else %}
+    {% include "components/empty_state.html" with title="No problems recorded" message="Nothing has gone wrong in this time. Use the test alert above to check that emails reach you." %}
+  {% endif %}
+{% endblock %}

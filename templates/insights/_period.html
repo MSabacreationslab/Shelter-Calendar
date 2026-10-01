@@ -1,0 +1,4 @@
+<nav class="period" aria-label="How far back to look">
+  <span>Show the last</span>
+  {% for choice in periods %}<a class="btn btn--quiet" href="?days={{ choice }}"{% if choice == days %} aria-current="true"{% endif %}>{{ choice }} days</a>{% endfor %}
+</nav>

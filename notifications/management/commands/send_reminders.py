@@ -1,13 +1,12 @@
 """The evening reminder run (Railway cron runs it daily at 6 PM on the pilot)."""
 
-from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from core.commands import parse_date_option
+from core.commands import ReportedCommand, parse_date_option
 from notifications.reminders import send_reminders
 
 
-class Command(BaseCommand):
+class Command(ReportedCommand):
     help = "Email tomorrow's shift reminders (and on Sundays, next week's lists)."
 
     def add_arguments(self, parser):

@@ -6,6 +6,7 @@ from django.utils.html import escape
 
 from core import errors
 from core.models import ShelterSettings
+from insights.models import Problem
 
 pytestmark = pytest.mark.django_db
 
@@ -98,15 +99,18 @@ def test_styleguide_form_shows_plain_errors_linked_to_the_field(client, settings
         ("/test/boom/", 500, errors.SERVER_ERROR),
     ],
 )
-def test_error_pages_show_code_and_reference(path, status, error, settings):
+def test_error_pages_are_simple_and_the_problem_is_recorded(path, status, error, settings):
     settings.DEBUG = False
     client = Client(raise_request_exception=False)
     response = client.get(path)
     html = response.content.decode()
+    ref = response.headers["X-Request-Ref"]
     assert response.status_code == status
-    assert error.code in html
     assert escape(error.title) in html
-    assert response.headers["X-Request-Ref"] in html
+    assert f"Reference: {ref}" in html
+    # People see plain words; the code goes to the Admin.
+    assert error.code not in html
+    assert Problem.objects.get(ref=ref).code == error.code
 
 
 @pytest.mark.urls("tests.urls")
@@ -115,8 +119,8 @@ def test_expired_form_shows_friendly_page():
     response = client.post("/test/form/", {})
     html = response.content.decode()
     assert response.status_code == 403
-    assert errors.FORM_EXPIRED.code in html
     assert "open too long" in html
+    assert Problem.objects.filter(code=errors.FORM_EXPIRED.code).exists()
 
 
 @pytest.mark.urls("tests.urls")

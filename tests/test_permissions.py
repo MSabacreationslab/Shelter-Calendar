@@ -110,7 +110,7 @@ def test_backend_is_for_the_admin_only(client):
 
 def test_capability_tiers_nest():
     assert VOLUNTEER < STAFF < ADMIN == ALL_CAPABILITIES
-    assert ADMIN - STAFF == {"edit_settings"}
+    assert ADMIN - STAFF == {"edit_settings", "view_usage"}
 
 
 @pytest.mark.django_db

@@ -1,12 +1,10 @@
 """Email last month's summary to staff (Railway cron runs it on the 1st on the pilot)."""
 
-from django.core.management.base import BaseCommand
-
-from core.commands import parse_date_option
+from core.commands import ReportedCommand, parse_date_option
 from reports.senders import send_monthly_summary
 
 
-class Command(BaseCommand):
+class Command(ReportedCommand):
     help = "Email last month's summary to the notify list."
 
     def add_arguments(self, parser):

@@ -31,11 +31,8 @@
               {% with here=request.resolver_match %}
                 {% if user|can:"view_dashboard" %}
                   <li><a href="{% url 'home' %}"{% if here.url_name == 'home' and not here.namespace %} aria-current="page"{% endif %}>Dashboard</a></li>
-                  {% if user|can:"view_full_schedule" %}<li><a href="{% url 'scheduling:week' %}"{% if here.namespace == 'scheduling' and here.url_name != 'approvals' %} aria-current="page"{% endif %}>Schedule</a></li>{% endif %}
-                  {% if user|can:"approve_signups" %}<li><a href="{% url 'scheduling:approvals' %}"{% if here.url_name == 'approvals' %} aria-current="page"{% endif %}>Approvals</a></li>{% endif %}
-                  {% if user|can:"record_training" %}<li><a href="{% url 'training:overview' %}"{% if here.namespace == 'training' %} aria-current="page"{% endif %}>Training</a></li>{% endif %}
-                  {% if user|can:"view_reports" %}<li><a href="{% url 'reports:report' %}"{% if here.namespace == 'reports' %} aria-current="page"{% endif %}>Reports</a></li>{% endif %}
-                  {% if user|can:"view_contacts" %}<li><a href="{% url 'people:list' %}"{% if here.namespace == 'people' and here.url_name != 'profile' %} aria-current="page"{% endif %}>Volunteers</a></li>{% endif %}
+                  {# Every staff area lives on the Admin page, so the menu stays short. #}
+                  <li><a href="{% url 'dashboard:admin' %}"{% if here.namespace in admin_areas or here.namespace == 'people' and here.url_name != 'profile' %} aria-current="page"{% endif %}>Admin</a></li>
                   <li><a href="{% url 'shifts:home' %}"{% if here.namespace == 'shifts' %} aria-current="page"{% endif %}>My shifts</a></li>
                 {% else %}
                   <li><a href="{% url 'home' %}"{% if here.url_name == 'home' or here.url_name == 'day' %} aria-current="page"{% endif %}>Home</a></li>
@@ -44,10 +41,6 @@
                 <li><a href="{% url 'people:profile' %}"{% if here.url_name == 'profile' %} aria-current="page"{% endif %}>My profile</a></li>
               {% endwith %}
             {% endblock %}
-            {% if user|can:"edit_settings" %}
-              <li><a href="{% url 'dashboard:settings' %}"{% if request.resolver_match.url_name == 'settings' %} aria-current="page"{% endif %}>Settings</a></li>
-              <li><a href="{% url 'admin:index' %}">Backend</a></li>
-            {% endif %}
           </ul>
         </nav>
       {% endif %}
