@@ -4,12 +4,14 @@ import logging
 
 from django.conf import settings
 from django.http import Http404, HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
+from django.views.decorators.http import require_POST
 
 from accounts.models import Role, User
 from accounts.permissions import PUBLIC, SIGNED_IN, has_capability, requires
 from core import errors
+from core.context_processors import VOLUNTEER_VIEW, in_volunteer_view
 from core.forms import StyleguideForm, post_data
 
 logger = logging.getLogger(__name__)
@@ -17,14 +19,27 @@ logger = logging.getLogger(__name__)
 
 @requires(SIGNED_IN)
 def home(request):
-    """Volunteers land on their shift calendar; staff on their home page."""
-    if has_capability(request.user, "view_dashboard"):
+    """Volunteers land on their shift calendar; staff on their dashboard, unless they've
+    switched to the volunteer view."""
+    if has_capability(request.user, "view_dashboard") and not in_volunteer_view(request):
         from dashboard.views import dashboard
 
         return dashboard(request)
     from scheduling.volunteer_views import my_shifts
 
     return my_shifts(request)
+
+
+@requires("view_dashboard")
+@require_POST
+def switch_view(request):
+    """Staff flip between their own view and the volunteer view. It changes the menu and
+    home page only: permissions and booking rules are untouched."""
+    if request.POST.get("to") == "volunteer":
+        request.session[VOLUNTEER_VIEW] = True
+    else:
+        request.session.pop(VOLUNTEER_VIEW, None)
+    return redirect("home")
 
 
 @requires(PUBLIC)

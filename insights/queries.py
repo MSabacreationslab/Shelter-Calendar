@@ -23,6 +23,7 @@ TOP = 15
 # Plain names for the pages, so the Admin doesn't have to read route names.
 PAGE_NAMES = {
     "home": "Home (calendar or dashboard)",
+    "switch_view": "Switch between staff and volunteer view",
     "accounts:sign_in": "Sign in",
     "accounts:sign_out": "Sign out",
     "accounts:setup_pin": "Choose a PIN (setup link)",

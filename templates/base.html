@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="{% static 'core/css/tokens.css' %}">
   <link rel="stylesheet" href="{% static 'core/css/base.css' %}">
 </head>
-<body{% if user.is_authenticated %} data-role="{{ user.role }}"{% endif %}>
+<body{% if user.is_authenticated %} data-role="{% if volunteer_view %}volunteer{% else %}{{ user.role }}{% endif %}"{% endif %}>
   <a class="skip-link" href="#main">Skip to main content</a>
   <header class="site-header">
     <div class="wrap wrap--wide site-header__inner">
@@ -25,11 +25,11 @@
         {% endif %}
       </div>
       {% if user.is_authenticated %}
-        <nav class="site-nav" aria-label="Main">
+        <nav class="site-nav{% if user|can:"view_dashboard" and not volunteer_view %} site-nav--staff{% endif %}" aria-label="Main">
           <ul>
             {% block nav_links %}
               {% with here=request.resolver_match %}
-                {% if user|can:"view_dashboard" %}
+                {% if user|can:"view_dashboard" and not volunteer_view %}
                   <li><a href="{% url 'home' %}"{% if here.url_name == 'home' and not here.namespace %} aria-current="page"{% endif %}>Dashboard</a></li>
                   {# Every staff area lives on the Admin page, so the menu stays short. #}
                   <li><a href="{% url 'dashboard:admin' %}"{% if here.namespace in admin_areas or here.namespace == 'people' and here.url_name != 'profile' %} aria-current="page"{% endif %}>Admin</a></li>
@@ -47,6 +47,20 @@
     </div>
   </header>
   <main id="main" class="wrap {% block main_width %}{% endblock %}" tabindex="-1">
+    {% if volunteer_view %}
+      <div class="notice notice--warning" role="status">
+        <span class="notice__icon" aria-hidden="true">!</span>
+        <div>
+          <p class="notice__title">You're in the volunteer view</p>
+          <p>This is the menu and home page volunteers see, using your own account, so anything you sign up for is real.</p>
+          <form method="post" action="{% url 'switch_view' %}" class="notice__action">
+            {% csrf_token %}
+            <input type="hidden" name="to" value="staff">
+            <button type="submit" class="btn btn--secondary">Back to staff view</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
     {% for message in messages %}
       {% include "components/notice.html" with kind=message.tags message=message.message %}
     {% endfor %}

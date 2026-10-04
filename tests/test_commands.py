@@ -2,13 +2,14 @@ from datetime import timedelta
 from io import StringIO
 
 import pytest
+from django.core import mail
 from django.core.management import CommandError, call_command
 from django.utils import timezone
 
 from accounts import services
 from accounts.models import LoginAttempt, Role, User
 from core.models import AuditEvent
-from scheduling.models import Shift
+from scheduling.models import Shift, Signup, SignupStatus, WaitlistEntry
 from training.models import TrainingType
 
 pytestmark = pytest.mark.django_db
@@ -53,9 +54,22 @@ def test_seed_demo_fills_the_test_site_once(settings, monkeypatch, client):
     assert User.objects.filter(role=Role.VOLUNTEER).count() == 10
     assert TrainingType.objects.filter(is_orientation=True).count() == 1
     assert "Created 0" in _run("seed_demo")
+    # A lived-in schedule: four weeks of staffed shifts, a waitlist, requests and a cancellation.
+    confirmed = Signup.objects.filter(status=SignupStatus.CONFIRMED)
+    assert confirmed.count() >= 40
+    assert confirmed.values("volunteer").distinct().count() >= 8
+    assert WaitlistEntry.objects.exists()
+    assert (
+        Shift.objects.filter(starts_at__gt=timezone.now()).exclude(signups__isnull=False).exists()
+    )
     event = Shift.objects.get(title="Adoption event")
-    assert event.needs_approval and event.requests.count() == 1
-    assert User.objects.filter(profile__needs_approval=True).count() == 1
+    assert event.needs_approval and event.requests.count() == 2
+    jordan = User.objects.get(first_name="Jordan")
+    assert jordan.profile.needs_approval and jordan.signup_requests.count() == 2
+    assert not jordan.signups.exists()
+    assert User.objects.filter(profile__is_minor=True).count() == 1
+    assert Signup.objects.filter(was_urgent=True, status=SignupStatus.CANCELLED).count() == 1
+    assert not mail.outbox
     response = client.post("/sign-in/", {"name": "robin demo", "pin": DEMO_PIN})
     assert response.status_code == 302
 

@@ -8,6 +8,7 @@ from core import views as core_views
 urlpatterns = [
     path("", core_views.home, name="home"),
     path("healthz", core_views.healthz, name="healthz"),
+    path("switch-view/", core_views.switch_view, name="switch_view"),
     path("styleguide/", core_views.styleguide, name="styleguide"),
     path("", include("accounts.urls")),
     path("", include("accounts.people_urls")),

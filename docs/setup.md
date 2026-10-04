@@ -78,7 +78,7 @@ Then, in the same window:
   ```powershell
   .venv\Scripts\python manage.py create_admin "Your Name" you@example.com
   ```
-- Add demo people, training and shifts (from Phase 1; shifts from Phase 3). `DEMO_PIN` is the PIN every demo account gets:
+- Add demo people, training and four weeks of staffed shifts. `DEMO_PIN` is the PIN every demo account gets. It sends no emails, and running it again tops the schedule up to four weeks ahead:
   ```powershell
   $env:DEMO_MODE = "1"; $env:DEMO_PIN = "a 6-digit PIN"
   .venv\Scripts\python manage.py seed_demo

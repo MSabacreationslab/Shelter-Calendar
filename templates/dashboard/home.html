@@ -5,6 +5,12 @@
 {% block content %}
   <h1>Dashboard</h1>
   <p class="page-header__lead">Today at a glance, then anything that needs someone's attention.</p>
+  <form method="post" action="{% url 'switch_view' %}" class="view-switch">
+    {% csrf_token %}
+    <input type="hidden" name="to" value="volunteer">
+    <button type="submit" class="btn btn--quiet">See volunteer view</button>
+    <span class="muted">Shows the menu and home page volunteers get. You can switch back any time.</span>
+  </form>
 
   {% if urgent %}
     <section class="notice notice--error" aria-labelledby="urgent-heading">
