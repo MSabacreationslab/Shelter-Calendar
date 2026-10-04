@@ -13,8 +13,15 @@ from accounts.models import Role, Skill, User
 from accounts.pins import pin_problem
 from scheduling import generation, planning
 from scheduling import services as booking
-from scheduling.models import Shift, ShiftKind, TemplateWeek
-from training import eligibility
+from scheduling.models import (
+    Shift,
+    ShiftKind,
+    ShiftStatus,
+    Signup,
+    SignupStatus,
+    TemplateWeek,
+    WaitlistStatus,
+)
 from training.models import TrainingRecord, TrainingType
 
 STAFF = [
@@ -52,10 +59,27 @@ REGULAR_WEEK = [
     ("Orientation", [5], time(10, 30), time(12), 6, "Orientation", ShiftKind.TRAINING, 2),
 ]
 FILL_DAYS = 27
+# What each demo volunteer has done, besides orientation (which they've all had). Spread so
+# every kind of shift has a few people who can take it.
+DEMO_TRAINING = {
+    "Alex": ["Dog walking"],
+    "Blair": ["Dog walking", "Cat enrichment"],
+    "Charlie": ["Dog walking", "Dog kennel cleaning"],
+    "Dana": ["Cat enrichment", "Cat cage cleaning"],
+    "Emery": ["Dog walking", "Dog kennel cleaning"],
+    "Frankie": ["Cat enrichment", "Cat cage cleaning"],
+    "Gale": ["Dog walking", "Cat enrichment"],
+    "Harper": ["Cat enrichment", "Dog kennel cleaning"],
+    "Indigo": ["Dog walking", "Cat cage cleaning"],
+    "Jordan": ["Cat enrichment"],
+}
+MINOR = "Alex"
+NEEDS_APPROVAL = "Jordan"
+CANCEL_REASON = "Not feeling well today, sorry!"
 
 
 class Command(BaseCommand):
-    help = "Create demo staff, volunteers, training and a month of shifts. Safe to run again."
+    help = "Create demo staff and volunteers and four weeks of staffed shifts. Safe to run again."
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -82,6 +106,7 @@ class Command(BaseCommand):
         shifts = self._schedule(types, lead)
         signups = self._signups(volunteers)
         self._approval_examples(volunteers, lead)
+        self._cancellation_example(volunteers)
         self.stdout.write(
             f"Created {created} demo people and {shifts} shifts, with {signups} sign-ups. "
             "Everyone's PIN is DEMO_PIN."
@@ -114,15 +139,21 @@ class Command(BaseCommand):
         return created
 
     def _training(self, volunteers, types, lead):
+        """Everyone has done orientation and a couple of trainings; one is a minor and one
+        needs approval for every shift."""
         today = timezone.localdate()
-        for i, person in enumerate(volunteers):
-            done = ["Orientation", "Dog walking"] if i % 2 == 0 else ["Cat enrichment"]
-            for name in done:
+        for person in volunteers:
+            for name in ["Orientation", *DEMO_TRAINING[person.first_name]]:
                 TrainingRecord.objects.get_or_create(
                     volunteer=person,
                     training_type=types[name],
                     defaults={"completed_on": today, "trainer": lead, "signed_off_by": lead},
                 )
+            profile = person.profile
+            profile.no_training_eligible = True
+            profile.is_minor = person.first_name == MINOR
+            profile.needs_approval = person.first_name == NEEDS_APPROVAL
+            profile.save(update_fields=["no_training_eligible", "is_minor", "needs_approval"])
 
     def _schedule(self, types, lead) -> int:
         today = timezone.localdate()
@@ -154,27 +185,42 @@ class Command(BaseCommand):
         return generation.apply_fill(plan, by=lead) if plan.new else 0
 
     def _signups(self, volunteers) -> int:
+        """Fill the next four weeks so the schedule looks lived-in: most shifts one person
+        short, every fourth one full with someone waiting, and some left wide open."""
+        now = timezone.now()
+        regulars = [p for p in volunteers if p.first_name != NEEDS_APPROVAL]
+        shifts = Shift.objects.filter(
+            kind=ShiftKind.REGULAR,
+            status=ShiftStatus.SCHEDULED,
+            needs_approval=False,
+            starts_at__gt=now,
+            starts_at__lte=now + timedelta(days=FILL_DAYS + 1),
+        ).order_by("starts_at", "pk")
         count = 0
-        upcoming = list(Shift.objects.filter(starts_at__gt=timezone.now()).order_by("starts_at"))
-        for person in volunteers[:6]:
-            for shift in upcoming:
-                if eligibility.can_take(person, shift):
-                    result = booking.sign_up(person, shift)
-                    if result.ok:
-                        count += not result.already
+        for k, shift in enumerate(shifts):
+            if k % 5 == 4:
+                continue  # nobody yet, so "open spots" lists have something to show
+            full = k % 4 == 0
+            target = shift.capacity if full else max(shift.capacity - 1, 1)
+            turn = k % len(regulars)
+            queue = regulars[turn:] + regulars[:turn]
+            for person in queue:
+                if booking.confirmed_count(shift) >= target:
+                    break
+                result = booking.sign_up(person, shift)
+                count += result.ok and not result.already
+            waiting = shift.waitlist.filter(status=WaitlistStatus.WAITING).exists()
+            if full and not waiting and booking.confirmed_count(shift) >= shift.capacity:
+                for person in queue:
+                    if booking.join_waitlist(person, shift).entry:
                         break
         return count
 
     def _approval_examples(self, volunteers, lead):
-        """A large event that needs approval, someone asking to join it, a volunteer who
-        needs approval for every shift, and a minor (Phase 9)."""
-        ready = [p for p in volunteers if eligibility.may_take_untrained_shifts(p)]
-        asker, returning = ready[0], ready[-1]
-        minor = volunteers[0].profile
-        minor.is_minor = True
-        minor.save(update_fields=["is_minor"])
-        returning.profile.needs_approval = True
-        returning.profile.save(update_fields=["needs_approval"])
+        """A large event that needs approval with two people asking, one of them the
+        volunteer who needs approval for everything; they've also asked for a normal shift."""
+        by_name = {person.first_name: person for person in volunteers}
+        returning = by_name[NEEDS_APPROVAL]
         today = timezone.localdate()
         saturday = today + timedelta(days=(5 - today.weekday()) % 7 or 7)
         event = Shift.objects.filter(title="Adoption event", local_date=saturday).first()
@@ -191,4 +237,40 @@ class Command(BaseCommand):
                 },
                 by=lead,
             )
-        booking.ask_to_join(asker, event)
+        booking.ask_to_join(by_name["Blair"], event)
+        booking.ask_to_join(returning, event)
+        ordinary = Shift.objects.filter(
+            kind=ShiftKind.REGULAR,
+            status=ShiftStatus.SCHEDULED,
+            needs_approval=False,
+            starts_at__gt=timezone.now() + timedelta(days=2),
+        ).order_by("starts_at")
+        for shift in ordinary[:20]:
+            if booking.ask_to_join(returning, shift).ok:
+                break
+
+    def _cancellation_example(self, volunteers):
+        """One last-minute cancellation for the dashboard. Written directly rather than
+        through the booking service, so seeding never emails the notify list."""
+        now = timezone.now()
+        if Signup.objects.filter(cancel_reason=CANCEL_REASON, shift__starts_at__gt=now).exists():
+            return
+        signup = (
+            Signup.objects.filter(
+                status=SignupStatus.CONFIRMED,
+                volunteer__in=volunteers,
+                shift__starts_at__gt=now + timedelta(hours=2),
+                shift__starts_at__lte=now + timedelta(hours=48),
+            )
+            .order_by("shift__starts_at")
+            .first()
+        )
+        if signup is None:
+            return
+        signup.status = SignupStatus.CANCELLED
+        signup.cancelled_at = now
+        signup.cancelled_by = signup.volunteer
+        signup.cancel_reason = CANCEL_REASON
+        signup.is_late_cancel = True
+        signup.was_urgent = True
+        signup.save()

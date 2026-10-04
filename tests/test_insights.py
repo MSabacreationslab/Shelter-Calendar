@@ -235,7 +235,7 @@ def test_old_visits_and_problems_are_pruned():
 def test_staff_menu_has_four_items_and_admin_holds_the_rest(client):
     client.force_login(StaffFactory())
     html = client.get("/schedule/").content.decode()
-    start = html.index('<nav class="site-nav"')
+    start = html.index('<nav class="site-nav')
     menu = html[start : html.index("</nav>", start)]
     assert menu.count("<li>") == 4
     assert 'href="/admin/" aria-current="page">Admin</a>' in menu

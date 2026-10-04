@@ -36,7 +36,7 @@ def test_the_admin_is_shown_as_admin_in_staff_colours(client):
 
 def test_sign_out_sits_apart_from_the_menu(client):
     html = page(client, UserFactory())
-    start = html.index('<nav class="site-nav"')
+    start = html.index('<nav class="site-nav')
     menu = html[start : html.index("</nav>", start)]
     assert "Sign out" not in menu
     assert 'class="btn btn--quiet">Sign out</button>' in html
@@ -91,3 +91,34 @@ def test_a_day_with_nothing_open_points_to_find_a_shift(client):
     day = (timezone.localdate() + timezone.timedelta(days=5)).isoformat()
     html = page(client, UserFactory(), f"/my-shifts/{day}/")
     assert "Nothing open on this day" in html and 'href="/shifts/">Find a shift</a>' in html
+
+
+# Staff switching to the volunteer view and back
+
+
+def test_staff_can_flip_to_the_volunteer_view_and_back(client):
+    client.force_login(StaffFactory(first_name="Cindy"))
+    html = client.get("/").content.decode()
+    assert "See volunteer view" in html and "<h1>Dashboard</h1>" in html
+
+    assert client.post("/switch-view/", {"to": "volunteer"})["Location"] == "/"
+    html = client.get("/").content.decode()
+    assert "<h1>Dashboard</h1>" not in html and ", Cindy</h1>" in html
+    assert 'data-role="volunteer"' in html
+    assert "in the volunteer view" in html and "Back to staff view" in html
+    start = html.index('<nav class="site-nav')
+    menu = html[start : html.index("</nav>", start)]
+    assert ">Find a shift</a>" in menu and ">Admin</a>" not in menu
+    # Still staff underneath: the badge says so, and staff pages still open.
+    assert '<span class="role-badge role-badge--staff">Staff</span>' in html
+    assert client.get("/schedule/").status_code == 200
+
+    client.post("/switch-view/", {"to": "staff"})
+    html = client.get("/").content.decode()
+    assert "<h1>Dashboard</h1>" in html and "in the volunteer view" not in html
+
+
+def test_volunteers_have_no_view_switch(client):
+    client.force_login(UserFactory())
+    assert "volunteer view" not in client.get("/").content.decode()
+    assert client.post("/switch-view/", {"to": "volunteer"}).status_code == 403

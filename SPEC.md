@@ -638,6 +638,8 @@ Split into two PRs because the shelter's spreadsheet added features (decided 202
   - Alerts go to `PROBLEM_EMAILS`, or else every active Admin's email. Problems are kept a year.
 - **What people see on an error:** a plain title and sentence, "We've let the admin know automatically" when they did, a phone number, and a short reference. No SC codes.
 - `prune_usage` runs daily with the other clean-ups.
+- **Volunteer view for staff** (decided 2026-10-04): the Dashboard has **See volunteer view**. It swaps the menu and home page for the ones volunteers get, with a banner on every page and **Back to staff view**. It's only a change of view: the person is still staff, so their permissions and the staff booking rules (no approval needed, no training gate on no-training shifts) are unchanged, and anything they sign up for is real. To see exactly what one volunteer sees, use "See the app as … sees it" on that person's page.
+- **Demo data** (`seed_demo`, test site only): four weeks of shifts with most of them staffed by the demo volunteers, some full with a waitlist, some empty, requests waiting for approval, a minor, a volunteer who needs approval, and one last-minute cancellation. It sends no emails and is safe to run again; each run tops the schedule up to four weeks ahead.
 
 **Part 2: accessibility, security, hosting, guides**
 - **Accessibility pass:**
@@ -744,7 +746,7 @@ All colours live in `core/static/core/css/tokens.css` as `--color-*` tokens; not
 ### Navigation
 - **Header:** the shelter's name, then who is signed in with their role badge and a separate **Sign out** button, then the menu. Menu items look like buttons; the current page is tinted in the person's role colour.
 - **Volunteers:** **Home · Find a shift · My profile**.
-- **Staff:** **Dashboard · Admin · My shifts · My profile**. Everything else is on the Admin page, in headed cards.
+- **Staff:** **Dashboard · Admin · My shifts · My profile**. Everything else is on the Admin page, in headed cards. On a narrow phone these four sit in a two-by-two block (they don't fit one row at a readable size); the volunteers' three items stay on one row.
 - **No hamburger menus.** Links wrap onto a second line on small screens.
 - Every page has one clear **h1** and at most one primary button.
 

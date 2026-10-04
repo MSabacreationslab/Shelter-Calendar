@@ -219,4 +219,8 @@ with a clear explanation of what failed and why it doesn't match a known pattern
 - Errors go through `core.views._error_page` → `insights.problems.report()`, which never raises.
   Scheduled commands subclass `core.commands.ReportedCommand` so crashes alert the Admin.
 - Error pages show no SC codes; every code needs `admin_note` and a row in docs/error-codes.md.
+- Staff's volunteer view is a session flag (`core.context_processors.in_volunteer_view`) that
+  changes the menu and home page only; never use it to change permissions or booking rules.
+- `seed_demo` writes its sample cancellation directly, not through `cancel_signup`, so seeding
+  never emails the notify list.
 
