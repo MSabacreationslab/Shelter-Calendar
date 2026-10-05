@@ -23,9 +23,15 @@ services:
       # Check on the test site that sign-in attempts record visitors' real addresses.
       - key: TRUSTED_PROXY_COUNT
         value: "1"
+      # The Gmail address emails come from. Sending goes through Gmail's web API, because
+      # free instances can't reach the mail ports (docs/setup.md, section 4).
       - key: EMAIL_HOST_USER
         sync: false
-      - key: EMAIL_HOST_PASSWORD
+      - key: GMAIL_CLIENT_ID
+        sync: false
+      - key: GMAIL_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_REFRESH_TOKEN
         sync: false
       - key: SHELTER_PHONE
         sync: false

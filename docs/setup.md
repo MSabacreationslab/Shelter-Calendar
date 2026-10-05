@@ -116,10 +116,46 @@ Close the window when you're done, so the settings don't linger. `DEBUG` here on
 
 ## 4. Gmail (sends the app's emails)
 
-1. Create a separate Gmail account for the app, so volunteers see a sensible sender.
-2. Turn on 2-Step Verification (Google Account → Security).
-3. Create an **App password** (Google Account → Security → App passwords).
-4. In Render → the service → Environment: set `EMAIL_HOST_USER` to the Gmail address and `EMAIL_HOST_PASSWORD` to the app password.
+Hosts block the usual mail ports (Render's free plan since September 2025, and Railway's Hobby plan), so the app sends through **Gmail's web API** instead. It's free, and emails still come from the app's Gmail address. The setup is one-time, about 20–30 minutes. Google renames its screens now and then, so a button may be worded slightly differently.
+
+**A. In Google (signed in as the app's Gmail account)**
+
+1. Go to https://console.cloud.google.com and create a project, for example "Shelter Calendar".
+2. **Turn on the Gmail API:** Menu → APIs & Services → Library → search "Gmail API" → **Enable**.
+3. **Describe the app:** Menu → Google Auth platform → Branding → **Get started**. Give it a name (for example "Shelter volunteer schedule"), choose the Gmail address as the support email, choose **External**, enter the Gmail address again as the contact, agree and **Create**.
+4. **Make it permanent:** Google Auth platform → Audience → **Publish app** (so its status is "In production"). Left on "Testing", Google cancels the authorization after 7 days. No review is needed for this.
+5. **Create the key:** Google Auth platform → Clients → **Create client** → Application type **Desktop app** → Create. Keep the page open: it shows a **Client ID** and a **Client secret**.
+
+**B. On your PC (PowerShell, in the project folder)**
+
+6. Put the two values in the window (paste your own between the quotes), plus the Gmail address:
+   ```powershell
+   $env:GMAIL_CLIENT_ID = "the Client ID"
+   $env:GMAIL_CLIENT_SECRET = "the Client secret"
+   $env:EMAIL_HOST_USER = "the app's Gmail address"
+   $env:DEBUG = "1"
+   ```
+7. Authorize, and send yourself a test:
+   ```powershell
+   .venv\Scripts\python manage.py gmail_authorize --send-test-to you@example.com
+   ```
+   Your browser opens. Sign in as **the app's Gmail account** and choose **Allow**. Google will say it hasn't verified the app: choose **Advanced**, then **Go to … (unsafe)**. That warning is expected, because the app is yours and only you use it. The app only asks for permission to *send* email; it can't read the mailbox.
+8. Back in PowerShell it prints `GMAIL_REFRESH_TOKEN=…`, and the test email should arrive within a minute.
+
+**C. On the host (Render now, Railway for the pilot)**
+
+9. In the service's Environment, add three values: `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET` and `GMAIL_REFRESH_TOKEN`. Keep `EMAIL_HOST_USER` set to the Gmail address (it's the "From" address). `EMAIL_HOST_PASSWORD` is no longer used and can be removed.
+10. Save, let it redeploy, then check on the site: **Admin → Problems → Send me a test alert**.
+
+Treat the client secret and the refresh token like passwords: don't email them, paste them into chats, or commit them.
+
+**If emails stop later:** the Problems page will show SC-501 saying the authorization is no longer accepted. That happens if the Gmail account's password changes or access is removed in the Google account. Repeat steps 6–9 (the Google steps don't need redoing).
+
+**Until this is set up**, or if someone's email can't be reached, print their PIN link and pass it on yourself:
+
+```powershell
+.venv\Scripts\python manage.py setup_link "First Last"
+```
 
 ## 5. GitHub
 

@@ -43,4 +43,4 @@ Codes live in `core/errors.py` (`admin_note` is the text in the alert). Never re
 
 | Code | People see | What happened | What to check |
 |---|---|---|---|
-| SC-501 | (nothing; staff see the failed email on the person's page) | The mail server refused or timed out. The change that triggered the email was still saved. | The Gmail app password in Render (`EMAIL_HOST_PASSWORD`). If Gmail itself is down, the alert can't be emailed either, but it's on the Problems page. |
+| SC-501 | (nothing; staff see the failed email on the person's page) | Gmail refused the email or couldn't be reached. The change that triggered the email was still saved. | The details say why. "No longer accepts the saved authorization" means run `gmail_authorize` again and update `GMAIL_REFRESH_TOKEN` (docs/setup.md, section 4). If email is down altogether, the alert can't be emailed either, but it's on the Problems page; use `setup_link` to get someone their PIN link meanwhile. |
