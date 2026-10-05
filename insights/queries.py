@@ -24,6 +24,7 @@ TOP = 15
 PAGE_NAMES = {
     "home": "Home (calendar or dashboard)",
     "switch_view": "Switch between staff and volunteer view",
+    "privacy": "Your privacy",
     "accounts:sign_in": "Sign in",
     "accounts:sign_out": "Sign out",
     "accounts:setup_pin": "Choose a PIN (setup link)",

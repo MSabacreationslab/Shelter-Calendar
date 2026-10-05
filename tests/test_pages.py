@@ -135,3 +135,12 @@ def test_failures_are_logged_with_the_same_reference(path, level, caplog, settin
     records = [r for r in caplog.records if r.levelname == level]
     assert records
     assert all(r.ref == ref for r in records)
+
+
+def test_the_privacy_page_is_open_to_everyone_and_linked_from_every_page(client):
+    ShelterSettings.objects.create(pk=1, shelter_name="Test Shelter", shelter_phone="7405550100")
+    assert 'href="/privacy/">Your privacy</a>' in client.get("/sign-in/").content.decode()
+    html = client.get("/privacy/").content.decode()
+    assert "<h1>Your privacy</h1>" in html
+    assert "never sell your details" in html and "(740) 555-0100" in html
+    assert "Nobody can read it" in html

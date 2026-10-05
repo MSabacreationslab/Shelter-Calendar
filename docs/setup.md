@@ -122,8 +122,14 @@ Hosts block the usual mail ports (Render's free plan since September 2025, and R
 
 1. Go to https://console.cloud.google.com and create a project, for example "Shelter Calendar".
 2. **Turn on the Gmail API:** Menu → APIs & Services → Library → search "Gmail API" → **Enable**.
-3. **Describe the app:** Menu → Google Auth platform → Branding → **Get started**. Give it a name (for example "Shelter volunteer schedule"), choose the Gmail address as the support email, choose **External**, enter the Gmail address again as the contact, agree and **Create**.
-4. **Make it permanent:** Google Auth platform → Audience → **Publish app** (so its status is "In production"). Left on "Testing", Google cancels the authorization after 7 days. No review is needed for this.
+3. **Describe the app:** Menu → Google Auth platform → Branding → **Get started**. Give it a name (for example "Shelter volunteer schedule"), choose the Gmail address as the support email, choose **External**, enter the Gmail address again as the contact, agree and **Create**. Then, still on Branding, fill in the two addresses Google needs before it will publish the app, and save:
+   - Application home page: `https://shelter-calendar.onrender.com/`
+   - Application privacy policy link: `https://shelter-calendar.onrender.com/privacy/`
+   - Authorized domains: `shelter-calendar.onrender.com`
+
+   (When the pilot moves to Railway, change these three to the new address.)
+4. **Make it permanent:** Google Auth platform → Audience → **Publish app** (so its status is "In production"). Left on "Testing", Google cancels the authorization after 7 days. No review is needed for this: when it asks about verification, you can leave it unverified, because only you ever sign in to it.
+   - *Just trying it out?* You can stay on "Testing" instead: under Audience → Test users, add the app's Gmail address. Everything works, but you'll need to run `gmail_authorize` again every 7 days, and again once after you do publish.
 5. **Create the key:** Google Auth platform → Clients → **Create client** → Application type **Desktop app** → Create. Keep the page open: it shows a **Client ID** and a **Client secret**.
 
 **B. On your PC (PowerShell, in the project folder)**

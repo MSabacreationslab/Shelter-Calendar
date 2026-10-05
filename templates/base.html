@@ -74,6 +74,7 @@
         <p>Questions? Please ask a member of the volunteer team.</p>
       {% endif %}
       {% if shelter.email %}<p>Email: <a href="mailto:{{ shelter.email }}">{{ shelter.email }}</a></p>{% endif %}
+      <p><a href="{% url 'privacy' %}">Your privacy</a></p>
     </div>
   </footer>
   <script src="{% static 'core/js/app.js' %}" defer></script>
