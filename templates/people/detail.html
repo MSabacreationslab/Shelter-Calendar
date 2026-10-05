@@ -13,7 +13,11 @@
       <span class="notice__icon" aria-hidden="true">&#9888;</span>
       <div>
         <p class="notice__title">The last email to {{ person.get_short_name }} didn't go through</p>
-        <p>Check the email address below is right, then send a new link.</p>
+        {% if last_setup_email.address_problem %}
+          <p>Check the email address below is right, then send a new link.</p>
+        {% else %}
+          <p>The app couldn't send it. This is a problem with the app's email, not with their address, and the admin has been told. Try sending a new link later, or ask the admin to give them a link directly.</p>
+        {% endif %}
       </div>
     </div>
   {% endif %}

@@ -50,6 +50,8 @@ This spec is the source of truth for building the app. It replaces `shelter-app-
 
 **Pilot: Railway**, as the plan says. It's always on with no cold starts. The pilot database is Railway Postgres with daily backups (decided, Q15).
 
+**Email** goes out through **Gmail's web API** over HTTPS (decided 2026-10-05), as the app's own Gmail account. Render's free plan and Railway's Hobby plan both block the mail ports, so SMTP can't be used on either. `gmail_authorize` (run once on Mike's PC) produces the refresh token; the host holds `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET` and `GMAIL_REFRESH_TOKEN`. The app only has permission to send. `setup_link "First Last"` prints a PIN link when an email can't reach someone. Sending from the shelter's own domain is a possible later step (it needs DNS changes by whoever runs their website). A public **Your privacy** page (`/privacy/`, linked in every page's footer) says in plain words what's kept, who sees it and how to change it; Google also requires its address before the Gmail authorization can be made permanent. The shelter should review its wording before the pilot.
+
 **Scheduled jobs** (weekly digest, reminders; Phase 7 onward) are Django management commands. Railway cron runs them on the pilot; on the test site they're run by hand (decided, Q13). Render's free tier has no cron.
 
 ### CI (`.github/workflows/ci.yml`)

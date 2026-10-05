@@ -10,6 +10,7 @@ from accounts import services
 from accounts.models import LoginAttempt, Role, User
 from core.models import AuditEvent
 from scheduling.models import Shift, Signup, SignupStatus, WaitlistEntry
+from tests.factories import StaffFactory
 from training.models import TrainingType
 
 pytestmark = pytest.mark.django_db
@@ -90,3 +91,20 @@ def test_prune_keeps_recent_sign_in_attempts():
     remaining = set(LoginAttempt.objects.values_list("pk", flat=True))
     assert remaining == {recent.pk}
     assert old.pk not in remaining
+
+
+def test_setup_link_prints_a_working_link_for_anyone(client, settings):
+    settings.SITE_URL = "https://example.test"
+    person = StaffFactory(first_name="Cindy", last_name="Grigsby", login_name="Cindy Grigsby")
+    person.set_unusable_password()
+    person.save()
+    out = _run("setup_link", "cindy grigsby")
+    link = out.strip().splitlines()[-1]
+    assert link.startswith("https://example.test/")
+    page = client.get(link.replace("https://example.test", ""))
+    assert page.status_code == 200 and "Cindy" in page.content.decode()
+
+
+def test_setup_link_explains_a_wrong_name():
+    with pytest.raises(CommandError, match="Nobody signs in as"):
+        _run("setup_link", "No Such Person")

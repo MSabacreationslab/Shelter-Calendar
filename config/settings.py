@@ -140,19 +140,31 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
 SILENCED_SYSTEM_CHECKS = ["security.W021"]
 CSRF_FAILURE_VIEW = "core.views.csrf_failure"
 
+# Email. Hosts block the mail ports (Render free, Railway Hobby), so the test site and the
+# pilot send through Gmail's web API: set the three GMAIL_* values (docs/setup.md, section 4).
+# EMAIL_HOST_USER is the Gmail address emails come from. With EMAIL_HOST_PASSWORD too and no
+# GMAIL_* values, mail goes by SMTP instead (works from a PC, not from those hosts).
+GMAIL_CLIENT_ID = os.environ.get("GMAIL_CLIENT_ID", "")
+GMAIL_CLIENT_SECRET = os.environ.get("GMAIL_CLIENT_SECRET", "")
+GMAIL_REFRESH_TOKEN = os.environ.get("GMAIL_REFRESH_TOKEN", "")
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 EMAIL_TIMEOUT = 20
-# Until a mail account is configured, emails are written to the log instead of sent.
-EMAIL_BACKEND = os.environ.get(
-    "EMAIL_BACKEND",
-    "django.core.mail.backends.smtp.EmailBackend"
-    if EMAIL_HOST_USER
-    else "django.core.mail.backends.console.EmailBackend",
-)
+
+
+def _default_email_backend() -> str:
+    if GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET and GMAIL_REFRESH_TOKEN:
+        return "notifications.backends.GmailApiBackend"
+    if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+        return "django.core.mail.backends.smtp.EmailBackend"
+    # Until a mail account is configured, emails are written to the log instead of sent.
+    return "django.core.mail.backends.console.EmailBackend"
+
+
+EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND") or _default_email_backend()
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "webmaster@localhost")
 
 # Starting values for the ShelterSettings row (SPEC Q19); after that the Admin edits them.

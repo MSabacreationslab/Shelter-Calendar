@@ -9,6 +9,7 @@ urlpatterns = [
     path("", core_views.home, name="home"),
     path("healthz", core_views.healthz, name="healthz"),
     path("switch-view/", core_views.switch_view, name="switch_view"),
+    path("privacy/", core_views.privacy, name="privacy"),
     path("styleguide/", core_views.styleguide, name="styleguide"),
     path("", include("accounts.urls")),
     path("", include("accounts.people_urls")),

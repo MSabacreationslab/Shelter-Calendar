@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Your privacy{% endblock %}
+{% block content %}
+  {% include "components/page_header.html" with title="Your privacy" lead="What the volunteer schedule keeps about you, who can see it, and how to change it." %}
+
+  <h2>What we keep</h2>
+  <ul>
+    <li>Your name, email address and phone number.</li>
+    <li>Your emergency contact's name and phone number.</li>
+    <li>Your birthday (the month and day only), if you gave it.</li>
+    <li>The jobs you help with, the training you've done, and the shifts you sign up for or cancel.</li>
+    <li>Notes the volunteer team needs to run the schedule, such as whether a volunteer is under 18.</li>
+  </ul>
+  <p>Your PIN is kept in a scrambled form. Nobody can read it, including the volunteer team.</p>
+
+  <h2>What the app records as you use it</h2>
+  <ul>
+    <li>Each sign-in and each wrong PIN, with the internet address it came from. This is kept for 90 days, to keep accounts safe.</li>
+    <li>Which pages of the app are opened, and whether on a phone or a computer. This is kept for 90 days, to make the app easier to use. What you type is never recorded.</li>
+    <li>A list of changes, such as who signed up for a shift or who was taken off one, so mistakes can be put right.</li>
+    <li>If something goes wrong, a note of the problem, so it can be fixed.</li>
+  </ul>
+
+  <h2>Who can see it</h2>
+  <ul>
+    <li>You can see your own details on My profile.</li>
+    <li>The shelter's volunteer team can see volunteers' contact details, training and shifts.</li>
+    <li>Other volunteers can't see your details.</li>
+    <li>The person who looks after the app for the shelter can see everything, so problems can be fixed.</li>
+  </ul>
+
+  <h2>What we never do</h2>
+  <ul>
+    <li>We never sell your details or share them for advertising.</li>
+    <li>We don't follow you on other websites.</li>
+    <li>The app sends emails from its own email account: welcome links, shift reminders and news about your shifts. It never looks at your email account or anyone else's.</li>
+  </ul>
+
+  <h2>Where it's kept</h2>
+  <p>The app and its records are kept online with the companies that run it for the shelter and send its emails. They handle the information only to keep the app working.</p>
+
+  <h2>Changing or removing your details</h2>
+  <ul>
+    <li>You can change your phone number and emergency contact on My profile, and turn shift reminder emails on or off there.</li>
+    <li>For anything else, or to have your details removed, {% if shelter.phone %}call the shelter at <a href="tel:{{ shelter.phone_link }}">{{ shelter.phone }}</a>{% else %}ask a member of the volunteer team{% endif %}{% if shelter.email %} or email <a href="mailto:{{ shelter.email }}">{{ shelter.email }}</a>{% endif %}.</li>
+  </ul>
+
+  <p class="muted">{{ shelter.name }}. Last updated October 2026.</p>
+{% endblock %}

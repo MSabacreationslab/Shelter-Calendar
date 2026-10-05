@@ -48,6 +48,12 @@ def healthz(request):
     return JsonResponse({"status": "ok"})
 
 
+@requires(PUBLIC)
+def privacy(request):
+    """What the app keeps about people, who sees it, and how to change it. Open to anyone."""
+    return render(request, "core/privacy.html")
+
+
 SWATCHES = [
     ("background", "Page background"),
     ("surface", "Cards and forms"),

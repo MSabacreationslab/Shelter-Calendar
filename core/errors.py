@@ -82,8 +82,9 @@ EMAIL_FAILED = ErrorCode(
     "SC-501",
     "An email couldn't be sent",
     "",
-    "The mail server refused or timed out. The change that triggered it was still saved; "
-    "the person's page shows the failed email. Check the Gmail app password in Render.",
+    "Gmail refused the email or couldn't be reached. The change that triggered it was still "
+    "saved; the person's page shows the failed email. What happened (below) says why; if the "
+    "authorization is no longer accepted, run gmail_authorize again (docs/setup.md).",
 )
 
 ALL_ERRORS = [

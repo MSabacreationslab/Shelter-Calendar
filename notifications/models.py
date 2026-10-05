@@ -33,6 +33,11 @@ class EmailLog(models.Model):
         """True if sending didn't work."""
         return self.sent_at is None
 
+    @property
+    def address_problem(self) -> bool:
+        """True if it failed because of the person's address, not the app's email."""
+        return self.error.startswith("No email address") or "RecipientsRefused" in self.error
+
 
 class ReminderKind(models.TextChoices):
     EVENING = "evening", "Evening-before reminder"

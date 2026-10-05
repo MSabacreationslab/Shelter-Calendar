@@ -224,3 +224,12 @@ with a clear explanation of what failed and why it doesn't match a known pattern
 - `seed_demo` writes its sample cancellation directly, not through `cancel_signup`, so seeding
   never emails the notify list.
 
+**Email delivery (Phase 9, part 2)**
+- Hosts block SMTP (Render free, Railway Hobby), so email goes through Gmail's web API:
+  `notifications/gmail.py` (stdlib only) and `notifications.backends.GmailApiBackend`, chosen
+  automatically when the three `GMAIL_*` settings are set. Never log or print those values,
+  except `gmail_authorize` printing the refresh token for Mike to copy.
+- `setup_link "First Last"` prints a PIN link from Mike's PC when email can't reach someone.
+- The failed-email notice on a person's page only blames the address when
+  `EmailLog.address_problem` is true.
+
